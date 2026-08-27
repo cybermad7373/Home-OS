@@ -157,6 +157,14 @@ export const ERROR_CATALOGUE = {
     status: 409,
     message: "There aren't enough people here to decide this",
   },
+  // BR-165 and the R-3 rewrite: the routes that used to do these things
+  // directly propose instead and answer with this, carrying the decision they
+  // created. Never a 404 — a client that has not been updated is out of date,
+  // not pointed at something that has ceased to exist.
+  DECISION_REQUIRED: {
+    status: 409,
+    message: "This needs the house to agree. Propose it instead.",
+  },
   SUPERSEDED_NOT_FOUND: { status: 404, message: "That earlier decision isn't here" },
   SUPERSEDED_NOT_LAPSED: {
     status: 409,

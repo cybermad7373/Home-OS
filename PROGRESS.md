@@ -12,7 +12,7 @@ How the rest of the build runs. The reasoning is D-59; this is the summary.
 
 | | |
 |---|---|
-| **Next piece of work** | Stand up local Supabase, apply migrations 045 to 054, run the integration suites, re-run `npm run gen:types`, and empty `lib/types/schema-pending.ts` of everything the regenerated file covers. Feature work resumes after that. |
+| **Next piece of work** | Stand up local Supabase, apply migrations 045 to 056, run the integration suites, re-run `npm run gen:types`, and empty `lib/types/schema-pending.ts` of everything the regenerated file covers. Feature work resumes after that. |
 | **Test target** | The local stack. The hosted project is written to only by an explicitly requested `db:push`. |
 | **Scope** | The whole of specification 2.0: finish phase 11, then 12 to 15 in the roadmap's order. Nothing trimmed. |
 | **Phase-11 order** | Jobs and notifications, then S-37 proposers, then absence, then shared assignment and `change_confirmation_policy`, then governed close with adjustments, then expected contributions and the reserve. |
@@ -20,8 +20,8 @@ How the rest of the build runs. The reasoning is D-59; this is the summary.
 | **E2E** | One Playwright journey per phase, written with the phase. Phase 11's is propose, respond, apply. |
 | **AI keys** | Supplied when a call site needs real verification, pasted into the app's own settings panel and sealed against that Home. Never in the repository, an env file, a fixture or a test. |
 
-The first row is the one that changes what happens next. Ten migrations have
-been written and applied nowhere, roughly fifty-six integration assertions skip
+The first row is the one that changes what happens next. Twelve migrations have
+been written and applied nowhere, roughly sixty integration assertions skip
 themselves, and no governance screen has been opened against a schema that
 contains its tables. Every further migration written in that state raises the
 cost of the first apply, because the failures then arrive together.
@@ -708,7 +708,7 @@ skip themselves until a `db push` has happened.
 ## Phase 11 — governance (in progress)
 
 The phase that changes what the product is, and the one the roadmap says to
-build slowly. Five slices are written so far.
+build slowly. Seven slices are written so far.
 
 ### The engine
 
@@ -987,23 +987,70 @@ somebody to answer it. `complete_pending_removals` was already scheduled by
 they drift — the arrangement the notification catalogue has lived under since
 041.
 
+### Slice 7 — proposing from the screen that needs it (S-37, migration 056)
+
+The engine accepted proposals and no screen sent one. This slice builds the
+sheet that does, and closes the last direct path to a removal.
+
+**S-37 as a component, not a screen.** `components/governance/propose-sheet.tsx`
+takes what is being proposed and shows three things before the person commits
+to asking: who will be asked, with each person's capacity; how many responses
+it needs and how long they have; and the line that matters most to somebody who
+has just tapped a button labelled Remove — "Nothing changes until they
+respond." A Home with nobody to ask is told the opposite, truthfully, rather
+than being given a reassurance that is false there.
+
+**The preview is a server call, not a guess.** `POST /api/decisions/preview`
+runs the same selector the proposal will and writes nothing, so the list the
+sheet promises is the list the decision gets, and a proposal that could not be
+made is refused before it is made rather than after the Home has been asked.
+Its pure half — the counts and the deadline in words — is
+`lib/domain/governance/preview.ts`, with 10 unit cases.
+
+**Removal is the first entry point.** `remove_member` is the one Critical type
+whose effect exists in 053, so it is the one that could be wired without
+proposing something that would sit approved and unapplied. Close, reopen and
+balance adjustment reuse this sheet when their effects arrive.
+
+**`DELETE /api/members/:id` is now a proposer** (R-3). It removes nobody: with a
+reason it raises the decision and answers `409 DECISION_REQUIRED` carrying the
+id, and with no body it answers the same code carrying what to propose — never
+a 404, so a client that has not been updated learns what happened rather than
+concluding the member is already gone. A Home with nobody to ask still gets a
+`200` in the old shape, because there the removal did happen.
+
+**Migration 056 closes the second door.** Dropping `remove_member(uuid)`, which
+050 always said phase 11 would drop, was not enough on its own: the privilege
+trigger let an Admin write `status` directly and RLS let a lead update member
+rows. The trigger is restated so an **adult's** `status` and `left_date` may
+only be written by something holding the authorisation flag — a decision effect
+or the removal job. Dependents stay on the Admin path deliberately. Both rules,
+and the rule that a Critical decision may only be proposed by a lead, are D-61.
+
+The consequence that surprised the tests: **a two-person Home cannot remove
+anybody.** The subject is not a participant and a Critical decision needs two
+distinct responders, so the two membership cases that removed a member from a
+two-person Home now build a three-person one and drive the removal through a
+decision. That is the §2.4 floor working, not a defect.
+
 ### Not yet built in this phase
 
 `absence_requests`; close and reopen becoming decisions, and with them the
 apply-time netting the dispatcher's `p_input` exists for; `balance_adjustments`;
 expected contributions and the reserve; shared chore assignment (CE-11); and
 `change_confirmation_policy`, the fifteenth decision type and the only thing
-that will ever write `house_settings.confirmation_policy` (D-60). Proposing
-from the actions that need it (S-37 — Close month, Propose removal, Adjust a
-balance) is also still to come: the API accepts a proposal today, and no screen
-sends one. N-45 and N-46 are Food's two notifications and arrive with phase 13,
-which is the module they describe.
+that will ever write `house_settings.confirmation_policy` (D-60). Close month
+and Adjust a balance have no proposer entry point yet either — the sheet they
+will open is built, and the effects they would apply are not. N-45 and N-46 are
+Food's two notifications and arrive with phase 13, which is the module they
+describe.
 
 They are built in this order, cheapest-risk first (D-59):
 
 1. ~~The three governance jobs and the governance notifications~~ — done,
    migration 055
-2. The proposer entry points, S-37
+2. ~~The proposer entry points, S-37~~ — done, migration 056 (removal; close
+   and balance adjustment reuse the sheet in slice 5 below)
 3. `absence_requests`
 4. Shared chore assignment (CE-11) and `change_confirmation_policy`
 5. Governed close and reopen, with `balance_adjustments`
@@ -1015,17 +1062,24 @@ of the phase, and one commit per slice.
 ### Verification
 
 `npm run typecheck`, `npm run lint`, `npm run test` and `npm run build` are
-clean — 471 passing tests, including the governance property, the 15 queue
-cases, the 5 `canConfirm` cases and the 16 new cases holding the notification
+clean — 481 passing tests, including the governance property, the 15 queue
+cases, the 5 `canConfirm` cases, the 16 cases holding the notification
 catalogue, the mandatory categories and the action phrases to the migration,
-and all five decision routes and all three governance screens appear in the
-build output. The 38 cases in `tests/integration/governance.test.ts`, the 12 in
-`tests/integration/chore-quorum.test.ts` and the 17 in
-`tests/integration/governance-notifications.test.ts` skip themselves, because
-migrations 051 to 055 have not been pushed to any environment and no local
+and the 10 new cases behind S-37's copy, and all six decision routes and all
+three governance screens appear in the build output. The 38 cases in
+`tests/integration/governance.test.ts`, the 12 in
+`tests/integration/chore-quorum.test.ts`, the 17 in
+`tests/integration/governance-notifications.test.ts` and now the three removal
+cases in `tests/integration/membership.test.ts` skip themselves, because
+migrations 051 to 056 have not been pushed to any environment and no local
 Postgres, Supabase CLI or Docker was available to run them against. **No part
 of this phase has been applied to a database, and none of its SQL has been
 executed anywhere.**
+
+The removal cases are the ones to watch on the first apply: they are the only
+tests of migration 056, and the newest of them — an Admin updating
+`house_members.status` directly and being refused — is the whole of the
+back-door claim D-61 makes.
 
 The chore-quorum suite is where the two phase-11 acceptance criteria for
 confirmation live — "a four-person Home's chore requires an Admin or Co-Admin

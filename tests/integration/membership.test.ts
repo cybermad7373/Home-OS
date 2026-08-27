@@ -44,6 +44,23 @@ const migrated = configured
 
 const describeIfReady = configured && migrated ? describe : describe.skip;
 
+/**
+ * Removal moved behind a decision in 056, so those cases need 051 to 053 as
+ * well and gate separately rather than taking the join and isolation tests
+ * down with them. A missing `apply_decision` is a schema-cache miss; a present
+ * one refuses a uuid that names no decision.
+ */
+const governed =
+  configured && migrated
+    ? await admin
+        .rpc("apply_decision", {
+          p_decision_id: "00000000-0000-0000-0000-000000000000",
+        })
+        .then(({ error }) => !(error?.message ?? "").includes("Could not find the function"))
+    : false;
+
+const describeIfGoverned = governed ? describe : describe.skip;
+
 const PASSWORD = "test-password-1";
 const stamp = Date.now();
 
@@ -57,6 +74,8 @@ describeIfReady("membership and Homes", () => {
 
   let owner: Actor;
   let stranger: Actor;
+  /** A removal needs somebody to ask who is not the subject (spec 3.3). */
+  let third: Actor;
   const houseIds: string[] = [];
 
   async function makeActor(label: string): Promise<Actor> {
@@ -107,6 +126,7 @@ describeIfReady("membership and Homes", () => {
   beforeAll(async () => {
     owner = await makeActor("owner");
     stranger = await makeActor("stranger");
+    third = await makeActor("third");
   }, 60_000);
 
   afterAll(async () => {
@@ -115,7 +135,7 @@ describeIfReady("membership and Homes", () => {
       await admin.from("expenses").delete().eq("house_id", houseId);
       await admin.from("houses").delete().eq("id", houseId);
     }
-    for (const actor of [owner, stranger]) {
+    for (const actor of [owner, stranger, third]) {
       if (actor) await admin.auth.admin.deleteUser(actor.userId);
     }
   }, 60_000);
@@ -363,127 +383,213 @@ describeIfReady("membership and Homes", () => {
   // -------------------------------------------------------------------------
   // Removal, and the money that outlives it (D-45)
   // -------------------------------------------------------------------------
-  it("completes a clean removal at once", async () => {
-    const houseId = await makeHome(owner, `Clean Exit ${stamp}`);
-    const token = await liveToken(houseId);
-    await stranger.client.rpc("request_join", { p_token: token });
+  // Since migration 056 there is no `remove_member(uuid)` and no direct write:
+  // an adult's `status` is written by a decision effect or by the removal job,
+  // and by nothing else (BR-165). So these two tests drive the removal the way
+  // the product does — a `remove_member` decision, approved, applied — and what
+  // they are still about is what happens underneath it, which has not changed.
+  //
+  // A removal needs a third person: the subject is never a participant, and a
+  // Critical decision needs two distinct responders, so a two-person Home has
+  // nobody to ask.
+  describeIfGoverned("removal, once the Home has agreed to it", () => {
+    async function joinHome(actor: Actor, houseId: string): Promise<string> {
+      const token = await liveToken(houseId);
+      await actor.client.rpc("request_join", { p_token: token });
 
-    const { data: request } = await admin
-      .from("join_requests")
-      .select("id")
-      .eq("house_id", houseId)
-      .eq("status", "requested")
-      .single();
-    await owner.client.rpc("accept_join_request", {
-      p_request_id: (request as { id: string }).id,
-    });
+      const { data: request } = await admin
+        .from("join_requests")
+        .select("id")
+        .eq("house_id", houseId)
+        .eq("user_id", actor.userId)
+        .eq("status", "requested")
+        .single();
+      const { error } = await owner.client.rpc("accept_join_request", {
+        p_request_id: (request as { id: string }).id,
+      });
+      if (error) throw error;
 
-    const { data: member } = await admin
-      .from("house_members")
-      .select("id")
-      .eq("house_id", houseId)
-      .eq("user_id", stranger.userId)
-      .single();
+      const { data: member } = await admin
+        .from("house_members")
+        .select("id")
+        .eq("house_id", houseId)
+        .eq("user_id", actor.userId)
+        .single();
+      return (member as { id: string }).id;
+    }
 
-    const { error } = await owner.client.rpc("remove_member", {
-      p_member_id: (member as { id: string }).id,
-    });
-    expect(error).toBeNull();
+    async function memberIdOf(houseId: string, actor: Actor): Promise<string> {
+      const { data, error } = await admin
+        .from("house_members")
+        .select("id")
+        .eq("house_id", houseId)
+        .eq("user_id", actor.userId)
+        .single();
+      if (error) throw error;
+      return (data as { id: string }).id;
+    }
 
-    const { data: after } = await admin
-      .from("house_members")
-      .select("status, left_date, pending_settlement")
-      .eq("id", (member as { id: string }).id)
-      .single();
+    /**
+     * Propose, approve, apply — the whole path, with the service-role client.
+     *
+     * The decision is seeded rather than proposed through `create_decision`
+     * because these tests are about the removal underneath, not about the
+     * selector above it; `governance.test.ts` owns the proposal rules.
+     */
+    async function removeByDecision(
+      houseId: string,
+      subjectMemberId: string,
+      approverMemberIds: string[],
+    ): Promise<{ error: { message?: string } | null }> {
+      const proposerId = await memberIdOf(houseId, owner);
 
-    expect(after).toMatchObject({ status: "inactive", pending_settlement: false });
-    expect((after as { left_date: string | null }).left_date).not.toBeNull();
-  }, 60_000);
+      const { data: decision, error: insertError } = await admin
+        .from("decisions")
+        .insert({
+          house_id: houseId,
+          type: "remove_member",
+          level: "critical",
+          requested_by: proposerId,
+          subject_member_id: subjectMemberId,
+          subject_type: "house_member",
+          reason: "They moved out at the end of the month",
+          required_approvals: approverMemberIds.length,
+        })
+        .select("id")
+        .single();
+      if (insertError) throw insertError;
+      const decisionId = (decision as { id: string }).id;
 
-  it("leaves a removal pending while money is outstanding, and finishes it when the last payment is confirmed", async () => {
-    const houseId = await makeHome(owner, `Owing Exit ${stamp}`);
-    const token = await liveToken(houseId);
-    await stranger.client.rpc("request_join", { p_token: token });
+      const { error: participantError } = await admin
+        .from("decision_participants")
+        .insert(
+          approverMemberIds.map((memberId) => ({
+            decision_id: decisionId,
+            member_id: memberId,
+            capacity: "approver",
+          })),
+        );
+      if (participantError) throw participantError;
 
-    const { data: request } = await admin
-      .from("join_requests")
-      .select("id")
-      .eq("house_id", houseId)
-      .eq("status", "requested")
-      .single();
-    await owner.client.rpc("accept_join_request", {
-      p_request_id: (request as { id: string }).id,
-    });
+      const { error: responseError } = await admin.from("decision_responses").insert(
+        approverMemberIds.map((memberId) => ({
+          decision_id: decisionId,
+          member_id: memberId,
+          capacity: "approver",
+          response: "approve",
+        })),
+      );
+      if (responseError) throw responseError;
 
-    const { data: members } = await admin
-      .from("house_members")
-      .select("id, user_id")
-      .eq("house_id", houseId);
-    const leaver = (members as { id: string; user_id: string }[]).find(
-      (row) => row.user_id === stranger.userId,
-    )!;
-    const stayer = (members as { id: string; user_id: string }[]).find(
-      (row) => row.user_id === owner.userId,
-    )!;
+      return admin.rpc("apply_decision", { p_decision_id: decisionId });
+    }
 
-    const { data: period } = await admin
-      .from("monthly_periods")
-      .insert({ house_id: houseId, period: "2026-08" })
-      .select("id")
-      .single();
+    it("refuses to end an adult's membership without a decision", async () => {
+      const houseId = await makeHome(owner, `No Back Door ${stamp}`);
+      const leaverId = await joinHome(stranger, houseId);
 
-    const { data: settlement } = await admin
-      .from("settlements")
-      .insert({
-        house_id: houseId,
-        period_id: (period as { id: string }).id,
-        from_member_id: leaver.id,
-        to_member_id: stayer.id,
-        amount_paise: 50000,
-        status: "pending",
-      })
-      .select("id")
-      .single();
+      // An Admin, with the privilege the trigger used to accept, going straight
+      // at the column the removal effect writes.
+      const { error } = await owner.client
+        .from("house_members")
+        .update({ status: "inactive" })
+        .eq("id", leaverId);
 
-    await owner.client.rpc("remove_member", { p_member_id: leaver.id });
+      expect(error).not.toBeNull();
+      expect(error?.message ?? "").toContain("DECISION_REQUIRED");
+    }, 60_000);
 
-    const { data: pending } = await admin
-      .from("house_members")
-      .select("status, pending_settlement")
-      .eq("id", leaver.id)
-      .single();
-    expect(pending).toMatchObject({ status: "inactive", pending_settlement: true });
+    it("completes a clean removal at once", async () => {
+      const houseId = await makeHome(owner, `Clean Exit ${stamp}`);
+      const leaverId = await joinHome(stranger, houseId);
+      const thirdId = await joinHome(third, houseId);
+      const ownerId = await memberIdOf(houseId, owner);
 
-    // The settlement is untouched by the removal — they still owe it.
-    const { data: stillOwed } = await admin
-      .from("settlements")
-      .select("status")
-      .eq("id", (settlement as { id: string }).id)
-      .single();
-    expect((stillOwed as { status: string }).status).toBe("pending");
+      const { error } = await removeByDecision(houseId, leaverId, [ownerId, thirdId]);
+      expect(error).toBeNull();
 
-    // The daily job leaves them alone while the money is outstanding.
-    await admin.rpc("complete_pending_removals");
-    const { data: unchanged } = await admin
-      .from("house_members")
-      .select("pending_settlement")
-      .eq("id", leaver.id)
-      .single();
-    expect((unchanged as { pending_settlement: boolean }).pending_settlement).toBe(true);
+      const { data: after } = await admin
+        .from("house_members")
+        .select("status, left_date, pending_settlement")
+        .eq("id", leaverId)
+        .single();
 
-    // Confirmed — and the next run finishes the removal without being asked.
-    await admin
-      .from("settlements")
-      .update({ status: "confirmed", confirmed_at: new Date().toISOString() })
-      .eq("id", (settlement as { id: string }).id);
+      expect(after).toMatchObject({ status: "inactive", pending_settlement: false });
+      expect((after as { left_date: string | null }).left_date).not.toBeNull();
+    }, 90_000);
 
-    await admin.rpc("complete_pending_removals");
+    it("leaves a removal pending while money is outstanding, and finishes it when the last payment is confirmed", async () => {
+      const houseId = await makeHome(owner, `Owing Exit ${stamp}`);
+      const leaverId = await joinHome(stranger, houseId);
+      const thirdId = await joinHome(third, houseId);
+      const stayerId = await memberIdOf(houseId, owner);
 
-    const { data: done } = await admin
-      .from("house_members")
-      .select("status, pending_settlement")
-      .eq("id", leaver.id)
-      .single();
-    expect(done).toMatchObject({ status: "inactive", pending_settlement: false });
-  }, 90_000);
+      const leaver = { id: leaverId };
+      const stayer = { id: stayerId };
+
+      const { data: period } = await admin
+        .from("monthly_periods")
+        .insert({ house_id: houseId, period: "2026-08" })
+        .select("id")
+        .single();
+
+      const { data: settlement } = await admin
+        .from("settlements")
+        .insert({
+          house_id: houseId,
+          period_id: (period as { id: string }).id,
+          from_member_id: leaver.id,
+          to_member_id: stayer.id,
+          amount_paise: 50000,
+          status: "pending",
+        })
+        .select("id")
+        .single();
+
+      const { error: applyError } = await removeByDecision(houseId, leaver.id, [
+        stayer.id,
+        thirdId,
+      ]);
+      expect(applyError).toBeNull();
+
+      const { data: pending } = await admin
+        .from("house_members")
+        .select("status, pending_settlement")
+        .eq("id", leaver.id)
+        .single();
+      expect(pending).toMatchObject({ status: "inactive", pending_settlement: true });
+
+      // The settlement is untouched by the removal — they still owe it.
+      const { data: stillOwed } = await admin
+        .from("settlements")
+        .select("status")
+        .eq("id", (settlement as { id: string }).id)
+        .single();
+      expect((stillOwed as { status: string }).status).toBe("pending");
+
+      // The daily job leaves them alone while the money is outstanding.
+      await admin.rpc("complete_pending_removals");
+      const { data: unchanged } = await admin
+        .from("house_members")
+        .select("pending_settlement")
+        .eq("id", leaver.id)
+        .single();
+      expect((unchanged as { pending_settlement: boolean }).pending_settlement).toBe(true);
+
+      // Confirmed — and the next run finishes the removal without being asked.
+      await admin
+        .from("settlements")
+        .update({ status: "confirmed", confirmed_at: new Date().toISOString() })
+        .eq("id", (settlement as { id: string }).id);
+
+      await admin.rpc("complete_pending_removals");
+
+      const { data: done } = await admin
+        .from("house_members")
+        .select("status, pending_settlement")
+        .eq("id", leaver.id)
+        .single();
+      expect(done).toMatchObject({ status: "inactive", pending_settlement: false });
+    }, 90_000);
+  });
 });

@@ -463,10 +463,6 @@ export type PendingFunctions = Omit<
     Args: { p_house_id?: string };
     Returns: MemberReturn;
   };
-  remove_member: {
-    Args: { p_member_id: string };
-    Returns: MemberReturn;
-  };
   is_house_lead: {
     Args: { p_house_id: string };
     Returns: boolean;

@@ -61,6 +61,26 @@ export const proposeDecisionSchema = z.object({
   supersedes_id: z.string().uuid().optional(),
 });
 
+/**
+ * The body `DELETE /api/members/:id` takes now that it proposes rather than
+ * removes. Everything about the decision except the reason is in the path, and
+ * a client that sends nothing at all is answered rather than refused (R-3).
+ */
+export const proposeRemovalSchema = z.object({
+  reason: z.string().trim().min(3, "Say why").max(500).optional(),
+});
+
+/**
+ * The S-37 sheet's question, which is the proposal minus everything that only
+ * matters once it is real: no reason, no payload, no `supersedes_id`. Who is
+ * asked depends on the type and the subject and on nothing else, so those are
+ * the only two things the preview takes.
+ */
+export const previewDecisionSchema = z.object({
+  type: decisionTypeSchema,
+  subject_member_id: z.string().uuid().optional(),
+});
+
 export const respondSchema = z
   .object({
     response: z.enum(["approve", "reject", "acknowledge"]),
@@ -95,4 +115,5 @@ export const decisionQuerySchema = z.object({
 });
 
 export type ProposeDecisionInput = z.infer<typeof proposeDecisionSchema>;
+export type PreviewDecisionInput = z.infer<typeof previewDecisionSchema>;
 export type RespondInput = z.infer<typeof respondSchema>;

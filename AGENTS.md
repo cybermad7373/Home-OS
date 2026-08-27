@@ -119,8 +119,8 @@ built but not yet applied to an environment — migrations 045 and 046 are unpus
 and the LLM master key is unset. Phases 10–15 are the version-2.0 additions —
 membership and Homes, governance, rules, food, Today/Calendar/navigation, and
 insights. Phase 10 is built and phase 11 is in progress, both against unpushed
-migrations (047–054); phases 12–15 are not started. **The next piece of work is
-not a feature:** stand up local Supabase, apply 045–054, run the integration
+migrations (047–056); phases 12–15 are not started. **The next piece of work is
+not a feature:** stand up local Supabase, apply 045–056, run the integration
 suites that currently skip themselves, regenerate the types, and prune
 `lib/types/schema-pending.ts` (D-59). `PROGRESS.md` is the
 authority on what is built and what has actually been applied to a database. Product phase 2 is native Android/iOS

@@ -134,7 +134,8 @@ export async function updateSettings(
 /**
  * Role, residency and the cooking flag. Not status: a Requested person becomes
  * Active by having their request accepted, and an Active person becomes
- * Inactive through `removeMember`, which knows about money still owed.
+ * Inactive only through an applied `remove_member` decision (056), which knows
+ * about money still owed.
  */
 export async function updateMember(
   session: Session,
@@ -161,29 +162,10 @@ export async function updateMember(
   return data;
 }
 
-/**
- * Removal, in the two states D-45 asks for.
- *
- * The database decides which one it lands in: a member who still owes the Home
- * money, or is still owed by it, becomes Inactive **and** flagged
- * `pending_settlement`, stays in the settlement, and has their removal
- * completed by the daily job on the day the last payment is confirmed.
- *
- * Phase 11 puts this behind a `remove_member` decision. The two states do not
- * change when it does; only who is allowed to start one.
- */
-export async function removeMember(
-  session: Session,
-  memberId: string,
-): Promise<HouseMemberRow> {
-  const { data, error } = await session.supabase.rpc("remove_member", {
-    p_member_id: memberId,
-  });
-  if (error) throw apiErrorFromPostgres(error);
-  const row = (Array.isArray(data) ? data[0] : data) as HouseMemberRow | null;
-  if (!row) throw new ApiError("NOT_FOUND");
-  return row;
-}
+// Removal used to live here, as a wrapper around the `remove_member` RPC.
+// Migration 056 dropped that function and phase 11 moved the act itself behind
+// a `remove_member` decision, so the only caller is now `apply_decision_effect`
+// in SQL. The two states D-45 asks for did not change; who may start one did.
 
 /**
  * Adds a resident who has no account — a child, an elderly parent, anybody the

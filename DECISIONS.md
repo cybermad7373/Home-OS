@@ -1379,3 +1379,52 @@ added to the `create type` in 051 itself rather than through an `alter type` in
 a later file. That is only correct while 051 remains unapplied; after the first
 apply, an added value needs its own migration, because `alter type … add value`
 may not run in the transaction the Supabase CLI wraps each file in.
+
+---
+
+## D-61 — a Critical decision is proposed by a lead, and removal has one door
+
+**Phase 11, the S-37 slice.** Two rules were implicit until the proposer entry
+points made them reachable, and both had to be written down before a screen
+could send a proposal.
+
+**Who may propose.** Every Critical row of the matrix in
+`docs/14-GOVERNANCE-SPEC.md` §3.3 reads "Admin (proposer), Co-Admin", but
+nothing enforced it: `create_decision` checks that the caller is a member, and
+the participant selector adds the proposer as a mandatory approver without
+asking what role they hold. `DELETE /api/members/:id` asked for Admin before
+phase 11, so leaving the proposal route open would have turned that check into
+decoration — the same removal could be started by anybody through
+`POST /api/decisions`. So the application refuses a Critical proposal from
+somebody who is neither an Admin nor a Co-Admin. A Co-Admin is admitted as well
+as an Admin because a Co-Admin is a mandatory participant on every Critical
+decision anyway: one who proposes is reaching past nobody, and a Home whose
+Admin is away should not be unable to raise anything.
+
+This is an application rule, not a database one, which is the one asymmetry
+worth naming. The invariants the database holds are the ones that must survive
+a service-role key — who is asked, who may answer, and what "approved" means.
+Who *asks* is not one of them: a proposal from the wrong person still cannot
+complete without the people the engine names.
+
+**Removal has one door.** Migration 050 shipped `remove_member(uuid)` as the
+wrapper a person reached, and said in its own comment that phase 11 would drop
+it. Dropping it alone would not have been enough. The privilege trigger let an
+Admin write `status` and `left_date` directly and the RLS policy let a lead
+update member rows, so an Admin with a PostgREST client could still deactivate
+somebody without asking anyone — the exact thing BR-165 forbids. Migration 056
+therefore drops the function *and* restates the trigger: an **adult** member's
+`status` and `left_date` may only be written by something holding the
+authorisation flag, which is a decision effect or the removal job that finishes
+what a decision started.
+
+Dependents are deliberately left on the Admin path. A dependent has no account,
+no voice and no vote; removing one is an administrative correction, and
+`DELETE /api/members/dependents/:id` does exactly that with a direct update.
+
+The consequence worth stating plainly: **a two-person Home cannot remove
+anybody.** The subject is never a participant and a Critical decision needs two
+distinct responders, so the only other person is excluded and there is nobody
+left to ask. That is the floor from §2.4 working as intended rather than an
+oversight, and the sheet says so — the proposal is refused before it is made,
+not after the Home has been asked to approve something that could never apply.

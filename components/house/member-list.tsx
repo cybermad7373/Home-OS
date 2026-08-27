@@ -2,8 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ProposeSheet } from "@/components/governance/propose-sheet";
 import { Card, CardDescription } from "@/components/ui/card";
 import { MemberAvatar } from "@/components/ui/avatar";
 import { Input, Select } from "@/components/ui/input";
@@ -35,6 +37,7 @@ export function MemberList({
   const toast = useToast();
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState<MemberView | null>(null);
+  const [removing, setRemoving] = useState<MemberView | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [addingDependent, setAddingDependent] = useState(false);
 
@@ -73,31 +76,16 @@ export function MemberList({
     members.find((member) => member.id === memberId)?.displayName ?? "nobody";
 
   /**
-   * Removal, not a status patch (D-45).
+   * Removal is proposed, not performed (BR-165, R-3).
    *
-   * The answer tells us which of the two states it landed in: gone, or gone
-   * and still in the settlement. Saying so here is the difference between the
-   * Home believing the matter is closed and knowing it is not.
+   * The Edit sheet closes and S-37 opens in its place: the same button, and a
+   * different promise. What the two-state removal does to the money is decided
+   * at apply time as it always was (D-45); what changed in phase 11 is that
+   * nobody reaches apply time alone.
    */
-  async function removeMember(member: MemberView) {
-    setBusyId(member.id);
-    const response = await fetch(`/api/members/${member.id}`, { method: "DELETE" });
-    const payload = await response.json().catch(() => ({}));
-    setBusyId(null);
-
-    if (!response.ok) {
-      toast(payload?.error?.message ?? "That did not work", "danger");
-      return;
-    }
-
+  function proposeRemoval(member: MemberView) {
     setEditing(null);
-    toast(
-      payload.pending_settlement
-        ? `${member.displayName} is out, and still in this month's settlement until they are paid up.`
-        : `${member.displayName} is out.`,
-      "success",
-    );
-    startTransition(() => router.refresh());
+    setRemoving(member);
   }
 
   async function removeDependent(member: MemberView) {
@@ -239,7 +227,24 @@ export function MemberList({
           busy={busyId === editing.id || pending}
           onClose={() => setEditing(null)}
           onSave={(body) => patchMember(editing, body)}
-          onRemove={() => removeMember(editing)}
+          onRemove={() => proposeRemoval(editing)}
+        />
+      ) : null}
+
+      {removing ? (
+        <ProposeSheet
+          draft={{ type: "remove_member", subject_member_id: removing.id }}
+          title={`Remove ${removing.displayName}?`}
+          summary={`You are asking the home to remove ${removing.displayName}. They stop getting chores and splits, and everything they were part of stays in the record.`}
+          effect={
+            <Alert tone="info">
+              If they still owe the home money, or the home owes them, they stay in
+              the settlement until it is paid — the removal finishes on the day it
+              clears.
+            </Alert>
+          }
+          submitLabel="Ask the home"
+          onClose={() => setRemoving(null)}
         />
       ) : null}
 
@@ -481,12 +486,12 @@ function EditMemberSheet({
         loading={busy}
         onClick={onRemove}
       >
-        Remove from the home
+        Propose removing them
       </Button>
       <p className="caption-text mt-2 text-text-muted">
-        Removing keeps every expense, split and assignment they were part of. If they
-        still owe the home money, or the home owes them, they stay in the settlement
-        until it is paid.
+        Removing somebody is the home&rsquo;s decision, not one person&rsquo;s: you
+        propose it and the people who have to answer are shown before you ask.
+        Removal keeps every expense, split and assignment they were part of.
       </p>
     </BottomSheet>
   );

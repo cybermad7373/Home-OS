@@ -284,6 +284,22 @@ the decision type to raise.
 
 Demoting the last Admin returns `409 LAST_ADMIN`.
 
+### `DELETE /api/members/:id` — **a proposer since phase 11**
+It removes nobody. With a `reason` in the body it raises a `remove_member`
+decision and answers `409 DECISION_REQUIRED` carrying `decision_id`; with no
+body it answers the same code carrying what to propose and where. A client that
+has not been updated therefore learns what happened rather than meeting a 404
+and concluding the member is already gone (R-3).
+
+The one exception is a Home with nobody to ask: the decision auto-approves, the
+effect runs, and the answer is `200` in the shape the route always returned,
+plus the `decision_id` that records it.
+
+Since migration 056 there is no direct path either: an adult's `status` and
+`left_date` may only be written by an applied decision effect or by the removal
+job. A dependent stays on the Admin path — see
+`DELETE /api/members/dependents/:id`.
+
 ### `POST /api/members/dependents` — **lead**
 Create a resident with no account: name, `shares_cost`, `does_chores`, guardian.
 The documented exception to HM-06, because there is nobody to send a link to,
@@ -299,7 +315,7 @@ Move a member into a room. Closes the previous `room_assignment` with `to_date =
 
 ## 3. Governance, decisions and approvals — **new in 2.0**
 
-The whole of [14-GOVERNANCE-SPEC.md](14-GOVERNANCE-SPEC.md), over five
+The whole of [14-GOVERNANCE-SPEC.md](14-GOVERNANCE-SPEC.md), over six
 endpoints. Every shared decision in the product goes through them; there is no
 second approval API.
 
@@ -331,7 +347,36 @@ Home's governance policy — the client never sends them.
 
 `422 SUBJECT_IS_PARTICIPANT` if the subject would be one of its own required
 participants. `409 DECISION_ALREADY_OPEN` if an unresolved decision of the same
-type already exists for the same subject.
+type already exists for the same subject. A Critical decision may only be
+proposed by an Admin or a Co-Admin (`403 LEAD_REQUIRED`), which is the matrix's
+"Admin (proposer), Co-Admin" column read as a rule.
+
+### `POST /api/decisions/preview`
+Who would be asked, before anybody is — the S-37 sheet. Takes `type` and, when
+the decision is about somebody, `subject_member_id`; writes nothing and creates
+nothing.
+
+```json
+// request
+{ "type": "remove_member", "subject_member_id": "member-uuid" }
+
+// 200
+{ "level": "critical",
+  "participantCount": 3,
+  "requiredApprovals": 2,
+  "requiredAcks": 1,
+  "deadlineHours": 168,
+  "autoApprove": false,
+  "reasonRequired": true,
+  "participants": [
+    { "memberId": "…", "displayName": "Ravi",  "capacity": "approver",     "isMandatory": true },
+    { "memberId": "…", "displayName": "Kumar", "capacity": "acknowledger", "isMandatory": true },
+    { "memberId": "…", "displayName": "Asha",  "capacity": "approver",     "isMandatory": false }
+  ] }
+```
+
+It runs the same selector the proposal will, so it raises the same refusals: a
+proposal that could not be made is refused here rather than at Submit.
 
 ### `GET /api/decisions?status=&type=&mine=true`
 List decisions in the selected Home. Every member can read every decision —

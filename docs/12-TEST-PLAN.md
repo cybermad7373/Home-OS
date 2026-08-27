@@ -16,21 +16,22 @@ What exists on 2026-08-27, against specification 1.0:
 
 | | Files | State |
 |---|---|---|
-| Unit and property (`tests/unit/`) | 26 | 455 tests passing on 2026-08-27, with the integration suites skipped |
-| Integration (`tests/integration/`) | 11 | Run by `npm run test`. Until 2026-08-27 these ran against the hosted project; the target is now a local `supabase start` stack, and the hosted project is written to only by an explicitly requested `db:push` (D-59) |
+| Unit and property (`tests/unit/`) | 28 | 481 tests passing on 2026-08-27, with the integration suites skipped |
+| Integration (`tests/integration/`) | 12 | Run by `npm run test`. Until 2026-08-27 these ran against the hosted project; the target is now a local `supabase start` stack, and the hosted project is written to only by an explicitly requested `db:push` (D-59) |
 | End-to-end (`tests/e2e/`) | 1 — `foundation.spec.ts` | Run by `npm run test:e2e`; the phase-1 journey only |
 | Edge Function (`supabase/functions/_shared/`) | Deno tests | Run by `npm run test:functions` |
 
-`npm run test` reported 455 passing and 56 skipped at the last recorded run.
+`npm run test` reported 481 passing and 71 skipped at the last recorded run.
 The skips are whole suites that gate themselves on unapplied migrations —
-`llm-credentials` on 045, `governance` on 051 to 053, and `chore-quorum` on
-054 — a state of the environment, not a failure. The per-phase counts in
+`llm-credentials` on 045, `governance` on 051 to 053, `chore-quorum` on 054,
+and `membership`'s removal cases on 056 — a state of the environment, not a
+failure. The per-phase counts in
 `PROGRESS.md` are the authority on what has actually run; this document is the
 authority on what must eventually pass.
 
-**A skipping suite is not a passing suite.** Fifty-six of those assertions are
+**A skipping suite is not a passing suite.** Seventy-one of those assertions are
 the database half of phases 9, 10 and 11, and none of them has been observed to
-pass anywhere. Standing up the local stack and applying migrations 045 to 054
+pass anywhere. Standing up the local stack and applying migrations 045 to 056
 is therefore the next piece of work, ahead of further features (D-59), and from
 phase 11 onward a phase is not done until its own integration suite has run
 against a database rather than gated itself out.

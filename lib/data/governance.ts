@@ -12,8 +12,14 @@ import {
   type DecisionRecord,
 } from "@/lib/domain/governance/record";
 import { selectParticipants } from "@/lib/domain/governance/participants";
+import {
+  askFrom,
+  reasonRequired,
+  type ProposalAsk,
+} from "@/lib/domain/governance/preview";
 import { awaitsResponse } from "@/lib/domain/governance/queue";
 import type {
+  DecisionLevel,
   DecisionResponse,
   DecisionStatus,
   DecisionType,
@@ -31,7 +37,11 @@ import type {
   GovernancePolicyRow,
   Json,
 } from "@/lib/types/database";
-import type { ProposeDecisionInput, RespondInput } from "@/lib/validation/governance";
+import type {
+  PreviewDecisionInput,
+  ProposeDecisionInput,
+  RespondInput,
+} from "@/lib/validation/governance";
 
 /**
  * The governance repository — docs/14-GOVERNANCE-SPEC.md.
@@ -553,6 +563,86 @@ export interface ProposalResult {
   applyRefusal: string | null;
 }
 
+/**
+ * Who may raise a Critical decision — spec §3.3, where every Critical row of
+ * the matrix reads "Admin (proposer), Co-Admin".
+ *
+ * The gate is here rather than only on the old routes it replaces. Removal
+ * asked for Admin before phase 11; if the proposal route left it open, the
+ * check on `DELETE /api/members/:id` would be decoration, since the same
+ * removal could be started by anybody through `POST /api/decisions`. It admits
+ * a Co-Admin as well as an Admin: a Co-Admin is mandatory on every Critical
+ * decision anyway, so one who proposes is not reaching past anybody.
+ */
+function assertMayPropose(
+  level: DecisionLevel,
+  members: GovernanceMember[],
+  callerMemberId: string,
+): void {
+  if (level !== "critical") return;
+  const caller = members.find((member) => member.id === callerMemberId);
+  if (caller?.role !== "admin" && caller?.role !== "co_admin") {
+    throw new ApiError("LEAD_REQUIRED");
+  }
+}
+
+/**
+ * Who would be asked, and how many answers it needs — S-37's sheet.
+ *
+ * A read: it writes nothing and creates nothing, so a person can see the cost
+ * of asking before they ask. It runs the same selector the proposal itself
+ * will, so what the sheet promises is what the decision is made of, and it
+ * raises the same refusals — a proposal that cannot be made is refused here
+ * rather than at the moment somebody taps Submit.
+ */
+export interface ProposalPreview extends ProposalAsk {
+  participants: {
+    memberId: string;
+    displayName: string;
+    capacity: ResponseCapacity;
+    isMandatory: boolean;
+  }[];
+  reasonRequired: boolean;
+}
+
+export async function previewProposal(
+  session: Session,
+  houseId: string,
+  callerMemberId: string,
+  input: PreviewDecisionInput,
+): Promise<ProposalPreview> {
+  const context = await loadGovernanceContext(session, houseId);
+
+  const selection = selectParticipants({
+    proposal: {
+      type: input.type,
+      proposerId: callerMemberId,
+      subjectMemberId: input.subject_member_id,
+    },
+    members: context.members,
+    policy: context.policy,
+    autoConfirmHours: context.autoConfirmHours,
+  });
+
+  if ("refusal" in selection) {
+    throw new ApiError(REFUSAL_ERRORS[selection.refusal]);
+  }
+
+  const requirement = selection.requirement;
+  assertMayPropose(requirement.level, context.members, callerMemberId);
+
+  return {
+    ...askFrom(requirement),
+    participants: requirement.participants.map((participant) => ({
+      memberId: participant.memberId,
+      displayName: context.names.get(participant.memberId) ?? "Unknown",
+      capacity: participant.capacity,
+      isMandatory: participant.isMandatory,
+    })),
+    reasonRequired: reasonRequired(requirement.level),
+  };
+}
+
 export async function proposeDecision(
   session: Session,
   houseId: string,
@@ -577,6 +667,7 @@ export async function proposeDecision(
   }
 
   const requirement = selection.requirement;
+  assertMayPropose(requirement.level, context.members, callerMemberId);
 
   if (requirement.level === "critical" && !input.reason) {
     throw new ApiError("REASON_REQUIRED");
