@@ -77,13 +77,13 @@ function everythingOnePersonCouldSay(
 ): DecisionResponse[] {
   return participants
     .filter((participant) => participant.memberId === memberId)
-    .flatMap((participant) =>
+    .flatMap<DecisionResponse>((participant) =>
       participant.capacity === "approver"
         ? [
-            { memberId, capacity: "approver" as const, response: "approve" as const },
-            { memberId, capacity: "approver" as const, response: "acknowledge" as const },
+            { memberId, capacity: "approver", response: "approve" },
+            { memberId, capacity: "approver", response: "acknowledge" },
           ]
-        : [{ memberId, capacity: "acknowledger" as const, response: "acknowledge" as const }],
+        : [{ memberId, capacity: "acknowledger", response: "acknowledge" }],
     );
 }
 
