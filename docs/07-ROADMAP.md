@@ -392,6 +392,22 @@ that changes what the product *is*, and it is the one to build slowly.
   new decision types, and the draw's effect on an expense's split
 - The three governance jobs: expire, remind, complete-pending-removals
 - Notifications N-40 to N-46
+- **`change_confirmation_policy` (CE-10):** the fifteenth decision type, and the
+  only thing that writes `house_settings.confirmation_policy` (D-60)
+
+**Build order within the phase**, settled 2026-08-27 and recorded as D-59.
+Five slices are already written: the engine, the Decision record, applying one,
+the decision API and the Approvals surface, and the chore confirmation quorum.
+The rest are built cheapest-risk first, each one leaving the app more useful:
+
+1. The three governance jobs and notifications N-40 to N-46 — they finish what
+   is already written rather than opening new ground
+2. The proposer entry points (S-37), so a decision can be raised from a screen
+3. `absence_requests`
+4. Shared chore assignment (CE-11) and `change_confirmation_policy`
+5. Governed close and reopen, with `balance_adjustments`
+6. Expected contributions and the reserve — last, because it is the only
+   remaining slice that changes settlement arithmetic
 
 **Acceptance**
 - **In a Home of two or more people, no sequence of one member's own responses
@@ -710,7 +726,7 @@ Every requirement in the BRD maps to a phase. Nothing is unassigned.
 | EF-04, EF-05 (penalties) | 5 |
 | AV-01 … AV-06, AV-09 | 5 |
 | HM-02, HM-16 (household shapes and dependents) | 6 |
-| CE-10 (family-Home confirmation setting) | 6 |
+| CE-10 (family-Home confirmation setting) | 6 for the setting; 11 for the decision that writes it |
 | NT-01 … NT-06 | 7 |
 | NT-08 (a member's own device list) | 7 |
 | AN-01 … AN-06 (1.0 IDs, superseded by IN-01 … IN-10) | 8 |
@@ -767,7 +783,13 @@ The last one deserves emphasis. The penalty is the product's sharpest edge. Runn
 A phase is complete when all of the following are true. Not most.
 
 1. Every acceptance criterion above passes, demonstrated by running it, not by reading the code.
-2. Domain logic has unit tests, including the phase's stated property tests.
+   From phase 11 onward this means the phase's migrations are applied to a
+   database and its integration suite has been observed to pass there — a suite
+   that skips itself is not a suite that passed (D-59).
+2. Domain logic has unit tests, including the phase's stated property tests,
+   **and the phase adds one Playwright journey through its main path.** Unit
+   tests cover the domain and integration tests cover the database; the route
+   handlers and screens between them are covered by nothing else (D-59).
 3. Every new table has RLS enabled and a test proving cross-Home isolation, **and a test proving a `requested` member gets zero rows from their own Home.**
 4. Every new screen works at 360 px width.
 5. Migrations apply cleanly to a fresh database.

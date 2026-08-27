@@ -98,7 +98,18 @@ by Supabase/Postgres. The main boundaries are deliberate:
   `npm run test:e2e` for browser journeys (with the required app running).
 - Report what changed, which checks ran, and any checks intentionally not run.
 - Do not claim a migration, Edge Function, secret, or production deployment is
-  complete unless it was actually applied to the intended environment.
+  complete unless it was actually applied to the intended environment. A test
+  suite that gated itself out on an unapplied migration has not passed.
+- Integration tests and `npm run gen:types` target the local `supabase start`
+  stack. Writing to the hosted project — `npm run db:push`, a remote test run,
+  a function deploy — is a separately requested action, never a step inside a
+  verification run.
+- Commit each finished slice on `main`, one conventional commit per slice, so
+  the history matches `PROGRESS.md`.
+- From phase 11 onward, a phase also adds one Playwright journey through its
+  main path: the route handlers and screens have no other automated coverage.
+- These four are settled in D-59, along with the order phase 11's remaining
+  slices are built in.
 
 ## Current delivery focus
 
@@ -107,7 +118,12 @@ progress: engineering phases 1–8 are complete and phase 9 (intelligence/LLM) i
 built but not yet applied to an environment — migrations 045 and 046 are unpushed
 and the LLM master key is unset. Phases 10–15 are the version-2.0 additions —
 membership and Homes, governance, rules, food, Today/Calendar/navigation, and
-insights — and none of them is started. Product phase 2 is native Android/iOS
+insights. Phase 10 is built and phase 11 is in progress, both against unpushed
+migrations (047–054); phases 12–15 are not started. **The next piece of work is
+not a feature:** stand up local Supabase, apply 045–054, run the integration
+suites that currently skip themselves, regenerate the types, and prune
+`lib/types/schema-pending.ts` (D-59). `PROGRESS.md` is the
+authority on what is built and what has actually been applied to a database. Product phase 2 is native Android/iOS
 (engineering phase 17) and is not started.
 
 Before touching AI code, read `docs/10-LLM-SPEC.md` (now at version 3.0, six call

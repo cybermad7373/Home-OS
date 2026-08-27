@@ -159,7 +159,10 @@ create type decision_type     as enum ('close_settlement', 'reopen_settlement',
                                        'change_governance', 'change_home_mode',
                                        'balance_adjustment', 'absence_request',
                                        'join_request', 'expense_approval',
-                                       'chore_confirmation');
+                                       'chore_confirmation',
+                                       'set_expected_contribution',
+                                       'create_reserve', 'reserve_draw',
+                                       'change_confirmation_policy');
 create type decision_level    as enum ('normal', 'important', 'critical');
 create type decision_status   as enum ('waiting', 'approved', 'rejected',
                                        'lapsed', 'cancelled', 'applied');
@@ -269,6 +272,7 @@ create table house_settings (
   schedule_generation_hour  integer not null default 20,
   carry_cap_percent         integer not null default 50,    -- max target adjustment from carry
   -- version 2.0
+  -- written only by an applied change_confirmation_policy decision (D-60)
   confirmation_policy       confirmation_policy not null default 'size_aware',
   food_monthly_budget_paise bigint,                         -- drives costPressure
   llm_scheduling_enabled    boolean not null default true,
@@ -555,7 +559,8 @@ alter table chore_confirmations
 A check constraint cannot contain a subquery, so this is enforced as a `before
 insert` trigger with the same name and the same message. The constraint is
 written above the way it reads because that is what it means; the implementation
-is a trigger in migration `05x_chore_confirmations.sql`.
+is a trigger in migration `054_chore_quorum.sql`, which raises
+`SELF_CONFIRM` naming `no_self_confirm_row` as its constraint.
 
 ### 4.4 Effort accounting
 

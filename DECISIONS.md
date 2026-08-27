@@ -1108,3 +1108,274 @@ ask, and asking is not joining (SEC-15).
 
 `houses.invite_code` stays, because the specification retains it. Nothing reads
 it as a credential.
+
+---
+
+## D-54 — the resolver is duplicated into SQL, the selector deliberately is not
+
+**Phase 11.** Migration 051 restates `resolve.ts` as `resolve_decision()` in
+PL/pgSQL, and stops there. The participant selector — fourteen cases of who is
+asked, in which capacity, and who is excluded — stays in TypeScript alone.
+
+The two halves are not the same kind of rule, which is why they get different
+treatment under D-06.
+
+The resolver answers "what is this decision now". That question has to be
+answered correctly by whatever wrote the last response, including a script
+holding the service-role key and a future Edge Function that never loads the
+application. A status that is only right when the write came through Next.js is
+a status nothing can trust, so it is computed by a trigger in the same
+transaction as the response.
+
+The selector answers "who should be asked". That question is asked exactly
+once, at proposal time, by a caller that is always the application — and it is
+the half that is genuinely intricate, property-tested over randomised Home
+sizes and role distributions. Restating it in PL/pgSQL would double the surface
+without doubling the confidence, and the copies would drift on the first new
+decision type.
+
+So `create_decision` **validates the selector's output rather than recomputing
+it**. Participants must be real, active members of this Home; the subject must
+not be among them; and a Critical decision must have at least two distinct
+people who could answer it. Those are the invariants that must hold whatever
+produced the list, and they hold against a caller that skipped the selector
+entirely. A wrong list is refused; a merely unusual one is allowed, because the
+database is not the place that decides who a Home consults.
+
+The consequence worth stating: `NOT_ENOUGH_PARTICIPANTS` is raised at proposal
+time and not at resolution time. A Home is never asked to approve something
+that could not have completed.
+
+---
+
+## D-55 — a decision effect carries its own authority, and no browser can run one
+
+**Phase 11.** Every function in this schema that changes something asks who is
+calling: `is_house_admin`, `is_house_lead`, `current_member`, all of them
+reading `auth.uid()`. An applied decision has no such person. It is carried out
+after the last response lands, possibly by a job with nobody logged in, and the
+authority for it is the Home's answer rather than whoever happened to tap last.
+
+Two things follow, and they pull in opposite directions.
+
+`apply_decision` is revoked from `public`, `anon` and `authenticated`, and
+granted to `service_role` alone. A browser responds; the server applies what the
+responses produced. An `apply` a member could call directly would be an admin
+action reachable by anyone the RLS policies let read the decision.
+
+But the effect, once running, has to reach past checks written for people.
+Removal already had an answer to this — migration 050's transaction-local
+`app.member_write_authorised`, which lets the removal path through the
+privileged-column trigger. Migration 053 generalises it as
+`app.decision_effect`, set in exactly one place, inside `apply_decision`, after
+every guard has passed and never before. `decision_effect_authorised()` is what
+the reworked functions ask instead of dropping their permission check.
+
+The guards are the point of the ordering. `apply_decision` re-derives from the
+rows what `resolve_decision` recorded in `status`: no approver rejected, every
+mandatory participant answered, and a Critical decision had two distinct
+responders. It does this **even though the status already says `approved`**,
+because the acceptance criterion is that it refuses a decision missing a
+mandatory response *when called with the service-role key* — that is, when
+called by something that could have written the status itself.
+
+An effect that raises rolls the whole transaction back, including the `applied`
+stamp. What the Home is left with is a decision that is still `approved` and an
+effect that did not run, which is the state the specification asks for: a close
+whose balances no longer net to zero, kept as an approval that could not be
+carried out rather than as a half-applied one.
+
+---
+
+## D-56 — the proposal is the proposer's approval, written as a response
+
+**Phase 11.** The participant selector lists the proposer as a mandatory
+approver on every Critical decision. It could instead have left them out and
+lowered the counts by one; both arrangements produce the same arithmetic.
+
+Listing them is the version that keeps the record honest. A decision names
+everybody it depends on, and "Ravi proposed this and Ravi approves of it" is a
+fact worth storing rather than an inference a reader has to make from the
+absence of a row. It also means the resolver has one rule instead of two: a
+decision approves when its participants have answered, with no special case for
+the person who asked.
+
+So `POST /api/decisions` writes the proposer's `approve` response immediately
+after `create_decision` returns, and writes it **through the caller's own
+Supabase client** rather than the service-role one. The
+`respond_to_own_decision` insert policy applies to it exactly as it does to
+every other response: the decision must be waiting, the member row must be the
+caller's own, and a matching participant row must exist. A proposal that
+somehow produced a participant list not containing its proposer simply does not
+get that row, rather than acquiring one by privilege.
+
+The visible consequence: a two-person Home cannot remove somebody by one
+person proposing it, because the proposer's own approval is one responder and
+the floor is two. That is the property the version exists to protect, arriving
+here as a natural consequence rather than as a separate check.
+
+---
+
+## D-57 — the server applies on the response's coattails, and an unbuilt effect is reported rather than raised
+
+**Phase 11.** `apply_decision` is granted to `service_role` and to nobody else
+(D-55), which settles who may run an effect but not when it runs. Three
+candidates: a job that sweeps approved decisions, an explicit apply endpoint, or
+the request that carried the last response.
+
+It is the last one. `POST /api/decisions/:id/respond` re-reads the decision
+after the insert, and if the trigger has moved it to `approved`, applies it with
+the service-role client before answering. The alternative — approved decisions
+sitting in a queue until a job notices — would mean a Home watching a removal it
+has agreed to for up to an hour, and a member asking whether it worked. An
+explicit apply endpoint would put the decision to run an effect back in a
+browser, which is precisely what D-55 removes.
+
+The consequence that needed a decision: **an effect that refuses does not fail
+the response.** Most decision types have no effect built yet — the settlement
+close, the rule change, the reserve — and `apply_decision_effect` raises
+`EFFECT_NOT_IMPLEMENTED` for each of them. A member who has just acknowledged a
+settlement close should not receive a 500 for having answered correctly. So the
+handler catches the refusal, reports it as `applied: false` with the refusal
+named alongside the decision, and leaves the row `approved` and visibly
+unapplied — which is the honest state, and the same one the specification asks
+for when a close is agreed and then cannot be carried out.
+
+This is also why `applyIfApproved` re-reads the status from the database rather
+than trusting what the domain resolver computed a moment earlier. The status is
+the database's answer; the repository acts on it and does not second-guess it.
+
+---
+
+## D-58 — the quorum is snapshotted at "done", and the guardian ban covers rejecting too
+
+**Phase 11.** Migration 054 replaces "any one peer confirms" with the table in
+`docs/14-GOVERNANCE-SPEC.md` section 4. Two things in it were not settled by the
+specification and are settled here.
+
+**The snapshot is the whole design.** `confirmations_required`,
+`requires_lead_confirmer` and the set of signatures live on the assignment
+and in `chore_confirmations`, written once by `mark_chore_done` from
+`chore_quorum_for()` and never recomputed. The alternative — reading the Home's
+current size at confirmation time — has two failure modes that are invisible
+until they bite. A person joining on Tuesday raises the bar for Monday's work,
+which is a chore that was one signature from confirmed and silently is not any
+more. A person leaving lowers it, which is points posting for a quorum that was
+never met. Neither produces an error; both produce a number in the effort
+ledger that nobody can account for. So the count is a fact about the moment the
+work was declared done, in the same way `effort_points` on the assignment is a
+snapshot of the template rather than a live read of it.
+
+The visible consequence is deliberate: a Home that grows mid-window finishes
+its outstanding chores on the old quorum, and only new work is asked for more.
+
+**A guardian may not reject either.** The specification bans the guardian of a
+dependent assignee from *confirming* their chore (D-24) and says nothing about
+rejecting. Banning only confirmation leaves the guardian able to close the
+chore out alone in the other direction: mark it done, reject it, mark it done,
+reject it, and the dependent has two rejections and a miss with no other adult
+ever involved. A rejection is not the safe half of a confirmation decision — it
+is the half that costs somebody their points. `reject_chore` therefore refuses
+the guardian for the same reason `confirm_chore` does, and both refusals live
+in the function *and* in the `chore_confirmation_is_peer` trigger, so the
+service-role key obeys them (D-06).
+
+Two smaller points fall out of the same file. A Home with nobody to ask
+confirms at "done" rather than waiting out the auto-confirm window — the window
+exists to stop a stall, and there is nothing to stall on. And a rejection
+deletes the signatures already given, because they were given for work that has
+since been declared not done; the retry starts its quorum from zero.
+
+---
+
+## D-59 — the working agreements for the rest of the build
+
+**Settled 2026-08-27**, before phase 11's remaining slices. These are not
+product decisions; they are the process ones that had been made implicitly and
+were producing a growing, unverified diff.
+
+**A database comes before more features.** Migrations 045 to 054 have been
+written and applied nowhere, so roughly fifty-six integration assertions skip
+themselves and no governance screen has ever been opened against a schema that
+contains its tables. Every further migration written in that state raises the
+cost of the eventual first apply, because a failure in 047 blocks the seven
+files after it and the failures arrive together rather than one at a time. So
+feature work pauses: `supabase start` locally, apply 045 to 054, run the
+integration suites, re-run `npm run gen:types`, and delete from
+`lib/types/schema-pending.ts` every entry the regenerated file now covers —
+which is also the check D-51 describes, since anything still in that overlay
+afterwards is an unpushed migration.
+
+**Local is the test target; the hosted project is not touched.** The
+integration suites create and delete real users, and PROGRESS records a run
+that failed on a dropped connection to the remote rather than on a defect. Both
+problems have the same answer. `npm run db:push` against the hosted project is
+a separate, explicitly requested action from here on, not a step in a
+verification run.
+
+**One commit per slice.** The tree had sixteen uncommitted files spanning the
+governance engine, five route handlers, three screens and a migration — a diff
+nobody could review as one thing, and a history that no longer matched
+`PROGRESS.md`. Each slice is committed as it is finished, on `main`.
+
+**One Playwright journey per phase, written with the phase.** The repository
+tests pure logic as unit cases and database behaviour as integration cases; the
+route handlers and screens between them have no automated coverage at all, and
+the roadmap's definition of done asks for acceptance criteria demonstrated by
+running them. Phase 11's journey is propose, respond, apply. A journey cannot
+be written before the migrations are applied, which is another reason the
+database comes first.
+
+**AI stays house-owned.** A provider key is available when a call site needs
+real verification, and it is pasted into the app's own AI settings panel, where
+it is sealed against that Home. It does not enter the repository, `.env.local`,
+a fixture or a test. `LLM_KEY_ENCRYPTION_KEY` is the only LLM value the
+deployment holds, and it is a sealing key rather than a provider credential.
+
+**Scope is the whole of specification 2.0.** Phase 11 is finished, then 12 to
+15 in the roadmap's order. Nothing in phases 11 to 15 is being trimmed, so the
+heavy money items — expected contributions and the reserve — stay in phase 11
+rather than being deferred past the release gate.
+
+The order phase 11's remaining slices are built in is cheapest-risk first: the
+three governance jobs and notifications N-40 to N-46, which finish what is
+already written; then the proposer entry points S-37; then absence requests;
+then shared chore assignment; then governed close and reopen with balance
+adjustments; and last the expected contribution and the reserve, which is the
+only remaining slice that changes settlement arithmetic.
+
+---
+
+## D-60 — changing the confirmation policy is its own decision type
+
+**Phase 11.** `house_settings.confirmation_policy` arrived with migration 054,
+is read by `chore_quorum_for`, and is written by nothing. CE-10 says a Family
+Home may reduce confirmation to a single acknowledgement or switch it off, and
+today no Home can. There were three ways to make it reachable.
+
+An Admin-only settings endpoint was rejected. It is the fastest, and it makes
+this the one Home rule that changes without the Home agreeing — inside the
+phase whose entire purpose is that important rules stop being one person's to
+set. Switching confirmation off is not a preference; it is a decision to stop
+checking each other's work, and the person most likely to want it is the person
+whose work would stop being checked.
+
+Extending `change_governance` was rejected for a narrower reason. Its effect
+moves the nine `governance_policy` columns, and reaching one column on a
+different table would mean restating a hundred and fifty lines of
+`apply_decision_effect` for two, while making the audit trail of a governance
+change ambiguous about which table it touched.
+
+So `change_confirmation_policy` is the fifteenth decision type: Critical,
+mandatory on the Admin and the Co-Admin, acknowledged by every active adult —
+the same requirement as `change_governance`, because it is the same kind of
+change — with its own effect writing the one column. It is added to
+`lib/domain/governance/types.ts`, to the enum in migration 051 and to the level
+matrix in the same change or in none of them, which is the rule that file's
+header already states.
+
+Migration 051 has never been applied to any database, so the enum value is
+added to the `create type` in 051 itself rather than through an `alter type` in
+a later file. That is only correct while 051 remains unapplied; after the first
+apply, an added value needs its own migration, because `alter type … add value`
+may not run in the transaction the Supabase CLI wraps each file in.

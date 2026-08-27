@@ -6,6 +6,26 @@ Updated at the end of every working session. The roadmap in
 
 **Last updated:** 2026-08-27
 
+## Working agreements — settled 2026-08-27
+
+How the rest of the build runs. The reasoning is D-59; this is the summary.
+
+| | |
+|---|---|
+| **Next piece of work** | Stand up local Supabase, apply migrations 045 to 054, run the integration suites, re-run `npm run gen:types`, and empty `lib/types/schema-pending.ts` of everything the regenerated file covers. Feature work resumes after that. |
+| **Test target** | The local stack. The hosted project is written to only by an explicitly requested `db:push`. |
+| **Scope** | The whole of specification 2.0: finish phase 11, then 12 to 15 in the roadmap's order. Nothing trimmed. |
+| **Phase-11 order** | Jobs and notifications, then S-37 proposers, then absence, then shared assignment and `change_confirmation_policy`, then governed close with adjustments, then expected contributions and the reserve. |
+| **Commits** | One per slice, on `main`, as each is finished. |
+| **E2E** | One Playwright journey per phase, written with the phase. Phase 11's is propose, respond, apply. |
+| **AI keys** | Supplied when a call site needs real verification, pasted into the app's own settings panel and sealed against that Home. Never in the repository, an env file, a fixture or a test. |
+
+The first row is the one that changes what happens next. Ten migrations have
+been written and applied nowhere, roughly fifty-six integration assertions skip
+themselves, and no governance screen has been opened against a schema that
+contains its tables. Every further migration written in that state raises the
+cost of the first apply, because the failures then arrive together.
+
 ## Documentation alignment pass — 2026-08-27
 
 The document set was audited against itself and against the code before starting
@@ -90,7 +110,7 @@ roadmap.
 | 8 | Analytics | complete |
 | 9 | Intelligence (LLM) | built — migration 045 and the function secrets are not yet applied |
 | **10** | **Membership and Homes** — multi-Home, invite links, request-to-join, Co-Admin, Inactive | **built — migrations 047–050 are not yet applied** |
-| **11** | **Governance** — decisions, approvals, quorum, absence, governed money | **specified, not started** |
+| **11** | **Governance** — decisions, approvals, quorum, absence, governed money | **in progress — the engine, the Decision record, applying one, the decision API, the Approvals surface and the chore confirmation quorum are written; migrations 051–054 are not yet applied** |
 | **12** | **Rules** — plain text, AI parsing, versioning, history | **specified, not started** |
 | **13** | **Food** — meals, library, preferences, recommendations | **specified, not started** |
 | **14** | **Today, Calendar and navigation** | **specified, not started** |
@@ -685,6 +705,287 @@ skip themselves until a `db push` has happened.
 
 ---
 
+## Phase 11 — governance (in progress)
+
+The phase that changes what the product is, and the one the roadmap says to
+build slowly. Five slices are written so far.
+
+### The engine
+
+`lib/domain/governance/` — the resolver, the participant selector, the level
+matrix, the size-aware chore quorum and the Approve All planner. Framework- and
+database-free: plain values in, plain values out, so all of it was testable
+before any of it was wired to anything.
+
+The Critical-decision property was written first and watched to fail: in a Home
+of two or more people, no single member's responses can complete a Critical
+decision. It is then verified to bite — a resolver changed to count responses
+rather than responders fails it in a two-person Home on the first shrink. 27
+named cases plus a 400-run property.
+
+Two design points that shape everything after: the resolver counts **responders,
+not responses**, so a member listed in two capacities who answers in both has
+spoken once; and a Critical decision with fewer than two possible responders is
+refused at proposal time rather than raised and left to lapse.
+
+### The record — migration 051
+
+`governance_policy`, `decisions`, `decision_participants`, `decision_responses`,
+their RLS policies, and `resolve_decision()` — the resolver restated in
+PL/pgSQL, because the stored status has to be right even when the response
+arrives from something that is not this application.
+
+What the database refuses, rather than the application:
+
+- a rejection under ten characters, and a rejection from an acknowledger
+- a response from a non-participant, on another member's behalf, in a capacity
+  its author was not asked in, or to a decision that has already resolved
+- a revised or withdrawn response — there is no update policy and no delete
+  policy, only the insert one
+- the subject of a decision appearing among its participants, enforced by a
+  trigger on both tables so that neither side can create the violation
+- a `result` on a decision that was never applied, and a `resolved_at` that
+  disagrees with the status
+- two live decisions about the same subject
+
+`governance_policy` has no write policy at all, not even for a lead: changing
+the rules is itself a Critical decision. Every Home gets a policy row from a
+trigger on `houses`, so the seventh restatement of `create_house` cannot forget
+it.
+
+### Proposing and lapsing — migration 052
+
+`create_decision`, `cancel_decision` and `expire_decisions`. The proposal path
+validates the selector's output rather than recomputing it, which is D-54:
+participants must be real active members of this Home, the subject must not be
+among them, and a Critical decision must have at least two distinct people who
+could answer it. A one-person Home approves on the spot and the row says
+`auto_approved`, rather than presenting a quorum that was never met.
+
+`expire_decisions()` runs through the resolver rather than setting `lapsed`
+directly, because a decision whose last response arrived seconds before the
+deadline is approved, not lapsed.
+
+### Applying — migration 053
+
+`apply_decision`, the effect dispatcher, and the three effects whose rows
+already exist. The file is organised around the one property the specification
+states twice: **`approved` and `applied` are separate states.**
+
+`apply_decision` re-derives from the rows everything `resolve_decision` had
+already recorded in `status` — no rejection, every mandatory participant
+answered, two distinct responders on a Critical decision — because the
+acceptance criterion is that it refuses a decision missing a mandatory response
+*when called with the service-role key*, which is to say when called by
+something that could have written that status itself. It is granted to
+`service_role` and to nobody else: a browser responds, and the server applies
+what the responses produced.
+
+The effect runs in the same transaction as the `applied` stamp, so an effect
+that raises leaves a decision that is still `approved` and an effect that did
+not run — never a half-applied one. That is D-55, along with the
+transaction-local `app.decision_effect` flag that lets an effect act for the
+Home rather than for a person.
+
+Three effects run today: `remove_member` through 050's two-state removal,
+`join_request` through a restated `accept_join_request`, and
+`change_governance`, which is the only way `governance_policy` ever changes and
+which leaves keys absent from the payload alone. `change_home_mode` moves the
+Home type and the three modes together. Every other type raises
+`EFFECT_NOT_IMPLEMENTED` and stays visibly approved, rather than being marked
+applied over nothing having happened.
+
+### The API — propose, respond, withdraw, batch
+
+`lib/data/governance.ts` and five route handlers under `app/api/decisions/`.
+The division of labour it exists to hold is the one the previous four slices
+set up: **who is asked** is decided by the domain selector, **whether that is
+allowed** by the database, and **when the effect runs** by the repository, with
+the service-role key.
+
+- `GET /api/decisions` — the whole queue, every status, plus what Approve All
+  would act on right now. `?scope=mine` narrows it to the decisions still
+  waiting on the caller, which is the Approvals surface. Every decision carries
+  a `viewer` block: whether this caller may respond, in which capacity, whether
+  their response would complete it, and if not, which of the three refusals
+  applies.
+- `POST /api/decisions` — runs the selector, calls `create_decision`, and
+  writes the proposer's own approval as an ordinary response through their own
+  client, which is D-56.
+- `POST /api/decisions/:id/respond` — the one write a browser makes in this
+  subsystem. If the response completes the decision, the server applies it.
+- `POST /api/decisions/:id/cancel` — the proposer withdraws; nobody else can.
+- `POST /api/decisions/approve-all` — takes no body on purpose. The batch is
+  planned on the server by the same pure function that produced the count on
+  the button, so a client cannot choose which decisions its own tap completes.
+  There is no Reject All.
+
+`lib/domain/governance/record.ts` is the new pure piece: a stored decision read
+back is the same `Requirement` with an id attached, and the translation is a
+function of plain values rather than a method on a Supabase row. It carries the
+three response refusals (`NOT_A_PARTICIPANT`, `ALREADY_RESPONDED`,
+`ALREADY_RESOLVED`) that the `respond_to_own_decision` policy states as one
+undifferentiated `false`, so a person who cannot answer is told which reason
+applies. 17 unit cases cover it.
+
+Applying happens on the response's coattails and an unbuilt effect is reported
+rather than raised — D-57. Ten of the fourteen decision types have no effect
+yet, so `applied: false` with `apply_refusal: "EFFECT_NOT_IMPLEMENTED"` is the
+ordinary answer today, and the decision stays `approved` and visibly unapplied.
+
+`lib/types/schema-pending.ts` grew the four governance tables, their five enums
+and the five functions, so every Supabase call in this slice is typed against
+the schema the unpushed migrations describe rather than against `any`.
+
+### The Approvals surface (S-35, S-36) and the decision record
+
+The screen the version is organised around, and the two others the record
+needs: `/more/approvals`, `/more/approvals/:id` and `/more/decisions`.
+
+- **`/more/approvals`** is `?scope=mine` rendered: the decisions still waiting
+  on the person looking, grouped by kind with a count on each group, every card
+  stating what changes if it happens rather than only what is being asked
+  (AP-01, AP-02). Approving, acknowledging and rejecting all happen inline.
+- **The deliberate section** holds the Critical decisions that would complete on
+  this caller's response. They are excluded from Approve All, shown with
+  "Approving completes this", and opened rather than answered in place (AP-04).
+  The split is `splitQueue` in `lib/domain/governance/queue.ts` — a pure
+  function with 15 unit cases — and it is the *second* place the rule is
+  stated: `POST /api/decisions/approve-all` plans the batch again on the server
+  from `planApproveAll`, ignoring anything the browser sends, so a client that
+  never loaded this screen cannot close a settlement with one tap either.
+- **Rejecting asks for a reason everywhere** (AP-06): four presets or typed,
+  ten characters minimum, refused by the schema and by a check constraint.
+  `components/governance/reject-form.tsx` is the one implementation.
+- **`/more/approvals/:id`** is S-36: what changes if this happens, the proposer
+  and their reason, the full checklist of who was asked — capacity, whether
+  they answered, when, and their rejection reason if they gave one — the
+  deadline as a relative phrase over its exact date, and the caller's own
+  actions and only those. A non-participant sees the whole screen read-only,
+  because everybody can read every decision.
+- **`/more/decisions`** is that record in list form, open decisions first. An
+  `approved` decision whose effect has not run says "Approved, and not yet
+  carried out", which is the honest description of ten of the fourteen types
+  today (D-57).
+- **Approvals is promoted into primary navigation** the moment anything is
+  waiting, with its count, and leaves the bar when the queue empties (AP-05).
+  The count comes from `countDecisionsAwaiting`, three narrow queries decided
+  by the same pure `awaitsResponse` the screen uses, so the badge and the list
+  cannot disagree; a decision past its deadline is counted by neither, even
+  before the hourly job marks it `lapsed`. The phase-1 expense queue at
+  `/expenses/approvals` keeps its screen and is now labelled "Expense
+  approvals", so there is exactly one thing called Approvals.
+
+### The chore confirmation quorum — migration 054
+
+Version 1.0 said "any one peer confirms", and one peer is the whole of the
+fairness guarantee in a Home of nine. 054 replaces it with the table in
+`docs/14-GOVERNANCE-SPEC.md` section 4: one other person up to three adults, an
+Admin or Co-Admin plus one other up to six, plus two others beyond that.
+
+`quorumFor` in `lib/domain/governance/quorum.ts` already stated those counts as
+a pure function. The migration is its Postgres restatement — `chore_quorum_for`
+— plus `chore_confirmations`, the snapshot columns on `chore_assignments`, and
+three restated lifecycle functions.
+
+**The count is snapshotted at "done" and never recomputed**, which is the whole
+design and now D-58. A person joining on Tuesday does not raise the bar for
+Monday's work, and a person leaving does not post points for a quorum that was
+never met — both are silent wrong numbers in the effort ledger rather than
+errors, which is why the rule is a stored column rather than a live query.
+
+What the database refuses, rather than the application:
+
+- a signature from the assignee, from the guardian of a dependent assignee
+  (D-24), from somebody who is not an active adult of that Home, or on a chore
+  that is not waiting for one — all four in the
+  `chore_confirmation_is_peer` trigger, so the service-role key obeys them
+- a second signature from the same person: the quorum counts people, held by a
+  unique constraint rather than by the count column
+- a revised signature — there is no update policy and no insert policy at all,
+  only `confirm_chore`
+
+Points still post through `trg_post_points` on the transition into `confirmed`
+and nowhere else, so the completion trigger changed which row causes the
+transition and nothing about what it pays.
+
+Two smaller pieces: a Home with nobody to ask confirms at "done" rather than
+waiting out the auto-confirm window, and a rejection deletes the signatures
+already given, because the retry's quorum starts from zero. `reject_chore` also
+gained the guardian ban the specification only stated for confirming — both
+halves of D-58.
+
+Above the database, `AssignmentView` carries the quorum and who has signed,
+`canConfirm` is the one statement of who may still sign — the confirmation
+queue filters on it and the chore card's buttons are drawn from it, so a
+browser never offers a signature the trigger will refuse — and the card states
+the progress ("1 of 2 confirmations · an Admin or Co-Admin still has to sign")
+rather than a bare Confirm button whose effect is no longer obvious.
+
+`house_settings.confirmation_policy` arrives with the `single` and `off`
+settings CE-10 asks for. It is read by `chore_quorum_for` and written by
+nothing yet: `change_governance` in 053 moves the nine `governance_policy`
+columns and does not reach this one, so every Home runs on the specified
+default. It is reached by a fifteenth decision type,
+`change_confirmation_policy`, rather than by a settings endpoint — deciding to
+stop checking each other's work is a Critical decision, not an Admin
+preference, and that is D-60. The enum value goes into migration 051's
+`create type` while 051 remains unapplied.
+
+### Not yet built in this phase
+
+`absence_requests`; close and reopen becoming decisions, and with them the
+apply-time netting the dispatcher's `p_input` exists for; `balance_adjustments`;
+expected contributions and the reserve; the three governance jobs;
+notifications N-40 to N-46; shared chore assignment (CE-11); and
+`change_confirmation_policy`, the fifteenth decision type and the only thing
+that will ever write `house_settings.confirmation_policy` (D-60). Proposing
+from the actions that need it (S-37 — Close month, Propose removal, Adjust a
+balance) is also still to come: the API accepts a proposal today, and no screen
+sends one.
+
+They are built in this order, cheapest-risk first (D-59):
+
+1. The three governance jobs and notifications N-40 to N-46
+2. The proposer entry points, S-37
+3. `absence_requests`
+4. Shared chore assignment (CE-11) and `change_confirmation_policy`
+5. Governed close and reopen, with `balance_adjustments`
+6. Expected contributions and the reserve
+
+with one Playwright journey through propose, respond and apply written as part
+of the phase, and one commit per slice.
+
+### Verification
+
+`npm run typecheck`, `npm run lint`, `npm run test` and `npm run build` are
+clean — 455 passing tests, including the governance property, the 15 queue
+cases and the 5 new `canConfirm` cases, and all five decision routes and all
+three governance screens appear in the build output. The 38 cases in
+`tests/integration/governance.test.ts` and the 12 in
+`tests/integration/chore-quorum.test.ts` skip themselves, because migrations
+051 to 054 have not been pushed to any environment and no local Postgres,
+Supabase CLI or Docker was available to run them against. **No part of this
+phase has been applied to a database, and none of its SQL has been executed
+anywhere.**
+
+The chore-quorum suite is where the two phase-11 acceptance criteria for
+confirmation live — "a four-person Home's chore requires an Admin or Co-Admin
+plus one other; three ordinary members confirming it does not confirm it" and
+"the quorum snapshotted at 'done' does not move when somebody joins
+mid-window" — so both are written and neither has been observed to pass.
+
+The repository, the route handlers and the three screens have no automated
+coverage of their own: this codebase tests pure logic as unit cases and
+database behaviour as integration cases, and the glue between them is covered
+by Playwright journeys, which phase 11 does not have yet. Every rule they
+enforce is stated twice more — once in the domain, which is unit-tested, and
+once in SQL, which is integration-tested — so what is untested here is the
+wiring, not the rules. **No governance screen has been opened against a
+database**, because there is no database with these tables in it.
+
+---
+
 ## Known gaps and follow-ups
 
 - **Specification 2.0 is partly built.** Phase 10 is written; five engineering
@@ -710,13 +1011,17 @@ skip themselves until a `db push` has happened.
   platform token lifecycle, while the shared API and device model remain the
   contract. Android Play and iOS App Store release work is intentionally deferred.
 
-- **The integration suites run against the live remote project**, so they can
+- **The integration suites ran against the live remote project**, so they could
   fail on a dropped connection rather than on a defect. One such failure was
   seen on 2026-08-24 and did not reproduce over five consecutive runs; the same
-  session saw a `db push` fail once with a TLS reset and succeed on retry. A
-  local `supabase start` would remove the whole class of noise.
+  session saw a `db push` fail once with a TLS reset and succeed on retry. As of
+  2026-08-27 the answer is settled rather than merely observed: the local
+  `supabase start` stack becomes the test target and removes the whole class of
+  noise (D-59). It is not yet standing up.
 - **No end-to-end coverage past phase 1.** The unit and integration suites are
   thorough; the Playwright journey still only walks sign-up and house creation.
+  From phase 11 onward each phase adds one journey of its own rather than
+  leaving all twenty-two of `docs/12-TEST-PLAN.md` section 4 to a final pass.
 - **A dependent's chores now have a screen**, at `/chores/dependents`, linked
   from a guardian's own chore page: each dependent in their care, today's work
   first, with a "Meera did it" button per chore. Confirming is still refused —

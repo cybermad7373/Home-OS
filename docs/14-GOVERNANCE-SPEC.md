@@ -22,7 +22,7 @@ one of three levels.
 |-------|----------|----------|
 | **1 — Normal** | Nothing beyond the actor's own permission | Log an expense, add a meal, rate a food, mark a chore done, record presence |
 | **2 — Important** | An Admin or Co-Admin action, plus member acknowledgement | Operational settings, category changes with financial effect, some member changes |
-| **3 — Critical** | Admin, plus Co-Admin, plus the Home's required member approvals or acknowledgements | Close settlement, reopen settlement, balance adjustment, remove a member, create or change a rule, change governance policy, change Home type or money mode |
+| **3 — Critical** | Admin, plus Co-Admin, plus the Home's required member approvals or acknowledgements | Close settlement, reopen settlement, balance adjustment, remove a member, create or change a rule, change governance policy, change how chores are confirmed, change Home type or money mode |
 
 Most of what a Home does every day is level 1. That is deliberate and it is the
 answer to the obvious objection: governance that touches everything makes an app
@@ -64,7 +64,7 @@ Decision
 │                           | balance_adjustment | absence_request | join_request
 │                           | expense_approval | chore_confirmation
 │                           | set_expected_contribution | create_reserve
-│                           | reserve_draw
+│                           | reserve_draw | change_confirmation_policy
 ├── level                   normal | important | critical
 ├── requested_by            member id
 ├── subject_type            the entity kind this decision is about
@@ -151,6 +151,7 @@ them, whatever the counts say. A member on the same decision is counting: any
 | `remove_member` | Admin (proposer), Co-Admin | Active adult members excluding the subject | approvals ≥ ⌈half⌉ |
 | `change_rule` | Admin (proposer), Co-Admin | Active adult members | acks ≥ ⌈half⌉ |
 | `change_governance` | Admin (proposer), Co-Admin | Active adult members | acks = all |
+| `change_confirmation_policy` | Admin (proposer), Co-Admin | Active adult members | acks = all |
 | `change_home_mode` | Admin (proposer), Co-Admin | Active adult members | acks ≥ ⌈half⌉ |
 | `balance_adjustment` | Admin (proposer), Co-Admin | the two members affected | approvals = both |
 | `absence_request` | — | Admin, Co-Admin | approvals ≥ 1 |
@@ -175,7 +176,8 @@ enforced in the database, not only in the resolver.
 ### 3.4 Deadlines and lapse
 
 Default deadline by type: 7 days for `close_settlement`, `reopen_settlement`,
-`remove_member`, `change_rule`, `change_governance`, `change_home_mode` and
+`remove_member`, `change_rule`, `change_governance`, `change_home_mode`,
+`change_confirmation_policy` and
 `balance_adjustment`, `set_expected_contribution`, `create_reserve` and
 `reserve_draw`; 48 hours for `absence_request` and `join_request`; the
 Home's auto-confirm window for `chore_confirmation`; and none for
@@ -218,10 +220,17 @@ Rules that hold at every size:
   failure mode design decision 3 exists to prevent.
 - **A Family Home may reduce this** to a single acknowledgement or switch it off
   (CE-10). Nobody needs two signatures for a nine-year-old making their bed.
+  The setting is `house_settings.confirmation_policy` — `size_aware`, `single`
+  or `off` — and the only thing that writes it is an applied
+  `change_confirmation_policy` decision. There is no settings screen for it,
+  deliberately: deciding to stop checking each other's work is a Critical
+  decision the whole Home acknowledges, not an Admin preference (D-60).
 
-The counts are stored per assignment as `confirmations_required` and
-`confirmations_received`, snapshotted when the chore is marked done. A member
-joining or leaving between "done" and "confirmed" does not move the goalposts.
+The counts are stored per assignment as `confirmations_required`,
+`confirmations_received` and `requires_lead_confirmer`, snapshotted when the
+chore is marked done. A member joining or leaving between "done" and
+"confirmed" does not move the goalposts — the reasoning, and the guardian's ban
+on rejecting as well as confirming, are D-58.
 
 ---
 

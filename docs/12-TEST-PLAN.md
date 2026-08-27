@@ -16,28 +16,38 @@ What exists on 2026-08-27, against specification 1.0:
 
 | | Files | State |
 |---|---|---|
-| Unit and property (`tests/unit/`) | 22 | 311 tests, all passing on 2026-08-27 |
-| Integration (`tests/integration/`) | 8 | Run by `npm run test`, against a local Supabase |
+| Unit and property (`tests/unit/`) | 26 | 455 tests passing on 2026-08-27, with the integration suites skipped |
+| Integration (`tests/integration/`) | 11 | Run by `npm run test`. Until 2026-08-27 these ran against the hosted project; the target is now a local `supabase start` stack, and the hosted project is written to only by an explicitly requested `db:push` (D-59) |
 | End-to-end (`tests/e2e/`) | 1 — `foundation.spec.ts` | Run by `npm run test:e2e`; the phase-1 journey only |
 | Edge Function (`supabase/functions/_shared/`) | Deno tests | Run by `npm run test:functions` |
 
-`npm run test` reported 384 passing and 6 skipped at the last recorded run —
-`tests/unit` alone was re-run on 2026-08-27 and gave 311 passing. The six skips
-are `tests/integration/llm-credentials.test.ts`, which skips itself
-until migration 045 is applied — a state of the environment, not a failure. The
-per-phase counts in `PROGRESS.md` are the authority on what has actually run;
-this document is the authority on what must eventually pass.
+`npm run test` reported 455 passing and 56 skipped at the last recorded run.
+The skips are whole suites that gate themselves on unapplied migrations —
+`llm-credentials` on 045, `governance` on 051 to 053, and `chore-quorum` on
+054 — a state of the environment, not a failure. The per-phase counts in
+`PROGRESS.md` are the authority on what has actually run; this document is the
+authority on what must eventually pass.
 
-**The largest open gap is E2E.** Section 1 calls for eighteen journeys and one
-exists. Every journey past phase 1 is currently covered only at the unit and
-integration levels.
+**A skipping suite is not a passing suite.** Fifty-six of those assertions are
+the database half of phases 9, 10 and 11, and none of them has been observed to
+pass anywhere. Standing up the local stack and applying migrations 045 to 054
+is therefore the next piece of work, ahead of further features (D-59), and from
+phase 11 onward a phase is not done until its own integration suite has run
+against a database rather than gated itself out.
+
+**The largest open gap is E2E.** Section 4 calls for twenty-two journeys and
+one exists. Every journey past phase 1 is currently covered only at the unit and
+integration levels — which leaves the route handlers and the screens, the layer
+between the domain and the database, with no automated coverage of any kind.
+From phase 11 onward each phase writes one journey through its own main path as
+part of the phase (D-59), rather than leaving all twenty-two to a final pass.
 
 ---
 
 ## 1. Strategy
 
 ```
-        ╱╲          E2E (Playwright) — 18 tests
+        ╱╲          E2E (Playwright) — 22 tests
        ╱  ╲         the critical journeys, on real Chrome
       ╱────╲
      ╱      ╲       Integration — ~150 tests
@@ -483,7 +493,8 @@ The negative-space tests. Each runs against a real database.
 
 ## 4. End-to-end tests
 
-Eighteen tests on a Pixel 5 viewport, against a seeded Home.
+Twenty-two tests on a Pixel 5 viewport, against a seeded Home. One exists;
+the rest arrive with the phases that make them possible, one per phase.
 
 | ID | Journey | Steps |
 |----|---------|-------|
