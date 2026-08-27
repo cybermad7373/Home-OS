@@ -1,0 +1,3282 @@
+Yes. With these additions, the product is becoming much more coherent. The previous BRD already has the right foundations around houses, chores, expenses, settlement, analytics, notifications and deterministic AI fallback; the main job now is to **simplify the terminology, strengthen shared governance, and add Food as a genuine HomeOS module rather than an AI-only feature**. 
+
+Below is the **combined specification**: the earlier structure + all of your latest changes.
+
+# HouseOS — Consolidated Product Specification
+
+## 1. Product definition
+
+**HouseOS is a Home Operating System.**
+
+It manages everything that matters inside a shared home:
+
+```text
+People
+  ↓
+Home
+  ↓
+Work
+  ↓
+Money
+  ↓
+Food
+  ↓
+Calendar
+  ↓
+Decisions
+  ↓
+Insights
+```
+
+The fundamental principle is:
+
+> **Everyone can see what is happening. Everyone can contribute. Important decisions are shared. Admin is a custodian, not an owner of everyone else's decisions.**
+
+That is a major improvement over the original BRD's more centralized Admin model. The original document gives Admin nearly all operational control; your updated model should move toward **shared governance with Admin as the final governance authority only where necessary**. 
+
+---
+
+# 2. The simplest possible mental model
+
+A user has one account.
+
+That account can belong to many Homes.
+
+```text
+USER
+│
+├── Home A
+│   └── Member
+│
+├── Home B
+│   └── Admin
+│
+└── Home C
+    └── Co-Admin
+```
+
+The important thing:
+
+> **Role belongs to a user inside a particular Home, not to the user globally.**
+
+---
+
+# 3. Keep naming extremely simple
+
+Don't use enterprise terminology everywhere.
+
+Use these words in the UI:
+
+| Technical concept  | User-facing name      |
+| ------------------ | --------------------- |
+| User               | Person                |
+| Home membership    | Member                |
+| Pending membership | Requested             |
+| Admin              | Admin                 |
+| Co-Admin           | Co-Admin              |
+| Expense            | Expense               |
+| Chore assignment   | Chore                 |
+| Chore completion   | Done                  |
+| Settlement         | Settle Up             |
+| Balance            | Money                 |
+| Adjustment         | Adjustment            |
+| Approval request   | Approval              |
+| Home rule          | Rule                  |
+| Food library       | Food                  |
+| Food preference    | Like / Dislike / Okay |
+| Audit log          | History               |
+
+Avoid words like:
+
+* governance engine
+* financial obligation
+* effort deficit
+* policy object
+* compliance workflow
+* membership lifecycle
+
+Those can exist internally, but ordinary users shouldn't have to understand them.
+
+---
+
+# 4. Home types
+
+At Home creation:
+
+```text
+What kind of Home is this?
+
+○ Shared Home
+○ Family Home
+```
+
+### Shared Home
+
+This is the full HouseOS model.
+
+```text
+Expenses
+Chores
+Availability
+Fairness
+Points
+Approvals
+Settlement
+Food
+Calendar
+Insights
+```
+
+### Family Home
+
+Simpler.
+
+```text
+Expenses
+Budget
+Food
+Calendar
+Shared information
+Optional chores
+Insights
+```
+
+No forced:
+
+* chore penalties
+* competitive leaderboard
+* effort debt
+* complicated member settlement
+
+The same backend can support both.
+
+```text
+Home
+ └── type
+      ├── SHARED
+      └── FAMILY
+```
+
+---
+
+# 5. Multiple Homes
+
+After login:
+
+```text
+My Homes
+
+┌─────────────────────────────┐
+│ 🏠 Chennai Flat              │
+│ Admin                        │
+└─────────────────────────────┘
+
+┌─────────────────────────────┐
+│ 🏠 Friends House             │
+│ Member                       │
+└─────────────────────────────┘
+
+┌─────────────────────────────┐
+│ 🏠 Family Home               │
+│ Member                       │
+└─────────────────────────────┘
+
++ Create Home
+```
+
+Then:
+
+```text
+Select Home
+      ↓
+Home Dashboard
+```
+
+The currently selected Home must always be obvious.
+
+---
+
+# 6. Joining a Home
+
+Your updated rule is:
+
+> Admin should not simply create a member manually.
+
+The joining mechanism should be **request-by-link**.
+
+### Flow
+
+```text
+Admin creates Home
+        ↓
+Home generates invite link
+        ↓
+Person opens link
+        ↓
+Person logs in / creates account
+        ↓
+"Request to join"
+        ↓
+Home sees REQUESTED
+        ↓
+Home approval
+        ↓
+Person becomes Member
+```
+
+There should be **no "Admin → Add member → create account" workflow**.
+
+---
+
+# 7. Requested people are not members and do not have a role
+
+This is important.
+
+A requested person is not:
+
+* Member
+* Co-Admin
+* Admin
+
+They are simply:
+
+> **Requested**
+
+Internally:
+
+```text
+Membership status = PENDING
+Role = NONE
+```
+
+UI can show pending requests in a muted/grey state:
+
+```text
+Members
+
+● Arun
+● Vijay
+● Karthik
+
+────────────
+
+Requested
+
+○ Requested
+○ Requested
+```
+
+The actual request details can be opened by people who have permission to approve it.
+
+The important point is:
+
+> **A requested person has no Home permissions until accepted.**
+
+---
+
+# 8. Membership states
+
+Keep this extremely simple:
+
+```text
+Requested
+Active
+Inactive
+```
+
+That's it.
+
+No "Former Member."
+
+No complicated visible membership terminology.
+
+### Requested
+
+Has requested to enter.
+
+### Active
+
+Currently participates in the Home.
+
+### Inactive
+
+Not participating currently, but history/financial obligations remain.
+
+This directly handles your requirement around removing people.
+
+---
+
+# 9. Member removal
+
+A member should **not be immediately removed** when money is still unresolved.
+
+Flow:
+
+```text
+Admin proposes removal
+        ↓
+House approval
+        ↓
+Check money
+        ↓
+Financially settled?
+       / \
+     YES  NO
+      |    |
+ Removed  Inactive
+           |
+           └── "Pending financial settlement"
+```
+
+So someone can effectively leave operationally:
+
+```text
+Status: Inactive
+```
+
+but still have:
+
+```text
+Pending amount
+Pending payment
+Pending settlement
+```
+
+Once everything is settled:
+
+```text
+Inactive
+   ↓
+Financially clear
+   ↓
+Removal completes
+```
+
+Historical expenses, chores and payments remain intact.
+
+---
+
+# 10. Roles
+
+Only three actual Home roles:
+
+```text
+Admin
+Co-Admin
+Member
+```
+
+`Requested` is **not a role**.
+
+There is no "Former Member" role/state.
+
+---
+
+# 11. Admin is NOT the absolute owner
+
+This is one of the biggest changes from the current BRD.
+
+The Admin is responsible for:
+
+* setting up the Home
+* managing governance
+* configuring important rules
+* ensuring decisions are monitored
+* handling exceptional situations
+* maintaining the Home
+
+But:
+
+> **Admin should not be able to silently make important decisions alone.**
+
+The original BRD's "Admin can..." approach needs this additional governance layer. 
+
+---
+
+# 12. Co-Admin
+
+Co-Admin is primarily an operational partner.
+
+Co-Admin can perform almost all normal operational tasks:
+
+```text
+Expenses
+Approvals
+Chores
+Confirmation
+Categories
+Food
+Members
+Daily operations
+```
+
+But governance-critical changes remain Admin-owned.
+
+---
+
+# 13. Shared decision model
+
+Use three levels.
+
+## Level 1 — Normal actions
+
+No extra approval.
+
+Examples:
+
+```text
+Member adds food
+Member logs expense
+Member marks chore done
+Member records availability
+Member gives food opinion
+```
+
+---
+
+## Level 2 — Important actions
+
+Require:
+
+```text
+Admin/Co-Admin
++
+Member acknowledgement
+```
+
+Examples:
+
+```text
+Large rule changes
+Important operational settings
+Some member decisions
+```
+
+---
+
+## Level 3 — Critical actions
+
+Require:
+
+```text
+Admin
++
+Co-Admin
++
+Required member approval/acknowledgement
+```
+
+Examples:
+
+```text
+Close settlement
+Reopen settlement
+Major financial adjustment
+Remove member
+Change governance rules
+Change critical Home policy
+```
+
+This gives the Admin final responsibility without giving the Admin unilateral power.
+
+---
+
+# 14. "Approval" and "Acknowledgement" should be different
+
+This is a subtle but important distinction.
+
+### Approval
+
+The person's response is required for the action to proceed.
+
+```text
+Approve
+Reject
+```
+
+### Acknowledgement
+
+The person confirms:
+
+> "I have seen and accepted that this decision is happening."
+
+```text
+Acknowledge
+```
+
+Not every situation should require unanimous approval.
+
+This distinction prevents the application from becoming unusably bureaucratic.
+
+---
+
+# 15. Shared governance example
+
+Suppose Admin wants to change the penalty rule.
+
+```text
+Admin proposes:
+
+10 points = ₹50
+
+↓
+Co-Admin ACK
+↓
+Required member ACKs
+↓
+Rule becomes active
+```
+
+If a required acknowledgement doesn't happen:
+
+```text
+Status = Waiting
+```
+
+Nothing silently changes.
+
+---
+
+# 16. Rules should be one of the most interesting features
+
+You mentioned:
+
+> Admin can write house rules as plain text and LLM can turn them into rules.
+
+This is a very good use of AI.
+
+Instead of forcing Admin to configure 30 checkboxes:
+
+```text
+Rule
+
+"Nobody should leave unwashed vessels overnight.
+If someone does it, they must clean the kitchen next morning."
+```
+
+The system can parse it into structured rules.
+
+---
+
+# 17. Rule architecture
+
+Internally:
+
+```text
+House Rule
+├── Original Text
+├── Parsed Meaning
+├── Action
+├── Condition
+├── Applies To
+├── Weight/Penalty
+├── Start Date
+├── End Date
+├── Status
+└── Created/Modified By
+```
+
+Example:
+
+```text
+Original:
+
+"Everyone should clean their own plates before sleeping."
+```
+
+Parsed:
+
+```text
+Condition:
+After dinner
+
+Action:
+Clean own dishes
+
+Applies:
+All members
+```
+
+Another:
+
+```text
+"If someone does not clean the bathroom on their assigned day,
+the missed task should be rescheduled."
+```
+
+becomes:
+
+```text
+When:
+Bathroom chore missed
+
+Action:
+Reschedule
+
+Penalty:
+None
+```
+
+---
+
+# 18. AI must never directly activate a rule
+
+This is extremely important.
+
+Flow:
+
+```text
+Admin enters text
+       ↓
+AI parses it
+       ↓
+Structured proposed rule
+       ↓
+Admin reviews
+       ↓
+Admin edits if needed
+       ↓
+Governance approval
+       ↓
+Rule becomes active
+```
+
+AI is a **parser**, not the authority.
+
+---
+
+# 19. Every rule should be independently editable
+
+Don't make one giant Home Rule blob.
+
+Admin should see:
+
+```text
+House Rules
+
+✓ Clean dishes after eating
+✓ Bathroom cleaned every Sunday
+✓ No outside guests after 11 PM
+✓ Missed chore carries to next week
+✓ ₹50 penalty per 10 missed points
+```
+
+Each rule:
+
+```text
+[Edit]
+[Disable]
+```
+
+This satisfies your:
+
+> "admin can modify particular rules individually"
+
+requirement.
+
+---
+
+# 20. Rule history
+
+Never overwrite important rules.
+
+Example:
+
+```text
+Bathroom Rule
+
+Version 1
+June 2026
+20 points
+
+Version 2
+August 2026
+25 points
+```
+
+History:
+
+```text
+Who changed it?
+When?
+Old value?
+New value?
+Reason?
+Who acknowledged it?
+```
+
+This fits the original BRD's auditability requirement. 
+
+---
+
+# 21. Approvals should become a central system
+
+Because your product now has many approval types, create one **Approvals** section.
+
+```text
+Approvals
+────────────────────
+
+Expenses                    3
+Chores                      2
+Absences                    1
+Join Requests               2
+Member Changes              1
+Rules                       1
+Money Adjustments           1
+Settlement                  1
+```
+
+Opening:
+
+```text
+Pending
+
+₹1,240 Grocery
+Added by Arun
+
+[Approve] [Reject]
+```
+
+---
+
+# 22. Add "Approve All"
+
+Absolutely.
+
+At the top:
+
+```text
+3 pending
+
+[Approve All]
+```
+
+But with an important safety rule:
+
+### Approve All only applies to items the current person is legally/permission-wise allowed to approve.
+
+For example:
+
+```text
+Member:
+[Approve All expenses available to me]
+
+Co-Admin:
+[Approve All operational approvals]
+
+Admin:
+[Approve All eligible approvals]
+```
+
+Critical governance decisions should **never silently be approved by "Approve All" unless all required participants have also completed their required approval/acknowledgement.**
+
+---
+
+# 23. Expense lifecycle
+
+Keep it simple:
+
+```text
+Added
+ ↓
+Pending approval
+ ↓
+Approved
+ ↓
+Included in Money
+ ↓
+Settled
+```
+
+Rejected:
+
+```text
+Pending
+ ↓
+Rejected
+ ↓
+Edit
+ ↓
+Submit again
+```
+
+---
+
+# 24. Everyone can add expenses
+
+Any active member:
+
+```text
++ Add Expense
+```
+
+Inputs:
+
+```text
+Amount
+Category
+Date
+Who paid
+Split
+Note
+Receipt
+```
+
+The original BRD's fast expense-entry requirement is good and should remain. 
+
+---
+
+# 25. Expense transparency
+
+Everyone sees the same approved financial ledger.
+
+Example:
+
+```text
+August Expenses
+
+26 Aug
+Arun
+Groceries
+₹1,240
+
+26 Aug
+Vijay
+Gas
+₹850
+
+27 Aug
+Ruth
+Milk
+₹120
+```
+
+No hidden household spending.
+
+---
+
+# 26. Dashboard money display
+
+Every member should see:
+
+```text
+You
+
+Paid
+₹4,820
+
+Fair share
+₹3,750
+
+Net
++₹1,070
+```
+
+And then:
+
+```text
+Owed to Arun       ₹500
+Owed by Vijay      ₹300
+Owed by Karthik    ₹270
+```
+
+Your requirement is important:
+
+> **Owed to <member> / Owed by <member> should be visible to everyone.**
+
+So don't hide this inside "My Money."
+
+Make the household's financial relationships transparent.
+
+---
+
+# 27. Money dashboard
+
+```text
+Money
+
+₹18,420
+Total this month
+
+────────────────
+
+Who paid
+Arun       ₹6,200
+Vijay      ₹4,500
+Ruth       ₹3,200
+Karthik    ₹2,800
+Others     ₹1,720
+
+────────────────
+
+Where it went
+
+Food       ₹9,200
+Rent       ₹5,000
+Gas        ₹1,200
+Cleaning   ₹1,000
+Other      ₹2,020
+```
+
+Then:
+
+```text
+Balances
+
+Arun
+Owed to Arun ₹1,250
+
+Vijay
+Owed by Vijay ₹700
+```
+
+---
+
+# 28. Owed-to / Owed-by netting
+
+The application calculates everything.
+
+Example:
+
+```text
+Arun owes Vijay ₹500
+Vijay owes Arun ₹300
+```
+
+System can calculate:
+
+```text
+Arun → Vijay ₹200
+```
+
+But:
+
+> **Manual cancellation/adjustment can only happen through the Admin governance workflow.**
+
+Don't modify historical expenses.
+
+Create:
+
+```text
+Balance Adjustment
+```
+
+---
+
+# 29. Settlement closing is a governance action
+
+You specifically said:
+
+> even close/reopen requires Co-Admin and members approval.
+
+So:
+
+```text
+Admin starts "Close August"
+        ↓
+System calculates settlement
+        ↓
+Co-Admin review
+        ↓
+Required member acknowledgements
+        ↓
+Settlement closes
+```
+
+Admin does not simply click:
+
+```text
+[Close Month]
+```
+
+and finish it.
+
+---
+
+# 30. Reopening a closed period
+
+Same principle.
+
+```text
+Admin requests reopen
+        ↓
+Reason required
+        ↓
+Co-Admin acknowledgement
+        ↓
+Required member approval
+        ↓
+Period reopens
+        ↓
+System recalculates
+        ↓
+New settlement
+```
+
+Every reopen gets recorded.
+
+The existing BRD already correctly treats closed periods as immutable and allows Admin-led reopening; your new model should add the shared approval requirement to that flow. 
+
+---
+
+# 31. Chore architecture
+
+Keep this simple and fair.
+
+Every chore has:
+
+```text
+Name
+Category
+Points
+Frequency
+Day
+Duration (optional)
+Person eligibility
+Room (optional)
+```
+
+Example:
+
+```text
+Mop Hall
+20 points
+Every Saturday
+Whole Home
+```
+
+---
+
+# 32. Availability
+
+Do not force complicated time windows initially.
+
+Each member says:
+
+```text
+Monday       Home
+Tuesday      Home
+Wednesday    Away
+Thursday     Home
+Friday       Home
+Saturday     Home
+Sunday       Away
+```
+
+And specific date exceptions:
+
+```text
+Friday 28 Aug
+Away
+```
+
+The original BRD's more detailed availability windows can be simplified for your version because the actual requirement is primarily **presence/absence**. 
+
+---
+
+# 33. Chore allocation
+
+System calculates:
+
+```text
+Total available workload
++
+People present
++
+Current workload
++
+Past workload
++
+Absences
++
+Rules
+```
+
+and distributes chore points as fairly as possible.
+
+Example:
+
+```text
+Arun      90
+Vijay     88
+Ruth      92
+Karthik   87
+```
+
+Not:
+
+```text
+Everyone gets exactly 5 chores
+```
+
+---
+
+# 34. Absence request
+
+Use:
+
+```text
+Absence
+```
+
+not complicated terminology.
+
+Member:
+
+```text
+Friday
+
+I'm away
+
+[Request to excuse my chores]
+```
+
+Then:
+
+```text
+Affected chores
+20 points
+25 points
+
+Request:
+Remove these from my workload
+```
+
+---
+
+# 35. Approved absence
+
+If approved:
+
+```text
+No penalty
+No carry-forward
+No extra work next week
+```
+
+This is exactly the behavior you described.
+
+---
+
+# 36. Unapproved absence
+
+If they simply don't show up:
+
+```text
+Missed chore
+ ↓
+Normal missed-work policy
+ ↓
+Possible carry-forward
+ ↓
+Possible penalty
+```
+
+This distinguishes:
+
+**"I declared I would be away"**
+
+from:
+
+**"I didn't do the work."**
+
+Very important.
+
+---
+
+# 37. Chore completion approval
+
+Your specific requirement:
+
+> Admin/Co-admin is mandatory + any other 2 people.
+
+For a sufficiently large Shared Home:
+
+```text
+Completed by Arun
+
+Required:
+✅ Admin OR Co-Admin
++
+✅ 2 other members
+```
+
+Example:
+
+```text
+Admin      ✅
+Vijay      ✅
+Ruth       ✅
+
+STATUS: CONFIRMED
+```
+
+The person who performed the chore cannot approve their own work.
+
+The original BRD already establishes that basic anti-self-confirmation rule. 
+
+---
+
+# 38. Make confirmation size-aware
+
+A tiny house shouldn't need five people to confirm one chore.
+
+Suggested:
+
+| Active members | Confirmation       |
+| -------------: | ------------------ |
+|            2–3 | 1 other person     |
+|            4–6 | Admin/Co-Admin + 1 |
+|             7+ | Admin/Co-Admin + 2 |
+
+This is better than hardcoding one rule for every Home.
+
+---
+
+# 39. Food should now become a full first-class module
+
+This is a major enhancement.
+
+Food isn't just:
+
+```text
+Breakfast
+Lunch
+Dinner
+```
+
+A **Meal is a named thing.**
+
+Examples:
+
+```text
+KFC Combo
+Curd Kolambu
+Puli Kolambu
+Paruppu Sadham
+Chicken Fried Rice
+Chapathi + Paneer
+```
+
+---
+
+# 40. Meals can contain multiple foods
+
+Example:
+
+```text
+KFC Combo
+
+├── Chicken
+├── Mayo
+└── Sprite
+```
+
+Another:
+
+```text
+Paruppu Sadham
+
+├── Rice
+├── Dal
+├── Ghee
+└── Pickle
+```
+
+Internally:
+
+```text
+Meal
+ └── Meal Items[]
+```
+
+This makes nutrition, cost and suggestions much more useful later.
+
+---
+
+# 41. Meal can be cooked, bought or ordered
+
+Each meal can have:
+
+```text
+Source
+
+Home Cooked
+Bought
+Ordered
+Other
+```
+
+Example:
+
+```text
+KFC Combo
+Source: Bought
+₹680
+```
+
+or:
+
+```text
+Paruppu Sadham
+Source: Home Cooked
+₹180
+```
+
+---
+
+# 42. Food entry is NOT mandatory
+
+This is important.
+
+Don't force users to maintain a food diary.
+
+Money works independently.
+
+Food is an optional layer.
+
+```text
+Expense
+   ↓
+Money system
+```
+
+Food:
+
+```text
+Optional meal record
+   ↓
+Food history
+```
+
+They can reference each other, but one should not depend on the other.
+
+---
+
+# 43. Food and expenses should be loosely connected
+
+Example:
+
+```text
+Expense:
+₹680
+KFC
+```
+
+The user can optionally say:
+
+```text
+Link this to meal:
+"KFC Combo"
+```
+
+But the app should never require:
+
+```text
+Expense → Food record
+```
+
+This keeps the Money workflow fast.
+
+---
+
+# 44. Food cost needs more detail
+
+For each meal:
+
+```text
+Food cost
+Preparation cost
+Optional delivery cost
+Optional other cost
+```
+
+Example:
+
+```text
+Paruppu Sadham
+
+Ingredients      ₹120
+Preparation      ₹40
+Other            ₹20
+--------------------
+Total            ₹180
+```
+
+Then:
+
+```text
+4 people
+
+₹180 ÷ 4
+= ₹45/person
+```
+
+But don't assume everyone participates.
+
+A meal can say:
+
+```text
+Participants:
+Arun
+Vijay
+Ruth
+```
+
+Then:
+
+```text
+₹180 / 3 = ₹60 each
+```
+
+This can optionally feed the expense system.
+
+---
+
+# 45. Food opinions
+
+Every person should be able to vote on a food/meal.
+
+Very simple:
+
+```text
+How do you feel about this?
+
+❤️ Like
+😐 Okay
+👎 Dislike
+```
+
+You can later add:
+
+```text
+Would eat again
+Not often
+Never
+```
+
+But don't overload V1.
+
+---
+
+# 46. Food preference should become personalized
+
+For each member:
+
+```text
+KFC Combo
+Arun       ❤️
+Vijay      😐
+Ruth       👎
+```
+
+System can therefore understand:
+
+```text
+Home preference
++
+Individual preference
+```
+
+---
+
+# 47. Food recommendation system
+
+You requested exactly **two categories of recommendation**.
+
+That's a great UX model.
+
+## Recommended from your Home
+
+Two suggestions:
+
+```text
+From your Food Library
+
+1. Paruppu Sadham
+2. Curd Kolambu
+```
+
+These are based on:
+
+* previously eaten
+* liked
+* accepted
+* not recently repeated
+* household preferences
+* cost
+* current month spending
+* season/location where useful
+
+---
+
+# 48. AI suggestions
+
+Separately:
+
+```text
+✨ AI Ideas
+
+1. Vegetable Kothu Parotta
+2. Lemon Rice + Omelette
+```
+
+These are intentionally allowed to be new/random.
+
+This is different from the Library suggestions.
+
+---
+
+# 49. Do not let AI replace the food library
+
+The recommendation screen should visibly distinguish:
+
+```text
+🏠 From Your Home
+
+Paruppu Sadham
+Curd Kolambu
+
+✨ AI Ideas
+
+Vegetable Kothu
+Chicken Shawarma Bowl
+```
+
+That distinction gives users trust.
+
+---
+
+# 50. Food recommendations should use Home location
+
+Store Home location:
+
+```text
+Home
+ ├── Country
+ ├── State
+ ├── City
+ └── approximate location
+```
+
+Then recommendation can consider:
+
+```text
+Location
++
+Cuisine availability
++
+Local foods
++
+Typical local pricing
++
+Weather/season
++
+Home preferences
+```
+
+For example, a Chennai Home can get recommendations more relevant to Chennai than something randomly generated for another region.
+
+For external food suggestions, location should be used as **context**, not as a reason to invent specific restaurant availability without verification.
+
+---
+
+# 51. Food recommendation engine
+
+The non-AI recommendation score could be:
+
+```text
+Preference
++
+Recent history
++
+Like score
++
+Frequency penalty
++
+Cost
++
+Home location
++
+Meal type
++
+Available ingredients (later)
+```
+
+Example:
+
+```text
+Paruppu Sadham
+
+Liked by: 6/7
+Last eaten: 14 days ago
+Average cost: ₹42/person
+Local relevance: High
+Monthly frequency: Low
+
+Score: 91
+```
+
+Then:
+
+```text
+Recommended
+```
+
+---
+
+# 52. "Reinforcement" should be feedback-driven rather than literal model training initially
+
+When someone selects:
+
+```text
+❤️ Like
+😐 Okay
+👎 Dislike
+```
+
+or repeatedly chooses meals, the system learns.
+
+Example:
+
+```text
+Preference history
+       ↓
+Recommendation ranking
+       ↓
+User selects
+       ↓
+Feedback
+       ↓
+Ranking improves
+```
+
+That's effectively a **personal feedback loop**.
+
+You don't need to fine-tune an LLM every time someone likes biryani.
+
+---
+
+# 53. AI food suggestion should also use the learned preferences
+
+AI should receive structured context such as:
+
+```text
+Home location: Chennai
+Popular meals:
+  Paruppu Sadham
+  Curd Rice
+  Chicken Biryani
+
+Liked:
+  Chicken
+  Rice
+  Paneer
+
+Disliked:
+  Bitter gourd
+
+Recent meals:
+  Biryani 2 days ago
+
+Budget:
+  Low
+
+Recent outside-food frequency:
+  High
+```
+
+Then AI can generate something new.
+
+---
+
+# 54. AI should be able to invent meals
+
+You explicitly want this.
+
+So:
+
+```text
+Library suggestions
+    ↓
+Known things the Home likes
+
+AI suggestions
+    ↓
+New ideas the Home has not necessarily tried
+```
+
+That separation is excellent.
+
+---
+
+# 55. Food suggestions should consider spending
+
+You don't need Food to automatically create Expenses.
+
+Instead:
+
+```text
+Money system
+      ↓
+Spending profile
+
+Food system
+      ↓
+Recommendation context
+```
+
+Example:
+
+```text
+Outside food this month:
+₹4,800
+
+Home cooking:
+₹2,100
+
+Suggestion:
+
+"Your outside-food spending is already high this month.
+Here are two low-cost meals from your library."
+```
+
+This is where AI can provide the useful human-friendly explanation.
+
+---
+
+# 56. The food page could look like this
+
+```text
+Food
+
+Today
+────────────────────
+
+🍛 What did you eat?
+
+[ + Add Meal ]
+
+────────────────────
+
+✨ Suggestions
+
+From Your Home
+───────────────
+🥘 Paruppu Sadham
+₹45/person
+
+🍚 Curd Kolambu
+₹38/person
+
+
+AI Ideas
+───────────────
+🤖 Vegetable Kothu Parotta
+Estimated ₹60/person
+
+🤖 Chicken Shawarma Bowl
+Estimated ₹85/person
+```
+
+Then:
+
+```text
+Food Library
+Meal History
+Preferences
+```
+
+---
+
+# 57. Calendar should combine everything
+
+Calendar is where your HomeOS concept becomes powerful.
+
+### Day
+
+```text
+26 Aug 2026
+
+👥 People
+5 Home
+2 Away
+
+🧹 Chores
+Arun — Kitchen
+Ruth — Hall
+Vijay — Bathroom
+
+💰 Money
+Groceries ₹1,240
+
+🍛 Food
+Paruppu Sadham
+
+📌 Pending
+1 expense approval
+```
+
+---
+
+# 58. Week
+
+```text
+Week: 24–30 Aug
+
+WORK
+Arun       82 pts
+Vijay      78
+Ruth       84
+Karthik    80
+
+MONEY
+₹5,240
+
+FOOD
+7 meals logged
+
+PENDING
+3 approvals
+```
+
+---
+
+# 59. Month
+
+```text
+August
+
+Money
+₹18,420
+
+Chores
+324 points
+
+Completion
+89%
+
+Food
+23 meals
+
+Outside food
+₹4,800
+
+Home cooking
+₹3,100
+```
+
+That's far more useful than having completely disconnected dashboards.
+
+---
+
+# 60. Dashboard architecture
+
+## Home Dashboard
+
+At the top:
+
+```text
+🏠 Chennai Flat
+
+5 Home
+2 Away
+
+₹18,420 spent
+3 approvals
+2 chores today
+```
+
+Then:
+
+```text
+Today's Work
+```
+
+```text
+Money
+```
+
+```text
+Food
+```
+
+```text
+People
+```
+
+Then:
+
+```text
+Insights
+```
+
+---
+
+# 61. Member dashboard
+
+Every member sees:
+
+```text
+My Day
+
+Today's chores
+My money
+My food
+My availability
+
+─────────────────
+
+House Money
+
+Owed to Arun
+₹500
+
+Owed by Vijay
+₹250
+
+Owed to Ruth
+₹180
+```
+
+Important:
+
+> Everyone can see everyone else's financial position.
+
+Not just their own.
+
+---
+
+# 62. Co-Admin dashboard
+
+Same as Member + operational controls:
+
+```text
+Pending approvals
+Member requests
+Expense approvals
+Chore confirmations
+Absence requests
+```
+
+---
+
+# 63. Admin dashboard
+
+Same as Co-Admin + governance:
+
+```text
+Rules
+Home settings
+AI settings
+Governance
+Settlement
+Member removal
+Audit
+```
+
+---
+
+# 64. "More" should be reserved for rarely used things
+
+You specifically asked for this.
+
+Primary navigation:
+
+```text
+Home
+Today
+Chores
+Money
+Food
+Insights
+```
+
+Always visible.
+
+**More:**
+
+```text
+Members
+Calendar
+Approvals
+Rules
+Categories
+House settings
+AI settings
+History
+```
+
+But there's one exception:
+
+> **Approvals should probably be visible whenever pending approvals exist.**
+
+For example:
+
+```text
+🔔 Approvals  4
+```
+
+rather than hiding something important.
+
+---
+
+# 65. Categories
+
+Keep categories simple.
+
+For Expenses:
+
+```text
+Food
+Rent
+Electricity
+Gas
+Internet
+Cleaning
+Household
+Transport
+Other
+```
+
+Admin can add/remove categories.
+
+But don't build a complex hierarchy like:
+
+```text
+Food
+ ├── Restaurant
+ │   ├── Fast food
+ │   │   ├── Chicken
+ │   │   └── ...
+```
+
+Not needed.
+
+Same for chores.
+
+---
+
+# 66. A universal quick-add button
+
+This will make the app much easier.
+
+```text
++
+```
+
+Tap:
+
+```text
+Add
+
+Expense
+Chore
+Meal
+Availability
+Absence
+```
+
+For a member:
+
+```text
++ Expense
++ Meal
++ Chore completion
++ Absence
+```
+
+For Admin:
+
+```text
++ Expense
++ Meal
++ Chore
++ Rule
++ Category
+```
+
+---
+
+# 67. Natural language should eventually work everywhere
+
+With optional AI:
+
+```text
+"Paid 840 for vegetables"
+
+→ Expense draft
+```
+
+```text
+"I'll be away Friday"
+
+→ Absence draft
+```
+
+```text
+"I made paruppu sadham today"
+
+→ Meal draft
+```
+
+```text
+"No one should leave the kitchen dirty overnight"
+
+→ Rule draft
+```
+
+But always:
+
+```text
+AI interpretation
+      ↓
+User sees result
+      ↓
+Confirm
+```
+
+The original BRD already establishes this pattern for natural-language expense entry. 
+
+---
+
+# 68. AI architecture
+
+Use:
+
+```text
+AI Router
+│
+├── Expense Parser
+├── Food Recommender
+├── Meal Generator
+├── Rule Parser
+├── Weekly Summary
+└── Natural Language Assistant
+```
+
+Provider layer:
+
+```text
+AI Router
+      ↓
+Configured Provider
+      ↓
+Provider Adapter
+      ↓
+Model
+```
+
+Potential providers can be selected per Home.
+
+---
+
+# 69. AI configuration belongs to the Home
+
+Admin:
+
+```text
+More
+ → AI Settings
+```
+
+```text
+Provider
+Model
+API Key
+Capabilities
+Usage
+```
+
+API credentials should be stored securely server-side, not as ordinary client-visible Home settings.
+
+---
+
+# 70. AI should have explicit capabilities
+
+Example:
+
+```text
+AI Features
+
+☑ Food suggestions
+☑ New meal ideas
+☑ Weekly summary
+☑ Natural language entry
+☑ Rule parsing
+```
+
+The Home can disable individual capabilities.
+
+---
+
+# 71. AI is never authoritative
+
+Especially:
+
+```text
+Money
+Permissions
+Rules
+Approvals
+Chore calculation
+Settlement
+```
+
+AI cannot directly change these.
+
+The system must validate structured output.
+
+---
+
+# 72. Deterministic core
+
+The following should work **100% without an LLM**:
+
+```text
+Login
+Home switching
+Members
+Roles
+Permissions
+Availability
+Chore assignment
+Points
+Absence
+Expense calculation
+Expense split
+Balances
+Settlement
+Approvals
+Voting
+Rules storage
+Notifications
+Calendar
+Food library
+Food voting
+Analytics
+```
+
+AI is enhancement only.
+
+This preserves the strongest architectural principle in the original BRD. 
+
+---
+
+# 73. Notifications
+
+One common notification system:
+
+```text
+Notifications
+
+🔴 3 approvals
+🧹 Chore due today
+💰 You owe Vijay ₹400
+💰 Arun owes you ₹700
+🍛 New meal suggestion
+👤 Join request
+📅 Tomorrow's chores
+```
+
+Settings:
+
+```text
+Chores
+Money
+Food
+People
+Approvals
+System
+```
+
+Each can be enabled/disabled.
+
+Quiet hours should remain an option, as your existing BRD already suggests. 
+
+---
+
+# 74. Audit / History
+
+Important events get recorded:
+
+```text
+26 Aug
+
+Admin created rule
+"Kitchen cleaned daily"
+
+27 Aug
+
+Co-Admin acknowledged
+
+27 Aug
+
+5 members acknowledged
+```
+
+Another:
+
+```text
+29 Aug
+
+Arun submitted ₹1,240 grocery expense
+
+Vijay approved
+
+Expense added to ledger
+```
+
+Another:
+
+```text
+30 Aug
+
+Admin requested settlement close
+
+Co-Admin acknowledged
+
+6 members acknowledged
+
+Settlement closed
+```
+
+---
+
+# 75. The most important governance rule
+
+I would put this near the beginning of the real BRD:
+
+> **No critical financial, membership, settlement or governance decision may be completed by one person alone when the Home's policy requires shared acknowledgement or approval.**
+
+Admin is responsible for initiating and managing the process.
+
+Admin is not an unchecked superuser.
+
+---
+
+# 76. Governance matrix
+
+A concrete version could look like this:
+
+| Action            | Member | Co-Admin |   Admin  | Shared approval       |
+| ----------------- | :----: | :------: | :------: | --------------------- |
+| Add expense       |    ✅   |     ✅    |     ✅    | No                    |
+| Add food          |    ✅   |     ✅    |     ✅    | No                    |
+| Vote food         |    ✅   |     ✅    |     ✅    | No                    |
+| Complete chore    |    ✅   |     ✅    |     ✅    | No                    |
+| Confirm chore     |    ✅   |     ✅    |     ✅    | Policy                |
+| Approve expense   |    ✅   |     ✅    |     ✅    | Policy                |
+| Create category   |    ❌   |     ✅    |     ✅    | No                    |
+| Request absence   |    ✅   |     ✅    |     ✅    | Yes                   |
+| Approve absence   |    ✅   |     ✅    |     ✅    | Policy                |
+| Request join      |    —   |     —    |     —    | Yes                   |
+| Accept member     |    ❌   |     ✅    |     ✅    | Policy                |
+| Create rule       |    ❌   |     ❌    |     ✅    | Co-Admin + member ACK |
+| Modify rule       |    ❌   |     ❌    |     ✅    | Co-Admin + member ACK |
+| Close settlement  |    ❌   |    ACK   | Initiate | Required              |
+| Reopen settlement |    ❌   |    ACK   | Initiate | Required              |
+| Remove member     |    ❌   |    ACK   | Initiate | Required              |
+| Change governance |    ❌   |    ACK   |     ✅    | Required              |
+| Configure AI      |    ❌   |     ❌    |     ✅    | Governance ACK        |
+
+The actual thresholds should be configurable in Home settings.
+
+---
+
+# 77. The Home should have a simple "Decision" engine internally
+
+Because many features now use voting/acknowledgement, don't implement each one separately.
+
+Create one generic concept:
+
+```text
+Decision
+├── Type
+├── Requested By
+├── Target
+├── Required People
+├── Required Approvals
+├── Required Acknowledgements
+├── Deadline
+├── Status
+└── Result
+```
+
+Then:
+
+```text
+Absence
+Settlement
+Reopen
+Member removal
+Rule change
+Balance cancellation
+```
+
+can all use the same underlying system.
+
+This will save you a **huge amount of backend complexity**.
+
+---
+
+# 78. Generic approval engine
+
+Similarly:
+
+```text
+Approval Request
+```
+
+can handle:
+
+```text
+Expense
+Chore
+Absence
+Join
+Rule
+Settlement
+Removal
+Adjustment
+```
+
+So your system doesn't end up with:
+
+```text
+expense_approval_service
+chore_approval_service
+absence_approval_service
+member_approval_service
+...
+```
+
+all behaving differently.
+
+---
+
+# 79. Your core backend domains should therefore become
+
+```text
+Identity
+Homes
+Membership
+Permissions
+Governance
+Approvals
+People
+Availability
+
+Chores
+ ├── Templates
+ ├── Assignments
+ ├── Completion
+ ├── Confirmation
+ ├── Absence
+ └── Fairness
+
+Money
+ ├── Expenses
+ ├── Splits
+ ├── Balances
+ ├── Adjustments
+ └── Settlement
+
+Food
+ ├── Meals
+ ├── Meal Items
+ ├── Food Library
+ ├── Preferences
+ ├── Feedback
+ └── Recommendations
+
+Calendar
+Notifications
+Insights
+Audit
+AI
+```
+
+---
+
+# 80. Recommended data entities
+
+A clean technical model would roughly contain:
+
+```text
+User
+Home
+HomeMembership
+Invitation
+JoinRequest
+
+Role
+Permission
+Decision
+ApprovalRequest
+Vote
+Acknowledgement
+
+HomeRule
+RuleVersion
+
+Room
+Availability
+Presence
+AbsenceRequest
+
+Chore
+ChoreAssignment
+ChoreCompletion
+ChoreConfirmation
+ChoreException
+ChoreSwap
+EffortRecord
+
+Expense
+ExpenseSplit
+ExpenseApproval
+Balance
+BalanceAdjustment
+Settlement
+SettlementPayment
+
+Food
+Meal
+MealItem
+MealParticipant
+FoodPreference
+FoodFeedback
+FoodRecommendation
+
+Notification
+Device
+
+AuditEvent
+
+AIProvider
+AIConfiguration
+AICapability
+AICall
+```
+
+---
+
+# 81. Food entity example
+
+A meal shouldn't be:
+
+```text
+Dinner = "KFC"
+```
+
+It should be:
+
+```text
+Meal
+────────────────────
+Name:
+KFC Combo
+
+Date:
+26 Aug
+
+Source:
+Bought
+
+Items:
+Chicken
+Mayo
+Sprite
+
+Base Cost:
+₹520
+
+Preparation:
+₹0
+
+Other:
+₹60
+
+Total:
+₹580
+
+Participants:
+Arun
+Ruth
+Vijay
+
+Per Person:
+₹193.33
+```
+
+---
+
+# 82. Another food example
+
+```text
+Meal
+────────────────────
+Name:
+Paruppu Sadham
+
+Source:
+Home Cooked
+
+Items:
+Rice
+Dal
+Ghee
+Pickle
+
+Ingredients:
+₹130
+
+Preparation:
+₹30
+
+Other:
+₹20
+
+Total:
+₹180
+
+Participants:
+4
+
+Per person:
+₹45
+```
+
+That is much closer to what you're actually imagining.
+
+---
+
+# 83. Food library
+
+Every time somebody adds a meal:
+
+```text
+Add Meal
+
+Name:
+Paruppu Sadham
+
+Save to Home Food Library?
+☑ Yes
+```
+
+Later, if the same food is added:
+
+```text
+Did you mean:
+
+Paruppu Sadham
+```
+
+So you don't create duplicates:
+
+```text
+Parupu Sadham
+Paruppu Sadam
+Paruppu Sadham
+Parupu Rice
+```
+
+all as separate entries.
+
+AI can help normalize names, but the final library entry remains deterministic/user-confirmed.
+
+---
+
+# 84. Food recommendation logic
+
+### Library recommendation
+
+Find meals that:
+
+```text
+Liked
++
+Not eaten recently
++
+Low repetition
++
+Within budget
++
+Suitable for current meal
++
+Home/location relevant
+```
+
+Return exactly:
+
+```text
+2 from your Home
+```
+
+### AI recommendation
+
+Use context:
+
+```text
+Home location
+Current meal
+Home preferences
+Recent food
+Budget
+Outside-food frequency
+Season
+Known dislikes
+```
+
+Return exactly:
+
+```text
+2 new AI ideas
+```
+
+So the recommendation card becomes:
+
+```text
+Try Today
+
+🏠 From Your Home
+
+1. Paruppu Sadham
+2. Curd Kolambu
+
+✨ New AI Ideas
+
+1. Vegetable Kothu
+2. Egg Shawarma Bowl
+```
+
+That's excellent UX.
+
+---
+
+# 85. Food feedback continuously improves ranking
+
+Suppose:
+
+```text
+Karthik → Like
+Arun → Like
+Vijay → Okay
+Ruth → Dislike
+```
+
+The Home-level preference becomes:
+
+```text
+Like score = 2
+Okay = 1
+Dislike = 1
+```
+
+Over time the recommendation system learns.
+
+Then individual preferences can override the Home preference.
+
+---
+
+# 86. Individual > Home preference
+
+Example:
+
+```text
+Home likes:
+Chicken Biryani ❤️
+
+Vijay dislikes chicken 👎
+```
+
+For Vijay:
+
+```text
+Do not recommend
+```
+
+For the Home:
+
+```text
+Still acceptable as a general Home meal
+```
+
+This prevents one person's preference from corrupting the entire Home.
+
+---
+
+# 87. Food location logic
+
+Home location should influence external recommendations.
+
+For example:
+
+```text
+Home:
+Chennai
+
+AI/Recommendation context:
+Local cuisine
+Local availability
+Typical price range
+Nearby-style options
+```
+
+But actual external food/restaurant information should be fetched or verified when necessary rather than hallucinated.
+
+---
+
+# 88. Insights become a cross-domain layer
+
+Insights shouldn't just be financial charts.
+
+They should answer:
+
+### Money
+
+```text
+Where did the money go?
+Who paid most?
+Which categories increased?
+```
+
+### Chores
+
+```text
+Who contributed?
+Who is doing more?
+Completion rate?
+```
+
+### Food
+
+```text
+How often are we eating outside?
+How much does food cost?
+What do we repeatedly eat?
+```
+
+### Home
+
+```text
+How active is the Home?
+How many pending decisions?
+How much work is unbalanced?
+```
+
+---
+
+# 89. Main Insights filters
+
+One screen:
+
+```text
+Insights
+
+[ Day ] [ Week ] [ Month ]
+
+Category:
+[ All ▼ ]
+
+Person:
+[ Everyone ▼ ]
+
+Type:
+[ Money | Chores | Food ]
+```
+
+Then charts.
+
+This matches your requirement for daily/weekly/monthly filtering without creating a dozen pages.
+
+---
+
+# 90. Money visualizations
+
+Useful charts:
+
+```text
+Spending by category
+```
+
+```text
+Spending over time
+```
+
+```text
+Who paid
+```
+
+```text
+Paid vs fair share
+```
+
+```text
+Owed to / owed by
+```
+
+The original BRD already calls for category trends, member-level paid-versus-share, monthly cost and effort analytics. 
+
+---
+
+# 91. Chore visualizations
+
+```text
+Workload by member
+
+Arun       █████████
+Vijay      ████████
+Ruth       ██████████
+Karthik    ███████
+```
+
+And:
+
+```text
+Completed
+Missed
+Confirmed
+Pending
+```
+
+Don't turn this into a competitive "scoreboard" in family mode.
+
+---
+
+# 92. Food visualizations
+
+Useful:
+
+```text
+Home cooked vs outside
+```
+
+```text
+Food spending
+```
+
+```text
+Most liked meals
+```
+
+```text
+Recently eaten
+```
+
+```text
+Frequently repeated
+```
+
+These can feed recommendations.
+
+---
+
+# 93. Household "Today" page
+
+I would actually make **Today** the most important page.
+
+Example:
+
+```text
+TODAY
+26 Aug 2026
+
+People
+5 home
+2 away
+
+Chores
+──────────
+Kitchen       Arun
+Hall          Ruth
+Bathroom      Vijay
+
+Money
+──────────
+₹1,240 Groceries
+Pending approval
+
+Food
+──────────
+🍛 What did you eat?
+[+ Add Meal]
+
+Suggestions
+──────────
+Paruppu Sadham
+KFC Combo
+
+Approvals
+──────────
+3 waiting
+[Approve All]
+```
+
+This feels much more like an operating system.
+
+---
+
+# 94. "Home" vs "Today"
+
+### Home
+
+Overview.
+
+### Today
+
+What is happening now.
+
+### Chores
+
+Work system.
+
+### Money
+
+Financial system.
+
+### Food
+
+Meals and food system.
+
+### Insights
+
+Understanding the Home.
+
+That is enough.
+
+---
+
+# 95. More menu
+
+Rarely used items only:
+
+```text
+More
+
+Members
+Calendar
+Approvals
+Rules
+Categories
+House Settings
+AI Settings
+History
+```
+
+I wouldn't put:
+
+```text
+Daily reports
+Weekly reports
+Monthly reports
+Expense categories
+Food categories
+Balance reports
+Payment reports
+```
+
+as separate items.
+
+Those belong inside the major modules.
+
+---
+
+# 96. Calendar belongs in More or Today
+
+Because you want a real calendar, I would expose it from Today too:
+
+```text
+Today
+
+[View Calendar]
+```
+
+Then:
+
+```text
+Day | Week | Month
+```
+
+You don't need permanent sidebar space.
+
+---
+
+# 97. Global quick actions
+
+The main "+" button is very important.
+
+```text
++
+──────────────
+
+Expense
+Meal
+Chore Done
+Absence
+```
+
+Admin additionally:
+
+```text
+Chore
+Rule
+Category
+```
+
+This keeps routine interaction extremely quick.
+
+---
+
+# 98. A user should not have to understand the system's complexity
+
+This is an important product principle.
+
+The internal system may contain:
+
+```text
+ApprovalRequest
+Decision
+Vote
+Acknowledgement
+RuleVersion
+EffortLedger
+Settlement
+BalanceAdjustment
+```
+
+The user should see:
+
+```text
+Approve
+Reject
+Acknowledge
+Done
+Owe
+Paid
+Rule
+```
+
+**Complex backend, simple interface.**
+
+That's the direction I'd strongly recommend.
+
+---
+
+# 99. Final simplified HomeOS flow
+
+```text
+LOGIN
+  ↓
+MY HOMES
+  ↓
+SELECT HOME
+  ↓
+HOME
+  │
+  ├── TODAY
+  │    ├── People
+  │    ├── Chores
+  │    ├── Money
+  │    ├── Food
+  │    └── Approvals
+  │
+  ├── CHORES
+  │    ├── Today
+  │    ├── Week
+  │    ├── Month
+  │    ├── Schedule
+  │    ├── Availability
+  │    └── Fairness
+  │
+  ├── MONEY
+  │    ├── Expenses
+  │    ├── Balances
+  │    ├── Owed To
+  │    ├── Owed By
+  │    └── Settle Up
+  │
+  ├── FOOD
+  │    ├── Add Meal
+  │    ├── Library
+  │    ├── History
+  │    ├── Preferences
+  │    └── Suggestions
+  │
+  ├── INSIGHTS
+  │    ├── Money
+  │    ├── Chores
+  │    ├── Food
+  │    └── Home
+  │
+  └── MORE
+       ├── Members
+       ├── Calendar
+       ├── Approvals
+       ├── Rules
+       ├── Categories
+       ├── House Settings
+       ├── AI Settings
+       └── History
+```
+
+---
+
+# 100. Final architecture principle
+
+The complete product should be understood like this:
+
+```text
+                    HOUSE OS
+                        │
+        ┌───────────────┼───────────────┐
+        │               │               │
+      PEOPLE          WORK            MONEY
+        │               │               │
+     Members          Chores         Expenses
+     Presence         Schedule       Splits
+     Availability     Points         Balances
+     Roles            Fairness       Settlement
+        │               │               │
+        └───────────────┼───────────────┘
+                        │
+                      FOOD
+                        │
+                  Meals / Library
+                  Preferences
+                  Feedback
+                  Suggestions
+                        │
+                     CALENDAR
+                        │
+             Day / Week / Month
+                        │
+                    INSIGHTS
+                        │
+              Notifications / AI
+```
+
+And above all of it:
+
+```text
+                    GOVERNANCE
+                        │
+           ┌────────────┼────────────┐
+           │            │            │
+        Approvals     Rules        Decisions
+           │            │            │
+        Voting       AI Parse      ACKs
+           │            │            │
+           └────────────┼────────────┘
+                        │
+                      AUDIT
+```
+
+### The central philosophy should be:
+
+> **Everyone can record. Everyone can see. Everyone can give input. Important things require shared acknowledgement. Admin manages the system but does not own the Home. AI assists people but never becomes the authority.**
+
+That is, in my view, the much stronger version of the product you are actually describing now. The original BRD already has a solid foundation for permanent records, workload fairness, expense transparency, settlement and deterministic operation; these changes turn it into a more complete **Home OS** rather than primarily a chore/expense-management application. 

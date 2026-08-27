@@ -1,0 +1,219 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens — docs/08-UI-UX-SPEC.md section 2.
+ *
+ * Light is the base palette. Dark applies when the viewer's system asks for it,
+ * or when the theme toggle has stamped data-theme="dark" on the root. An
+ * explicit data-theme="light" always wins over the system preference.
+ */
+
+:root {
+  /* surfaces */
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --surface-2: #f5f5f4;
+  --border: #e7e5e4;
+  --border-strong: #d6d3d1;
+
+  /* text */
+  --text: #1c1917;
+  --text-muted: #78716c;
+  --text-subtle: #a8a29e;
+
+  /* brand */
+  --primary: #0f766e;
+  --primary-hover: #0d9488;
+  --primary-fg: #ffffff;
+
+  /* semantic — green means the house owes you, red means you owe the house */
+  --success: #15803d;
+  --success-bg: #dcfce7;
+  --warning: #b45309;
+  --warning-bg: #fef3c7;
+  --danger: #b91c1c;
+  --danger-bg: #fee2e2;
+  --info: #1d4ed8;
+  --info-bg: #dbeafe;
+
+  /* chore categories — the coloured left rail on chore cards */
+  --cat-cooking: #ea580c;
+  --cat-kitchen: #ca8a04;
+  --cat-bathroom: #0891b2;
+  --cat-room: #7c3aed;
+  --cat-common: #059669;
+  --cat-mopping: #2563eb;
+  --cat-other: #64748b;
+
+  /* radius and elevation */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.06);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.08);
+  --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c0a09;
+    --surface: #1c1917;
+    --surface-2: #292524;
+    --border: #292524;
+    --border-strong: #44403c;
+    --text: #fafaf9;
+    --text-muted: #a8a29e;
+    --text-subtle: #78716c;
+    --primary: #2dd4bf;
+    --primary-hover: #5eead4;
+    --primary-fg: #0c0a09;
+    --success: #4ade80;
+    --success-bg: #14532d;
+    --warning: #fbbf24;
+    --warning-bg: #451a03;
+    --danger: #f87171;
+    --danger-bg: #450a0a;
+    --info: #60a5fa;
+    --info-bg: #172554;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0c0a09;
+  --surface: #1c1917;
+  --surface-2: #292524;
+  --border: #292524;
+  --border-strong: #44403c;
+  --text: #fafaf9;
+  --text-muted: #a8a29e;
+  --text-subtle: #78716c;
+  --primary: #2dd4bf;
+  --primary-hover: #5eead4;
+  --primary-fg: #0c0a09;
+  --success: #4ade80;
+  --success-bg: #14532d;
+  --warning: #fbbf24;
+  --warning-bg: #451a03;
+  --danger: #f87171;
+  --danger-bg: #450a0a;
+  --info: #60a5fa;
+  --info-bg: #172554;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-subtle: var(--text-subtle);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-fg: var(--primary-fg);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 22px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Every number in a column aligns. Amounts that do not read as untrustworthy. */
+  .tabular,
+  input[inputmode="decimal"],
+  input[type="number"] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* A visible focus ring on every interactive element, never removed. */
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--primary);
+    color: var(--primary-fg);
+  }
+}
+
+@layer utilities {
+  .display-number {
+    font-size: 32px;
+    line-height: 38px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .title-text {
+    font-size: 22px;
+    line-height: 28px;
+    font-weight: 600;
+  }
+
+  .heading-text {
+    font-size: 17px;
+    line-height: 24px;
+    font-weight: 600;
+  }
+
+  .label-text {
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
+  }
+
+  .caption-text {
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  /* Minimum touch target, 44 x 44 (WCAG and section 7 of the UI spec). */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* NFR: all motion collapses to opacity-only when the viewer asks for less. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
