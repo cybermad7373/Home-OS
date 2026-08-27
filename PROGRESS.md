@@ -89,7 +89,7 @@ roadmap.
 | 7 | Notifications | complete |
 | 8 | Analytics | complete |
 | 9 | Intelligence (LLM) | built — migration 045 and the function secrets are not yet applied |
-| **10** | **Membership and Homes** — multi-Home, invite links, request-to-join, Co-Admin, Inactive | **specified, not started** |
+| **10** | **Membership and Homes** — multi-Home, invite links, request-to-join, Co-Admin, Inactive | **built — migrations 047–050 are not yet applied** |
 | **11** | **Governance** — decisions, approvals, quorum, absence, governed money | **specified, not started** |
 | **12** | **Rules** — plain text, AI parsing, versioning, history | **specified, not started** |
 | **13** | **Food** — meals, library, preferences, recommendations | **specified, not started** |
@@ -577,20 +577,128 @@ carries a stored key.
 
 ---
 
+## Phase 10 — membership and Homes
+
+Built on 2026-08-27 against `docs/07-ROADMAP.md` phase 10, `docs/04-DATABASE.md`
+§§2.1, 3.1 and 4.1, and `docs/05-API-SPEC.md` §2.1. Migrations 047 to 050 are
+written and **applied to no environment** — no local Postgres was available on
+the machine that built it, so every claim below is proved by typecheck, lint,
+build and the unit suite, and the database-level claims are proved by tests that
+skip themselves until a `db push` has happened.
+
+### What was built
+
+- **Migration 047 — the two enum edits, alone.** `member_role` gains `co_admin`;
+  `member_status` renames `pending` to `requested`. Nothing else, because
+  `alter type … add value` may not be used in the transaction that adds it and
+  the Supabase CLI wraps each file in one. Its header carries the classification
+  of all seventeen `'pending'` grep hits by enum, so the file is reviewed against
+  that list rather than against the raw grep — `swap_status` and
+  `settlement_status` each have a `pending` of their own and are untouched.
+- **Migration 048 — the operational tier.** `is_house_lead()` ships with the
+  enum value it needs, so no policy written in phases 11–15 has to be
+  back-patched. `role` becomes nullable with `requested_has_no_role` tying it to
+  status in both directions (HM-07). `chore_templates`, `rooms` and
+  `expense_categories` move to lead-write; `house_settings` stays Admin-only.
+  The privileged-column trigger is restated with `is distinct from` — a
+  nullable `role` made `<>` return null, which would have let a role change
+  through silently — and with a last-Admin guard.
+- **Migration 049 — HM-06.** `invitations` and `join_requests` with their RLS
+  and their security-definer functions: `rotate_invitation`,
+  `lookup_invitation` (public), `request_join`, `accept_join_request`,
+  `decline_join_request`, `withdraw_join_request`. `household_type` becomes
+  `home_type`, and the four location columns arrive. `join_house` and
+  `regenerate_invite_code` are **dropped**, which is what makes "there is no
+  endpoint anywhere that could have created them without asking" checkable
+  rather than asserted.
+- **Migration 050 — leaving with money outstanding (D-45).** `pending_settlement`
+  and `removal_decision_id`, `member_is_financially_clear`,
+  `begin_member_removal` (revoked from every client role) with the
+  `remove_member` wrapper a person reaches, and the daily
+  `complete-pending-removals` job.
+- **The selected Home, as one accessor.** `getMembership` resolves an httpOnly
+  cookie against the caller's memberships and falls back to their default when
+  it names a Home they cannot use. Every route and server component already went
+  through it, so all 67 shipped handlers became Home-aware with no edit —
+  section 2.3 of the implementation plan, done where it was cheapest.
+- **`lib/data/homes.ts` and the 2.1 routes.** `GET /api/homes`,
+  `POST /api/homes/select`, `GET|POST /api/invitations`,
+  `DELETE /api/invitations/:id`, `GET /api/join/:token`,
+  `POST /api/join/:token/request`, `GET /api/join-requests`, and accept and
+  decline. `POST /api/houses/join` and `POST /api/houses/current/invite-code`
+  are deleted per `docs/05-API-SPEC.md` §0.5.
+- **Screens.** `/join/[token]` as a public landing page, `/homes` for the My
+  Homes cards, the Home switcher in the shell, the requests queue on
+  `/house/members`, and `/onboarding/pending` rewritten — it used to poll a
+  `house_members` row that a waiting person no longer has.
+- **`PATCH /api/members/:id` loses `status`.** Approval is
+  `POST /api/join-requests/:id/accept`; removal is `DELETE /api/members/:id`,
+  which reports which of D-45's two states it landed in. Role changes are
+  Admin-only in the route and in the trigger.
+
+### What phase 10 found on the way
+
+1. **`gen:types` cannot run against an unmigrated database, and the generated
+   file may not be hand-edited.** The answer is `lib/types/schema-pending.ts`, a
+   hand-written overlay merged into `Database` in `lib/types/database.ts`. It
+   carries its own deletion instructions, and it is what made the enum rename a
+   compile error at 24 call sites instead of a runtime surprise. Recorded as
+   D-51.
+2. **The privileged-column trigger would have blocked its own removal job.** It
+   asks `is_house_admin`, which reads `auth.uid()`; a cron run has none. The fix
+   is a transaction-local `app.member_write_authorised` setting that only the
+   security-definer removal path sets. Recorded as D-52.
+3. **`revoke … from anon, authenticated` is not a revoke.** Postgres grants
+   EXECUTE to PUBLIC, which both roles inherit — the lesson migration 037 exists
+   to record. Every new function here revokes from `public` as well.
+4. **A person with an open request has no membership row at all.** Every screen
+   and test that asked "is this member pending?" had to be re-asked as "does
+   this person have an open request?" — the waiting screen's poll, the member
+   list's approval queue, and the RLS test that proved BR-003.
+
+### Acceptance criteria
+
+| Criterion | Where it is proved |
+|-----------|--------------------|
+| A person opens a link, asks, is accepted, appears as Active | `tests/integration/membership.test.ts`, and the Playwright journey in `tests/e2e/foundation.spec.ts` |
+| No endpoint could have created them without asking | `join_house` and `regenerate_invite_code` dropped in 049; the only reachable insert is `accept_join_request`, which needs a request the person raised |
+| Somebody with an open request gets zero rows from every table in that Home | `membership.test.ts`, iterated over nineteen tables rather than asserted one by one |
+| A Requested row has no role, and a role on one is refused by the database | `membership.test.ts` — attacked with the service-role key, which bypasses RLS and not a check constraint |
+| A person in several Homes; a role in one means nothing in another | `membership.test.ts`, via `is_house_lead` in both directions |
+| Rotating the link kills the old one and touches no membership or open request | `membership.test.ts` |
+| Removal with money outstanding stays in the settlement and completes when the last payment is confirmed | `membership.test.ts` — including that `complete_pending_removals` leaves them alone until it is |
+| Every previously-`'pending'` test passes against `'requested'` | the unit suite: 388 passing |
+| HM-20: a new Home is usable before it is configured | `membership.test.ts` — an Admin, categories, chore templates and a live link exist the moment the Home does |
+
+### What is not done, and needs an environment rather than code
+
+1. **Migrations 047–050 have not been pushed**, so `tests/integration/membership.test.ts`
+   and the two phase-10 cases in `rls-isolation.test.ts` skip themselves. They are
+   the whole database half of the acceptance table above.
+2. **`npm run gen:types` has not been re-run.** Until it is,
+   `lib/types/schema-pending.ts` is load-bearing. Delete the entries the
+   regenerated file covers; anything still there afterwards is an unpushed
+   migration.
+3. **Phase 9's environment gap is still open** — migrations 045 and 046, the
+   master key, and the `weekly-digest` redeploy. Phase 10 did not close it and
+   does not depend on it.
+
+---
+
 ## Known gaps and follow-ups
 
-- **Specification 2.0 is documented and unbuilt.** Six engineering phases (10 to
-  15) stand between the current code and the specification. The order in
+- **Specification 2.0 is partly built.** Phase 10 is written; five engineering
+  phases (11 to 15) stand between the current code and the specification. The order in
   `docs/07-ROADMAP.md` is not arbitrary: membership before governance, because a
   decision needs participants and participants need roles; and governance before
   rules, food's navigation slot and the Approvals surface, because retrofitting a
   decision engine under four features that each grew their own approval flow is
   precisely the outcome the engine exists to prevent.
-- **Two shipped behaviours change in place.** The `member_status` rename
-  (`pending` → `requested`) is silent to `select` and needs a tree-wide grep in
-  the same migration. Close, reopen, removal and chore confirmation move behind
-  decisions, and their existing routes become proposers rather than being deleted,
-  so an un-updated client gets `409 DECISION_REQUIRED` rather than a 404.
+- **One shipped behaviour still changes in place.** The `member_status` rename
+  landed in migration 047 with its grep classified by enum first. What remains is
+  phase 11's: close, reopen, removal and chore confirmation move behind decisions,
+  and their existing routes become proposers rather than being deleted, so an
+  un-updated client gets `409 DECISION_REQUIRED` rather than a 404.
 - **The web/PWA launch gate is not yet met.** Intelligence is built but not
   applied to any environment (migration 045, the master key, and a redeploy of
   `weekly-digest`), and production release checks — privacy and support pages,
