@@ -1,0 +1,46 @@
+-- 047 — Membership enums: `co_admin` arrives, `pending` becomes `requested`
+--
+-- Source: docs/04-DATABASE.md section 3.1, docs/07-ROADMAP.md phase 10.
+--
+-- Two enum edits and nothing else. `alter type ... add value` may not be used
+-- in the same transaction that adds it, and the Supabase CLI wraps each
+-- migration file in one transaction, so `is_house_lead()` and every policy
+-- naming `co_admin` live in 048 rather than here.
+--
+-- ---------------------------------------------------------------------------
+-- The classification, per IMPLEMENTATION-PLAN-2.0 section 2.1
+-- ---------------------------------------------------------------------------
+-- `grep -rn "'pending'" supabase/migrations lib/ app/` returns seventeen hits
+-- across three unrelated enums. Renaming the wrong one breaks settlement or
+-- swaps silently, so every hit is classified here and this migration is
+-- reviewed against the list, not against the raw grep.
+--
+--   member_status — renamed by this migration:
+--     001_enums.sql:8                      the type definition
+--     002_identity_house_rooms.sql:57      house_members.status default
+--     013_rpc_house.sql:86                 join_house body      (superseded by 015)
+--     015_fix_join_house_ambiguity.sql:38  join_house body      (live; restated in 048)
+--     lib/data/house.ts:62                 a comment
+--
+--   swap_status — NOT TOUCHED:
+--     001_enums.sql:19, 027_chores.sql:86, 028_chore_functions.sql:258,
+--     030_fix_enum_case_casts.sql:42
+--
+--   settlement_status — NOT TOUCHED:
+--     001_enums.sql:24, 022_settlement.sql:32, 023_settlement_functions.sql:99,
+--     023:167, 023:171, 030_fix_enum_case_casts.sql:90, 033_penalties.sql:85,
+--     042_notification_jobs.sql:330
+--
+--   expense_status 'pending_approval' — a different label entirely, NOT TOUCHED.
+--
+-- Renaming an enum label preserves the label's OID, so stored defaults, check
+-- constraints and indexes follow the rename automatically. Function bodies do
+-- not: their string literals are re-parsed at call time. That is why 048
+-- restates `join_house` rather than trusting the type system.
+
+-- Additive and safe. The operational tier below Admin (HM-07).
+alter type member_role add value if not exists 'co_admin' after 'admin';
+
+-- 'pending' described a person an admin had created and not yet approved. In
+-- 2.0 nobody creates a member; a person asks. The label follows the meaning.
+alter type member_status rename value 'pending' to 'requested';
