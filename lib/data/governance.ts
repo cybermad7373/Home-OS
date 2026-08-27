@@ -838,6 +838,18 @@ async function applyIfApproved(
   if (applyError) {
     const refusal = apiErrorFromPostgres(applyError).code;
     console.error("[governance] apply refused", decisionId, applyError.message);
+
+    // N-37. The effect ran inside `apply_decision`'s transaction and that
+    // transaction is gone, so a notification written there would have gone with
+    // it. This is the only place the failure still exists (migration 055).
+    const { error: notifyError } = await admin.rpc("notify_apply_refused", {
+      p_decision_id: decisionId,
+      p_reason: refusal,
+    });
+    if (notifyError) {
+      console.error("[governance] N-37 not written", decisionId, notifyError.message);
+    }
+
     return { applied: false, refusal };
   }
 

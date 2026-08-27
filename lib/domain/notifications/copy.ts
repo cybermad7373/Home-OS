@@ -176,6 +176,78 @@ export const TEMPLATES: Record<NotificationType, Template> = {
     body: "{provider} refused it. AI features are off until it's replaced.",
     deepLink: "/admin/settings/ai",
   },
+
+  // 2.8 — governance. `{action}` is the verb phrase for the decision's type;
+  // `DECISION_ACTION_PHRASE` in lib/types/domain.ts holds them, and
+  // `decision_action_phrase` in migration 055 holds the same map for the
+  // triggers that render these strings in the database.
+  "N-32": {
+    title: "{proposer} wants to {action}",
+    body: "You need to {verb} this. {n} others too.",
+    deepLink: "/more/approvals/{id}",
+  },
+  "N-33": {
+    title: "{action} — 1 day left",
+    body: "Nothing happens until you answer.",
+    deepLink: "/more/approvals/{id}",
+  },
+  "N-34": {
+    title: "{action}: {outcome}",
+    body: "{n} approved, {m} acknowledged.",
+    deepLink: "/more/decisions",
+  },
+  "N-35": {
+    title: "{name} said no to {action}",
+    body: "\"{reason}\"",
+    deepLink: "/more/decisions",
+  },
+  "N-36": {
+    title: "{action} lapsed",
+    body: "Nobody answered in time. Nothing changed.",
+    deepLink: "/more/decisions",
+  },
+  "N-37": {
+    title: "{action} couldn't be done",
+    body: "The house agreed, but: {reason}",
+    deepLink: "/more/decisions",
+  },
+
+  // 2.9 — membership.
+  "N-38": {
+    title: "{name} wants to join",
+    body: "\"{message}\"",
+    deepLink: "/house/members",
+  },
+  "N-39": {
+    title: "You're in — {home}",
+    body: "Set when you're home, and you're done.",
+    deepLink: "/house/availability",
+  },
+  "N-40": {
+    title: "{home} declined your request",
+    body: "\"{reason}\"",
+    deepLink: "/homes",
+  },
+  "N-41": {
+    title: "{name} joined",
+    body: "Chores from next week.",
+    deepLink: "/house/members",
+  },
+  "N-42": {
+    title: "{proposer} proposed removing you",
+    body: "\"{reason}\" — the house is deciding.",
+    deepLink: "/more/decisions",
+  },
+  "N-43": {
+    title: "You're no longer active in {home}",
+    body: "₹{amount} is still to settle. You'll stay in the money view until it's clear.",
+    deepLink: "/settle",
+  },
+  "N-44": {
+    title: "You're a co-admin of {home}",
+    body: "You can now approve day-to-day things and you're needed for the big ones.",
+    deepLink: "/house/members",
+  },
 };
 
 /** The three N-22 bodies. Section 2.6 gives them as one row with a condition. */

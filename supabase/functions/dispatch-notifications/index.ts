@@ -39,7 +39,15 @@ const PREF_COLUMN: Record<string, string> = {
   expense_activity: "expense_activity",
   weekly_digest: "weekly_digest",
   settlement_updates: "settlement_updates",
+  decisions: "decisions",
+  decision_outcomes: "decision_outcomes",
+  membership: "membership",
 };
+
+// The two categories a member cannot switch off, and the same reason twice:
+// somebody who has muted the app cannot then say they were never told they
+// owed money, or that nobody asked them about a decision.
+const MANDATORY_CATEGORIES = new Set(["settlement_updates", "decisions"]);
 
 interface CatalogueRow {
   type: string;
@@ -304,7 +312,7 @@ Deno.serve(async () => {
 
       const column = PREF_COLUMN[category];
       const allowed =
-        category === "settlement_updates" ||
+        MANDATORY_CATEGORIES.has(category) ||
         !memberPrefs ||
         (memberPrefs as unknown as Record<string, boolean>)[column] !== false;
 

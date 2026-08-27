@@ -34,6 +34,9 @@ export interface NotificationPrefs {
   expenseActivity: boolean;
   weeklyDigest: boolean;
   settlementUpdates: boolean;
+  decisions: boolean;
+  decisionOutcomes: boolean;
+  membership: boolean;
   quietHoursStart: string | null;
   quietHoursEnd: string | null;
 }
@@ -140,6 +143,9 @@ export async function getPrefs(session: Session): Promise<NotificationPrefs | nu
     expenseActivity: data.expense_activity,
     weeklyDigest: data.weekly_digest,
     settlementUpdates: data.settlement_updates,
+    decisions: data.decisions,
+    decisionOutcomes: data.decision_outcomes,
+    membership: data.membership,
     quietHoursStart: data.quiet_hours_start,
     quietHoursEnd: data.quiet_hours_end,
   };
@@ -152,6 +158,8 @@ export interface PrefsUpdate {
   house_activity?: boolean;
   expense_activity?: boolean;
   weekly_digest?: boolean;
+  decision_outcomes?: boolean;
+  membership?: boolean;
   quiet_hours_start?: string | null;
   quiet_hours_end?: string | null;
   quiet_hours_off?: boolean;
@@ -168,6 +176,8 @@ export async function setPrefs(
     p_house_activity: update.house_activity ?? undefined,
     p_expense_activity: update.expense_activity ?? undefined,
     p_weekly_digest: update.weekly_digest ?? undefined,
+    p_decision_outcomes: update.decision_outcomes ?? undefined,
+    p_membership: update.membership ?? undefined,
     p_quiet_hours_start: update.quiet_hours_start ?? undefined,
     p_quiet_hours_end: update.quiet_hours_end ?? undefined,
     p_quiet_hours_off: update.quiet_hours_off ?? false,
@@ -248,7 +258,7 @@ export async function listDevices(session: Session): Promise<Device[]> {
 
 /** The preference switches, in the order the settings screen shows them. */
 export const PREF_ROWS: ReadonlyArray<{
-  key: Exclude<PrefCategory, "settlement_updates">;
+  key: Exclude<PrefCategory, "settlement_updates" | "decisions">;
   field: keyof NotificationPrefs;
   label: string;
   help: string;
@@ -282,6 +292,18 @@ export const PREF_ROWS: ReadonlyArray<{
     field: "expenseActivity",
     label: "Money",
     help: "Approvals, rejections and budget warnings",
+  },
+  {
+    key: "decision_outcomes",
+    field: "decisionOutcomes",
+    label: "Decision outcomes",
+    help: "How a decision you were part of ended",
+  },
+  {
+    key: "membership",
+    field: "membership",
+    label: "Joining and leaving",
+    help: "Requests to join, and changes to who is a lead",
   },
   {
     key: "weekly_digest",

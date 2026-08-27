@@ -932,21 +932,77 @@ stop checking each other's work is a Critical decision, not an Admin
 preference, and that is D-60. The enum value goes into migration 051's
 `create type` while 051 remains unapplied.
 
+### Slice 6 — the notifications, and the jobs behind them (migration 055)
+
+Migrations 051 to 053 built decisions that nobody was told about, which in
+practice is a decision that lapses. Thirteen notification types arrive here —
+N-32 to N-44, the whole of sections 2.8 and 2.9 of the notifications
+specification — along with the two governance jobs that were still missing.
+
+Every one of them is produced by a trigger on the event rather than by the
+route handler that caused it, for migration 041's reason: the notification has
+to exist the moment its cause happens, including when the cause is a cron run
+with nobody logged in. N-37 is the exception and says why in place — the effect
+that failed did so inside `apply_decision`'s transaction, so a notification
+written there would have rolled back with it; the only surviving record of the
+failure is in `applyIfApproved`, and that is where the call sits.
+
+N-32 hangs off `decision_participants` rather than off `decisions`. A deferred
+constraint trigger on the decision row would have worked for `create_decision`,
+which writes both in one transaction, and told nobody for any path that writes
+them in two. Hanging it off the participant row means every path that adds a
+participant tells that participant.
+
+Three things needed schema rather than copy:
+
+- **A feed row for somebody who is not a member.** N-40 tells a person their
+  request to join was declined; the absence of a membership is the content of
+  the message, so there is no `house_members` row to address it to.
+  `notifications.member_id` becomes nullable, `user_id` arrives beside it, and
+  a check constraint holds it to exactly one of the two. The feed reads
+  entirely through RLS, so extending the policy is the whole of the change the
+  client needed.
+- **`enqueue_notification` gains `p_even_if_inactive`.** The function refuses
+  to write to a member who is not active, which is right for everything except
+  N-43, the notification that tells somebody they have stopped being active.
+- **Three preference switches** — `decisions`, `decision_outcomes` and
+  `membership`. `decisions` is stored and forced true, like
+  `settlement_updates`: a Home where a required participant can silence the
+  request and then say nobody asked has a governance model on paper only. The
+  settings screen shows it with a padlock and the sentence, rather than hiding
+  it (D-30).
+
+The jobs: `expire_decisions` was written in 052 and scheduled by nothing, and
+`remind_decision_participants` is new — 24 hours before a deadline, to the
+people who have not answered, and asking whether it has already sent that
+reminder, because it runs hourly and `enqueue_notification`'s own dedupe window
+is ten minutes wide. Both are now on cron, five and twenty past the hour so
+that a decision lapsing is not competing with the reminder that would have told
+somebody to answer it. `complete_pending_removals` was already scheduled by
+050, which completes the three.
+
+`decision_action_phrase` in SQL and `DECISION_ACTION_PHRASE` in
+`lib/types/domain.ts` are the same fourteen verb phrases, and
+`tests/unit/governance-notifications.test.ts` reads the migration and fails if
+they drift — the arrangement the notification catalogue has lived under since
+041.
+
 ### Not yet built in this phase
 
 `absence_requests`; close and reopen becoming decisions, and with them the
 apply-time netting the dispatcher's `p_input` exists for; `balance_adjustments`;
-expected contributions and the reserve; the three governance jobs;
-notifications N-40 to N-46; shared chore assignment (CE-11); and
+expected contributions and the reserve; shared chore assignment (CE-11); and
 `change_confirmation_policy`, the fifteenth decision type and the only thing
 that will ever write `house_settings.confirmation_policy` (D-60). Proposing
 from the actions that need it (S-37 — Close month, Propose removal, Adjust a
 balance) is also still to come: the API accepts a proposal today, and no screen
-sends one.
+sends one. N-45 and N-46 are Food's two notifications and arrive with phase 13,
+which is the module they describe.
 
 They are built in this order, cheapest-risk first (D-59):
 
-1. The three governance jobs and notifications N-40 to N-46
+1. ~~The three governance jobs and the governance notifications~~ — done,
+   migration 055
 2. The proposer entry points, S-37
 3. `absence_requests`
 4. Shared chore assignment (CE-11) and `change_confirmation_policy`
@@ -959,15 +1015,17 @@ of the phase, and one commit per slice.
 ### Verification
 
 `npm run typecheck`, `npm run lint`, `npm run test` and `npm run build` are
-clean — 455 passing tests, including the governance property, the 15 queue
-cases and the 5 new `canConfirm` cases, and all five decision routes and all
-three governance screens appear in the build output. The 38 cases in
-`tests/integration/governance.test.ts` and the 12 in
-`tests/integration/chore-quorum.test.ts` skip themselves, because migrations
-051 to 054 have not been pushed to any environment and no local Postgres,
-Supabase CLI or Docker was available to run them against. **No part of this
-phase has been applied to a database, and none of its SQL has been executed
-anywhere.**
+clean — 471 passing tests, including the governance property, the 15 queue
+cases, the 5 `canConfirm` cases and the 16 new cases holding the notification
+catalogue, the mandatory categories and the action phrases to the migration,
+and all five decision routes and all three governance screens appear in the
+build output. The 38 cases in `tests/integration/governance.test.ts`, the 12 in
+`tests/integration/chore-quorum.test.ts` and the 17 in
+`tests/integration/governance-notifications.test.ts` skip themselves, because
+migrations 051 to 055 have not been pushed to any environment and no local
+Postgres, Supabase CLI or Docker was available to run them against. **No part
+of this phase has been applied to a database, and none of its SQL has been
+executed anywhere.**
 
 The chore-quorum suite is where the two phase-11 acceptance criteria for
 confirmation live — "a four-person Home's chore requires an Admin or Co-Admin

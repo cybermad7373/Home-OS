@@ -391,7 +391,8 @@ that changes what the product *is*, and it is the one to build slowly.
   `member_expected_contributions`, `reserves`, `reserve_movements`, the three
   new decision types, and the draw's effect on an expense's split
 - The three governance jobs: expire, remind, complete-pending-removals
-- Notifications N-40 to N-46
+- Notifications N-32 to N-44. N-45 and N-46 are Food's and arrive with phase 13,
+  which is the module they describe
 - **`change_confirmation_policy` (CE-10):** the fifteenth decision type, and the
   only thing that writes `house_settings.confirmation_policy` (D-60)
 
@@ -400,7 +401,7 @@ Five slices are already written: the engine, the Decision record, applying one,
 the decision API and the Approvals surface, and the chore confirmation quorum.
 The rest are built cheapest-risk first, each one leaving the app more useful:
 
-1. The three governance jobs and notifications N-40 to N-46 — they finish what
+1. The three governance jobs and the governance notifications — they finish what
    is already written rather than opening new ground
 2. The proposer entry points (S-37), so a decision can be raised from a screen
 3. `absence_requests`

@@ -37,6 +37,9 @@ export interface PrefsView {
   expenseActivity: boolean;
   weeklyDigest: boolean;
   settlementUpdates: boolean;
+  decisions: boolean;
+  decisionOutcomes: boolean;
+  membership: boolean;
   quietHoursStart: string | null;
   quietHoursEnd: string | null;
 }
@@ -47,6 +50,8 @@ type ToggleKey =
   | "chore_outcomes"
   | "house_activity"
   | "expense_activity"
+  | "decision_outcomes"
+  | "membership"
   | "weekly_digest";
 
 const ROWS: ReadonlyArray<{ key: ToggleKey; field: keyof PrefsView; label: string; help: string }> = [
@@ -79,6 +84,18 @@ const ROWS: ReadonlyArray<{ key: ToggleKey; field: keyof PrefsView; label: strin
     field: "expenseActivity",
     label: "Money",
     help: "Approvals, rejections and budget warnings",
+  },
+  {
+    key: "decision_outcomes",
+    field: "decisionOutcomes",
+    label: "Decision outcomes",
+    help: "How a decision ended, once the house has answered it",
+  },
+  {
+    key: "membership",
+    field: "membership",
+    label: "Joining and leaving",
+    help: "Requests to join, and changes to who is a lead",
   },
   {
     key: "weekly_digest",
@@ -313,6 +330,20 @@ export function NotificationPrefsForm({
               <p className="caption-text text-text-muted">
                 Always on. A member who has muted the app cannot then say they
                 were never told they owed money.
+              </p>
+            </div>
+          </li>
+
+          {/* Shown with a padlock rather than hidden, per D-30: a rule a member
+              discovers by being surprised is a rule they resent. */}
+          <li className="flex items-center justify-between gap-3 py-3">
+            <div className="min-w-0">
+              <p className="flex items-center gap-1.5 font-medium">
+                <Lock size={14} aria-hidden /> Decisions waiting on you
+              </p>
+              <p className="caption-text text-text-muted">
+                Always on. If these could be silenced, the house could decide
+                something without you and you would have no way of knowing.
               </p>
             </div>
           </li>

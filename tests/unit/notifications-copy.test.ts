@@ -44,6 +44,18 @@ const LLM_MIGRATION = join(
 );
 
 /**
+ * Phase 11 added thirteen more — N-32 to N-44, governance and membership — in
+ * migration 055, for the same reason: a seed lives with the feature that needs
+ * it rather than in the file that happened to be first.
+ */
+const GOVERNANCE_MIGRATION = join(
+  process.cwd(),
+  "supabase",
+  "migrations",
+  "20260827090055_governance_notifications.sql",
+);
+
+/**
  * Splits a SQL `values` list into rows of literals.
  *
  * Small and deliberately unclever: it walks the text, tracks whether it is
@@ -137,6 +149,7 @@ const TYPE_INSERT_MARKER =
 const typeRows = [
   ...parseValues(sql, TYPE_INSERT_MARKER),
   ...parseValues(readSql(LLM_MIGRATION), TYPE_INSERT_MARKER),
+  ...parseValues(readSql(GOVERNANCE_MIGRATION), TYPE_INSERT_MARKER),
 ];
 const variantRows = parseValues(
   sql,
@@ -144,8 +157,8 @@ const variantRows = parseValues(
 );
 
 describe("the database and the client agree", () => {
-  it("seeds every one of the thirty-one types", () => {
-    expect(typeRows).toHaveLength(31);
+  it("seeds every one of the forty-four types", () => {
+    expect(typeRows).toHaveLength(44);
     const seeded = typeRows.map((row) => row[0]).sort();
     expect(seeded).toEqual(Object.keys(TEMPLATES).sort());
   });

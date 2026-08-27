@@ -171,6 +171,32 @@ export const DECISION_EFFECT: Record<DecisionType, string> = {
   reserve_draw: "The amount leaves the reserve and covers the expense it was asked for.",
 };
 
+/**
+ * The same decision, as a verb phrase: "{proposer} wants to {action}".
+ *
+ * N-32 and its family are rendered by database triggers, so the phrases exist
+ * a second time as `decision_action_phrase` in migration 055, and
+ * `tests/unit/governance-notifications.test.ts` reads that function and fails
+ * if the two ever differ. One enforced agreement between two copies, which is
+ * the arrangement the notification catalogue already lives under.
+ */
+export const DECISION_ACTION_PHRASE: Record<DecisionType, string> = {
+  close_settlement: "close the month",
+  reopen_settlement: "reopen a closed month",
+  remove_member: "remove a member",
+  change_rule: "change a house rule",
+  change_governance: "change how decisions are made",
+  change_home_mode: "change how the home works",
+  balance_adjustment: "adjust a balance",
+  absence_request: "take time away",
+  join_request: "let somebody join",
+  expense_approval: "approve an expense",
+  chore_confirmation: "confirm a chore",
+  set_expected_contribution: "set an expected contribution",
+  create_reserve: "start a reserve",
+  reserve_draw: "draw from the reserve",
+};
+
 export const QUEUE_GROUP_LABEL: Record<QueueGroup, string> = {
   expenses: "Expenses",
   chores: "Chores",

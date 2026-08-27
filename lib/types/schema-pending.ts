@@ -12,7 +12,7 @@
  * against the schema the migrations describe rather than the one the generated
  * file remembers.
  *
- * **When `npm run gen:types` next runs against a database carrying 047-054,
+ * **When `npm run gen:types` next runs against a database carrying 047-055,
  * delete the entries below that the generated file now covers.** Anything left
  * here after that is either a mistake or a migration that has not been pushed.
  */
@@ -353,9 +353,56 @@ type ChoreConfirmationsTable = {
   Relationships: [];
 };
 
+/**
+ * 055 — a notification is addressed to a member or to a user, never both and
+ * never neither. `user_id` exists for N-40, which tells somebody their request
+ * to join was declined: they have no membership in that Home, which is the
+ * whole content of the message.
+ */
+type NotificationsTable = {
+  Row: Omit<GeneratedTables["notifications"]["Row"], "member_id"> & {
+    member_id: string | null;
+    user_id: string | null;
+  };
+  Insert: Omit<GeneratedTables["notifications"]["Insert"], "member_id"> & {
+    member_id?: string | null;
+    user_id?: string | null;
+  };
+  Update: Omit<GeneratedTables["notifications"]["Update"], "member_id"> & {
+    member_id?: string | null;
+    user_id?: string | null;
+  };
+  Relationships: [];
+};
+
+/** 055 — the three preference switches section 6 of the spec adds in 2.0. */
+type NotificationPrefsTable = {
+  Row: GeneratedTables["notification_prefs"]["Row"] & {
+    decisions: boolean;
+    decision_outcomes: boolean;
+    membership: boolean;
+  };
+  Insert: GeneratedTables["notification_prefs"]["Insert"] & {
+    decisions?: boolean;
+    decision_outcomes?: boolean;
+    membership?: boolean;
+  };
+  Update: GeneratedTables["notification_prefs"]["Update"] & {
+    decisions?: boolean;
+    decision_outcomes?: boolean;
+    membership?: boolean;
+  };
+  Relationships: [];
+};
+
 export type PendingTables = Omit<
   GeneratedTables,
-  "houses" | "house_members" | "house_settings" | "chore_assignments"
+  | "houses"
+  | "house_members"
+  | "house_settings"
+  | "chore_assignments"
+  | "notifications"
+  | "notification_prefs"
 > & {
   houses: HousesTable;
   house_members: HouseMembersTable;
@@ -368,6 +415,8 @@ export type PendingTables = Omit<
   decisions: DecisionsTable;
   decision_participants: DecisionParticipantsTable;
   decision_responses: DecisionResponsesTable;
+  notifications: NotificationsTable;
+  notification_prefs: NotificationPrefsTable;
 };
 
 // ---------------------------------------------------------------------------
@@ -378,7 +427,12 @@ type MemberReturn = HouseMembersTable["Row"];
 
 export type PendingFunctions = Omit<
   GeneratedFunctions,
-  "create_house" | "add_dependent" | "current_member" | "join_house" | "regenerate_invite_code"
+  | "create_house"
+  | "add_dependent"
+  | "current_member"
+  | "join_house"
+  | "regenerate_invite_code"
+  | "set_notification_prefs"
 > & {
   create_house: {
     Args: {
@@ -476,6 +530,35 @@ export type PendingFunctions = Omit<
     Returns: DecisionsTable["Row"];
   };
   expire_decisions: {
+    Args: Record<string, never>;
+    Returns: number;
+  };
+
+  // --- 055: governance notifications and their jobs ------------------------
+  /** Two more switches than the generated signature knows about. */
+  set_notification_prefs: {
+    Args: {
+      p_chore_reminders?: boolean;
+      p_confirmation_requests?: boolean;
+      p_chore_outcomes?: boolean;
+      p_house_activity?: boolean;
+      p_expense_activity?: boolean;
+      p_weekly_digest?: boolean;
+      p_quiet_hours_start?: string;
+      p_quiet_hours_end?: string;
+      p_quiet_hours_off?: boolean;
+      p_telegram_enabled?: boolean;
+      p_decision_outcomes?: boolean;
+      p_membership?: boolean;
+    };
+    Returns: NotificationPrefsTable["Row"];
+  };
+  /** Service role only. Called when an approved decision's effect refuses. */
+  notify_apply_refused: {
+    Args: { p_decision_id: string; p_reason: string };
+    Returns: string | null;
+  };
+  remind_decision_participants: {
     Args: Record<string, never>;
     Returns: number;
   };

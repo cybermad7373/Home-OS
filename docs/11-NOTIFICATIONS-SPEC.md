@@ -145,6 +145,9 @@ telling them is not using a governance feature, it is using a trapdoor.
 
 ### 2.10 Food — **new in 2.0**
 
+Built with phase 13, which is the module these describe. Everything above,
+N-32 to N-44, ships with phase 11.
+
 Food gets **one** optional notification and no others. It is the module most
 capable of becoming nagging, and a food diary that pesters is a food diary that
 gets switched off along with everything else.
@@ -392,6 +395,13 @@ rule they resent; a rule stated in advance is one they accepted.
 
 **Food is the only category that is off by default**, for the reason in section
 2.10.
+
+**Where these live.** The switches are columns on `notification_prefs`;
+`decisions`, `decision_outcomes` and `membership` arrived with migration 055,
+which also seeds N-32 to N-44 and adds the two triggers and one job that
+produce them. `decisions` is written like `settlement_updates` — stored, and
+forced true by `set_notification_prefs` — so that "cannot be switched off" is a
+property of the database rather than of the settings screen.
 
 ---
 
