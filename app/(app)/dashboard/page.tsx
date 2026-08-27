@@ -78,7 +78,7 @@ export default async function DashboardPage() {
   // Positive means the house owes you. This mapping never inverts, anywhere.
   const yourNetPaise = money.yourPaidPaise - money.yourSharePaise;
 
-  const pending = context.members.filter((member) => member.status === "pending");
+  const pending = context.members.filter((member) => member.status === "requested");
   const active = context.members.filter((member) => member.status === "active");
   const withoutRoom = active.filter((member) => !member.room);
 

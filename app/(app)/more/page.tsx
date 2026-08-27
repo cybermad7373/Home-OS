@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { MemberAvatar } from "@/components/ui/avatar";
 import { getHouseContext, requireSession } from "@/lib/data/house";
-import { HOUSEHOLD_TYPE_LABEL, RESIDENCY_LABEL } from "@/lib/types/domain";
+import { HOME_TYPE_LABEL, RESIDENCY_LABEL } from "@/lib/types/domain";
 
 export const metadata: Metadata = { title: "More" };
 
@@ -129,7 +129,7 @@ export default async function MorePage() {
           <p className="truncate font-medium">{context.me.displayName}</p>
           <p className="caption-text text-text-muted">
             {context.me.username ? `@${context.me.username} · ` : ""}
-            {context.house.name} · {HOUSEHOLD_TYPE_LABEL[context.shape.householdType]}{" "}
+            {context.house.name} · {HOME_TYPE_LABEL[context.shape.homeType]}{" "}
             · {RESIDENCY_LABEL[context.me.residency]}
           </p>
         </div>

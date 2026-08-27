@@ -20,7 +20,7 @@ export default async function OnboardingHousePage() {
   const membership = await getMembership(session);
 
   if (membership?.member.status === "active") redirect("/dashboard");
-  if (membership?.member.status === "pending") redirect("/onboarding/pending");
+  if (membership?.member.status === "requested") redirect("/onboarding/pending");
 
   return <JoinOrCreate />;
 }

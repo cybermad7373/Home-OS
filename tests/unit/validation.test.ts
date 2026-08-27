@@ -2,13 +2,16 @@ import { describe, expect, it } from "vitest";
 import {
   claimUsernameSchema,
   createHouseSchema,
-  joinHouseSchema,
   roomSchema,
   signInSchema,
   signUpSchema,
   updateMemberSchema,
 } from "@/lib/validation/house";
-import { isEmailIdentifier, usernameSchema } from "@/lib/validation/common";
+import {
+  inviteTokenSchema,
+  isEmailIdentifier,
+  usernameSchema,
+} from "@/lib/validation/common";
 import { houseToday, relativeTime } from "@/lib/utils/date";
 
 /** Section 2 of docs/09-BUSINESS-RULES.md — field validation. */
@@ -90,13 +93,19 @@ describe("sign in", () => {
   });
 });
 
-describe("join house", () => {
-  it("accepts a formatted code and normalises it", () => {
-    expect(joinHouseSchema.parse({ invite_code: "hn4-k2p" }).invite_code).toBe("HN4K2P");
+describe("invite tokens", () => {
+  // The six-character invite code and `joinHouseSchema` retired with
+  // `POST /api/houses/join` in phase 10. What replaces them is a link.
+  it("accepts the URL-safe token shape migration 049 issues", () => {
+    expect(inviteTokenSchema.safeParse("7Yk2-aB_cD3eF4gH5iJ6kL").success).toBe(true);
   });
 
-  it("refuses an ambiguous glyph", () => {
-    expect(joinHouseSchema.safeParse({ invite_code: "HN4K2O" }).success).toBe(false);
+  it("refuses anything with a character that cannot survive a URL", () => {
+    expect(inviteTokenSchema.safeParse("7Yk2+aB/cD3eF4gH5iJ6kL").success).toBe(false);
+  });
+
+  it("refuses a token too short to be worth guessing at", () => {
+    expect(inviteTokenSchema.safeParse("abc").success).toBe(false);
   });
 });
 
@@ -125,8 +134,16 @@ describe("member updates", () => {
     expect(updateMemberSchema.safeParse({}).success).toBe(false);
   });
 
-  it("accepts an approval", () => {
-    expect(updateMemberSchema.safeParse({ status: "active" }).success).toBe(true);
+  it("accepts a promotion to co-admin", () => {
+    expect(updateMemberSchema.safeParse({ role: "co_admin" }).success).toBe(true);
+  });
+
+  // Changed in 2.0: approval is `POST /api/join-requests/:id/accept` and
+  // removal is `DELETE /api/members/:id`. Neither is a field on this patch,
+  // and a client still sending one must not have it silently accepted.
+  it("refuses a status change of any kind", () => {
+    expect(updateMemberSchema.safeParse({ status: "active" }).success).toBe(false);
+    expect(updateMemberSchema.safeParse({ status: "inactive" }).success).toBe(false);
   });
 });
 

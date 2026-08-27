@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/infra/supabase/server";
+import { readSelectedHouseId } from "@/lib/infra/supabase/selected-house";
 import { ApiError, apiErrorFromPostgres } from "@/lib/api/errors";
 import type { Database } from "@/lib/types/database";
 import type {
@@ -48,33 +49,71 @@ export async function requireSession(): Promise<Session> {
 }
 
 /**
- * A user may belong to several houses (the glossary says so), but version 1
- * shows one at a time: the most recently joined membership that is not
- * inactive. Pending memberships are returned too, because the waiting screen
- * needs the house name.
+ * Every Home the caller has any membership in, Requested ones included,
+ * ordered the way `getMembership` wants them: Active before Requested, and
+ * within each, most recently joined first.
+ *
+ * `inactive` is excluded. A person who has left a Home does not get shown that
+ * Home; their rows stay for the ledger's sake, not for theirs.
  */
-export async function getMembership(session: Session): Promise<Membership | null> {
+export async function listMemberships(session: Session): Promise<Membership[]> {
   const { data, error } = await session.supabase
     .from("house_members")
     .select("*, houses(*)")
     .eq("user_id", session.userId)
     .neq("status", "inactive")
-    .order("status", { ascending: true }) // 'active' sorts before 'pending'
-    .order("joined_date", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("status", { ascending: true }) // 'active' sorts before 'requested'
+    .order("joined_date", { ascending: false });
 
   if (error) throw apiErrorFromPostgres(error);
-  if (!data) return null;
 
-  const { houses, ...member } = data as HouseMemberRow & { houses: HouseRow };
-  return { member: member as HouseMemberRow, house: houses };
+  return (data ?? []).map((row) => {
+    const { houses, ...member } = row as HouseMemberRow & { houses: HouseRow };
+    return { member: member as HouseMemberRow, house: houses };
+  });
+}
+
+/**
+ * The caller's Home for this request.
+ *
+ * A person belongs to several Homes from phase 10 onward, and exactly one of
+ * them is selected at a time. The selection is a cookie hint; it is resolved
+ * here against the memberships the caller actually has, so a cookie naming a
+ * Home they were removed from — or never belonged to — falls back to their
+ * default rather than failing, and never reaches that Home's data.
+ *
+ * This is the single accessor from IMPLEMENTATION-PLAN-2.0 section 2.3. Every
+ * route handler and server component in the app reaches its Home through this
+ * function, which is why introducing Homes needed no edit to the 67 handlers
+ * that shipped before Homes existed.
+ */
+export async function getMembership(session: Session): Promise<Membership | null> {
+  const memberships = await listMemberships(session);
+  if (memberships.length === 0) return null;
+
+  const selectedId = await readSelectedHouseId();
+  const selected = selectedId
+    ? memberships.find((candidate) => candidate.house.id === selectedId)
+    : undefined;
+
+  return selected ?? memberships[0];
 }
 
 export async function requireActiveMembership(session: Session): Promise<Membership> {
   const membership = await getMembership(session);
   if (!membership) throw new ApiError("NOT_HOUSE_MEMBER");
-  if (membership.member.status === "pending") throw new ApiError("MEMBERSHIP_PENDING");
+  if (membership.member.status !== "active") {
+    throw new ApiError("MEMBERSHIP_NOT_ACTIVE");
+  }
+  return membership;
+}
+
+/** Admin or Co-Admin — the operational tier, `is_house_lead()` in the database. */
+export async function requireLeadMembership(session: Session): Promise<Membership> {
+  const membership = await requireActiveMembership(session);
+  if (membership.member.role !== "admin" && membership.member.role !== "co_admin") {
+    throw new ApiError("LEAD_REQUIRED");
+  }
   return membership;
 }
 
@@ -242,6 +281,7 @@ export async function getHouseContext(session: Session): Promise<HouseContext> {
     members,
     me,
     isAdmin: member.role === "admin",
+    isLead: member.role === "admin" || member.role === "co_admin",
     shape: houseShapeOf(house, settings),
   };
 }

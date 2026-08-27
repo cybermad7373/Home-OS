@@ -146,6 +146,33 @@ begin
 end;
 $$ language plpgsql security definer set search_path = public;
 
+-- ---------------------------------------------------------------------------
+-- The caller-facing removal, until phase 11 puts it behind a decision
+-- ---------------------------------------------------------------------------
+-- `begin_member_removal` above takes a decision id and asks nobody's
+-- permission, because its caller is either a decision effect or a cron job.
+-- This is the wrapper a person reaches, and it checks Admin the way the
+-- shipped `PATCH /api/members/:id` did.
+--
+-- Phase 11 replaces this with a `remove_member` decision (R-3). The route that
+-- calls it becomes a proposer and this function is dropped; the two-state
+-- removal underneath it does not change.
+create or replace function remove_member(p_member_id uuid) returns house_members as $$
+declare v_member house_members%rowtype;
+begin
+  select * into v_member from house_members where id = p_member_id;
+  if v_member.id is null then
+    raise exception 'NOT_FOUND' using errcode = 'no_data_found';
+  end if;
+  if not is_house_admin(v_member.house_id) then
+    raise exception 'ADMIN_REQUIRED' using errcode = 'insufficient_privilege';
+  end if;
+
+  return begin_member_removal(p_member_id, null);
+end;
+$$ language plpgsql security definer set search_path = public;
+
+grant execute on function remove_member(uuid)                to authenticated;
 revoke execute on function begin_member_removal(uuid, uuid)  from anon, authenticated;
 revoke execute on function complete_pending_removals()       from anon, authenticated;
 revoke execute on function member_is_financially_clear(uuid) from anon;

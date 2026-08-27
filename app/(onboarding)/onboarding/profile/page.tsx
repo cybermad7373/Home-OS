@@ -10,7 +10,7 @@ export default async function OnboardingProfilePage() {
   const membership = await getMembership(session);
 
   if (!membership) redirect("/onboarding/house");
-  if (membership.member.status === "pending") redirect("/onboarding/pending");
+  if (membership.member.status === "requested") redirect("/onboarding/pending");
 
   const context = await getHouseContext(session);
   const { data: profile } = await session.supabase

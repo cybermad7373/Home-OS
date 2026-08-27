@@ -5,9 +5,10 @@ import { rupeesToPaise } from "@/lib/utils/money";
 import type { Session } from "./house";
 import type {
   EffortMode,
+  MemberRole,
   HouseMemberRow,
   HouseSettingsRow,
-  HouseholdType,
+  HomeType,
   MoneyMode,
   ResidencyType,
   RoomRow,
@@ -26,45 +27,45 @@ export async function createHouse(
     address?: string;
     timezone: string;
     currency: string;
-    householdType: HouseholdType;
+    homeType: HomeType;
+    location?: {
+      countryCode?: string;
+      state?: string;
+      city?: string;
+      area?: string;
+    };
   },
-): Promise<{ houseId: string; inviteCode: string }> {
+): Promise<{ houseId: string; inviteCode: string; inviteToken: string }> {
   const { data, error } = await session.supabase.rpc("create_house", {
     p_name: input.name,
     p_address: input.address?.trim() ? input.address.trim() : undefined,
     p_timezone: input.timezone,
     p_currency: input.currency,
-    p_type: input.householdType,
+    p_type: input.homeType,
+    // Context for food suggestions and nothing else (HM-03, SEC-18).
+    p_country_code: input.location?.countryCode || undefined,
+    p_state: input.location?.state || undefined,
+    p_city: input.location?.city || undefined,
+    p_area: input.location?.area || undefined,
   });
   if (error) throw apiErrorFromPostgres(error);
   const row = Array.isArray(data) ? data[0] : data;
   if (!row) throw new ApiError("INTERNAL");
-  return { houseId: row.house_id, inviteCode: row.invite_code };
+  return {
+    houseId: row.house_id,
+    inviteCode: row.invite_code,
+    inviteToken: row.invite_token,
+  };
 }
 
-export async function joinHouse(
-  session: Session,
-  inviteCode: string,
-): Promise<{ houseId: string; houseName: string; status: string }> {
-  const { data, error } = await session.supabase.rpc("join_house", {
-    p_invite_code: inviteCode,
-  });
-  if (error) throw apiErrorFromPostgres(error);
-  const row = Array.isArray(data) ? data[0] : data;
-  if (!row) throw new ApiError("INVALID_INVITE_CODE");
-  return { houseId: row.house_id, houseName: row.house_name, status: row.status };
-}
-
-export async function regenerateInviteCode(
-  session: Session,
-  houseId: string,
-): Promise<string> {
-  const { data, error } = await session.supabase.rpc("regenerate_invite_code", {
-    p_house_id: houseId,
-  });
-  if (error) throw apiErrorFromPostgres(error);
-  return data as unknown as string;
-}
+/*
+ * `joinHouse` and `regenerateInviteCode` used to live here.
+ *
+ * They are gone, not deprecated: a six-character code that created a
+ * membership on possession is exactly the admin-creates-member shape HM-06
+ * removes. What replaces them is in `lib/data/homes.ts` — an invite link, a
+ * request the person raises themselves, and a lead who accepts it.
+ */
 
 export async function updateSettings(
   session: Session,
@@ -130,27 +131,22 @@ export async function updateSettings(
   return data;
 }
 
+/**
+ * Role, residency and the cooking flag. Not status: a Requested person becomes
+ * Active by having their request accepted, and an Active person becomes
+ * Inactive through `removeMember`, which knows about money still owed.
+ */
 export async function updateMember(
   session: Session,
   houseId: string,
   memberId: string,
   input: {
-    role?: "admin" | "member";
-    status?: "pending" | "active" | "inactive";
+    role?: MemberRole;
     residency?: "full_time" | "weekday_only" | "weekend_only";
     can_cook?: boolean;
   },
 ) {
   const patch: Partial<HouseMemberRow> = { ...input };
-
-  // BR-004 — deactivating sets left_date and never deletes history.
-  if (input.status === "inactive") {
-    patch.left_date = new Date().toISOString().slice(0, 10);
-  }
-  // BR-007 — reactivating opens a new active window.
-  if (input.status === "active") {
-    patch.left_date = null;
-  }
 
   const { data, error } = await session.supabase
     .from("house_members")
@@ -163,6 +159,30 @@ export async function updateMember(
   if (error) throw apiErrorFromPostgres(error);
   if (!data) throw new ApiError("NOT_FOUND");
   return data;
+}
+
+/**
+ * Removal, in the two states D-45 asks for.
+ *
+ * The database decides which one it lands in: a member who still owes the Home
+ * money, or is still owed by it, becomes Inactive **and** flagged
+ * `pending_settlement`, stays in the settlement, and has their removal
+ * completed by the daily job on the day the last payment is confirmed.
+ *
+ * Phase 11 puts this behind a `remove_member` decision. The two states do not
+ * change when it does; only who is allowed to start one.
+ */
+export async function removeMember(
+  session: Session,
+  memberId: string,
+): Promise<HouseMemberRow> {
+  const { data, error } = await session.supabase.rpc("remove_member", {
+    p_member_id: memberId,
+  });
+  if (error) throw apiErrorFromPostgres(error);
+  const row = (Array.isArray(data) ? data[0] : data) as HouseMemberRow | null;
+  if (!row) throw new ApiError("NOT_FOUND");
+  return row;
 }
 
 /**

@@ -3,7 +3,7 @@ import type {
   HouseMemberRow,
   HouseRow,
   HouseSettingsRow,
-  HouseholdType,
+  HomeType,
   MemberKind,
   MemberRole,
   MemberStatus,
@@ -27,7 +27,8 @@ export interface MemberView {
   username: string | null;
   email: string;
   avatarUrl: string | null;
-  role: MemberRole;
+  /** Null while Requested — there is no role to have before acceptance (HM-07). */
+  role: MemberRole | null;
   status: MemberStatus;
   residency: ResidencyType;
   canCook: boolean;
@@ -58,6 +59,8 @@ export interface HouseContext {
   members: MemberView[];
   me: MemberView;
   isAdmin: boolean;
+  /** Admin or Co-Admin. The operational tier, `is_house_lead()` in the database. */
+  isLead: boolean;
   /**
    * The household's shape, pulled up from house and settings because almost
    * every screen branches on it and digging two levels down at each call site
@@ -67,7 +70,7 @@ export interface HouseContext {
 }
 
 export interface HouseShape {
-  householdType: HouseholdType;
+  homeType: HomeType;
   moneyMode: MoneyMode;
   effortMode: EffortMode;
   penaltyEnabled: boolean;
@@ -78,12 +81,12 @@ export interface HouseShape {
 
 export function houseShapeOf(house: HouseRow, settings: HouseSettingsRow): HouseShape {
   return {
-    householdType: house.household_type,
+    homeType: house.home_type,
     moneyMode: settings.money_mode,
     effortMode: settings.effort_mode,
     penaltyEnabled: settings.penalty_enabled,
     isPot: settings.money_mode === "pot",
-    isFamily: house.household_type === "family",
+    isFamily: house.home_type === "family",
   };
 }
 
@@ -95,7 +98,7 @@ export const RESIDENCY_LABEL: Record<ResidencyType, string> = {
   weekend_only: "Weekends only",
 };
 
-export const HOUSEHOLD_TYPE_LABEL: Record<HouseholdType, string> = {
+export const HOME_TYPE_LABEL: Record<HomeType, string> = {
   shared: "Shared home",
   family: "Family home",
 };
@@ -106,7 +109,7 @@ export const MEMBER_KIND_LABEL: Record<MemberKind, string> = {
 };
 
 export const STATUS_LABEL: Record<MemberStatus, string> = {
-  pending: "Pending approval",
+  requested: "Requested",
   active: "Active",
   inactive: "Inactive",
 };

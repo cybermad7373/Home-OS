@@ -57,14 +57,24 @@ export function isEmailIdentifier(identifier: string): boolean {
   return identifier.includes("@");
 }
 
+/**
+ * The opaque half of an invite link. 24 characters of URL-safe base64 over 18
+ * random bytes, per migration 049 — validated for shape only, because whether
+ * it names a live invitation is the database's answer to give.
+ */
+export const inviteTokenSchema = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z0-9_-]{16,64}$/, "That invite link isn't valid");
+
 export const inviteCodeSchema = z
   .string()
   .transform(normaliseInviteCode)
   .refine(isValidInviteCode, "That code isn't valid");
 
 export const residencySchema = z.enum(["full_time", "weekday_only", "weekend_only"]);
-export const memberRoleSchema = z.enum(["admin", "member"]);
-export const memberStatusSchema = z.enum(["pending", "active", "inactive"]);
+export const memberRoleSchema = z.enum(["admin", "co_admin", "member"]);
+export const memberStatusSchema = z.enum(["requested", "active", "inactive"]);
 
 /** Rupees arrive as a decimal string and are converted to paise at the boundary. */
 export const rupeeStringSchema = z

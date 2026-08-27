@@ -17,7 +17,7 @@ export default async function OnboardingNotifyPage() {
   const membership = await getMembership(session);
 
   if (!membership) redirect("/onboarding/house");
-  if (membership.member.status === "pending") redirect("/onboarding/pending");
+  if (membership.member.status === "requested") redirect("/onboarding/pending");
 
   return (
     <EnableNotificationsPrompt

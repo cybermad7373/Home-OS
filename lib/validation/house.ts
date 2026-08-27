@@ -3,9 +3,7 @@ import {
   displayNameSchema,
   emailSchema,
   identifierSchema,
-  inviteCodeSchema,
   memberRoleSchema,
-  memberStatusSchema,
   passwordSchema,
   phoneSchema,
   usernameSchema,
@@ -31,18 +29,52 @@ export const claimUsernameSchema = z.object({
   username: usernameSchema,
 });
 
-export const householdTypeSchema = z.enum(["shared", "family"]);
+export const homeTypeSchema = z.enum(["shared", "family"]);
 export const moneyModeSchema = z.enum(["split", "pot"]);
 export const effortModeSchema = z.enum(["points", "rota"]);
 
+/**
+ * Location is optional in every part and is used as context for food
+ * suggestions and nothing else (HM-03, SEC-18). Nothing here is more precise
+ * than an area, because nothing needs to be.
+ */
+export const homeLocationSchema = z.object({
+  country_code: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z]{2}$/, "Use a two-letter country code")
+    .transform((value) => value.toUpperCase())
+    .optional(),
+  state: z.string().trim().max(60).optional(),
+  city: z.string().trim().max(60).optional(),
+  area: z.string().trim().max(60).optional(),
+});
+
 export const createHouseSchema = z.object({
-  name: z.string().trim().min(2, "Give the house a name").max(60),
+  name: z.string().trim().min(2, "Give the home a name").max(60),
   address: z.string().trim().max(200).optional().or(z.literal("")),
   timezone: z.string().trim().min(1).default("Asia/Kolkata"),
   currency: z.string().trim().length(3).default("INR"),
   // Chooses the defaults for money and effort, and the vocabulary the app uses.
   // Defaulted rather than required so an older client still works.
-  household_type: householdTypeSchema.default("shared"),
+  home_type: homeTypeSchema.default("shared"),
+  location: homeLocationSchema.optional(),
+});
+
+export const selectHomeSchema = z.object({
+  house_id: z.uuid(),
+});
+
+export const joinRequestSchema = z.object({
+  message: z.string().trim().max(280).optional(),
+});
+
+/**
+ * Ten characters, the same floor the governance spec puts on a rejection
+ * reason: long enough that "no" has to become a sentence.
+ */
+export const declineRequestSchema = z.object({
+  reason: z.string().trim().min(10, "Say why — the record keeps this").max(280),
 });
 
 /**
@@ -66,10 +98,6 @@ export const dependentSchema = z
     },
   );
 
-export const joinHouseSchema = z.object({
-  invite_code: inviteCodeSchema,
-});
-
 export const houseSettingsSchema = z
   .object({
     penalty_rate: rupeeStringSchema.optional(),
@@ -90,10 +118,14 @@ export const houseSettingsSchema = z
     "Nothing to update",
   );
 
+/**
+ * Changed in 2.0: no `status`. A Requested person becomes Active by having
+ * their request accepted, and an Active person becomes Inactive through
+ * `DELETE /api/members/:id`, which knows about money still owed.
+ */
 export const updateMemberSchema = z
   .object({
     role: memberRoleSchema.optional(),
-    status: memberStatusSchema.optional(),
     residency: residencySchema.optional(),
     can_cook: z.boolean().optional(),
   })
@@ -146,7 +178,6 @@ export const assignRoomSchema = z.object({
 });
 
 export type CreateHouseInput = z.infer<typeof createHouseSchema>;
-export type JoinHouseInput = z.infer<typeof joinHouseSchema>;
 export type RoomInput = z.infer<typeof roomSchema>;
 export type UpdateMemberInput = z.infer<typeof updateMemberSchema>;
 export { emailSchema, passwordSchema };

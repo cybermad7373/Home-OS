@@ -15,6 +15,11 @@ const PUBLIC_PREFIXES = [
   "/signup",
   "/auth",
   "/api/auth",
+  // An invite link is opened by somebody who may have no account at all. The
+  // landing page shows a Home's name, shape and size and nothing else, and the
+  // request it leads to is authenticated (docs/05-API-SPEC.md section 2.1).
+  "/join",
+  "/api/join",
   "/offline",
   "/manifest.webmanifest",
   "/sw.js",

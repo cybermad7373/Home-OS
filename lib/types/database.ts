@@ -10,9 +10,31 @@
  * deleted them and broke thirty imports at once. Hence the split.)
  */
 
-import type { Database } from "./supabase";
+import type { Database as Generated } from "./supabase";
+import type {
+  PendingEnums,
+  PendingFunctions,
+  PendingTables,
+} from "./schema-pending";
 
-export type { Database, Json } from "./supabase";
+export type { Json } from "./supabase";
+export type { JoinRequestStatus } from "./schema-pending";
+
+/**
+ * The generated schema with the migrations `gen:types` has not seen merged in.
+ *
+ * `lib/types/schema-pending.ts` says which those are and when to delete it.
+ * Everything in the app — the three Supabase clients included — is typed
+ * against this, so a table added by a written-but-unpushed migration is a
+ * compile error away from being used correctly rather than an `any`.
+ */
+export type Database = Omit<Generated, "public"> & {
+  public: Omit<Generated["public"], "Tables" | "Enums" | "Functions"> & {
+    Tables: PendingTables;
+    Enums: PendingEnums;
+    Functions: PendingFunctions;
+  };
+};
 
 type Tables = Database["public"]["Tables"];
 type Enums = Database["public"]["Enums"];
@@ -24,6 +46,8 @@ export type HouseSettingsRow = Tables["house_settings"]["Row"];
 export type HouseMemberRow = Tables["house_members"]["Row"];
 export type RoomRow = Tables["rooms"]["Row"];
 export type RoomAssignmentRow = Tables["room_assignments"]["Row"];
+export type InvitationRow = Tables["invitations"]["Row"];
+export type JoinRequestRow = Tables["join_requests"]["Row"];
 
 // --- money ------------------------------------------------------------------
 export type ExpenseCategoryRow = Tables["expense_categories"]["Row"];
@@ -55,7 +79,7 @@ export type NotificationTypeRow = Tables["notification_types"]["Row"];
 export type PushSubscriptionRow = Tables["push_subscriptions"]["Row"];
 
 // --- enums ------------------------------------------------------------------
-export type HouseholdType = Enums["household_type"];
+export type HomeType = Enums["home_type"];
 export type MemberKind = Enums["member_kind"];
 export type MoneyMode = Enums["money_mode"];
 export type EffortMode = Enums["effort_mode"];

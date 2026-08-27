@@ -58,7 +58,7 @@ export function MemberList({
     return true;
   }
 
-  const waiting = members.filter((member) => member.status === "pending");
+  const waiting = members.filter((member) => member.status === "requested");
   const active = members.filter(
     (member) => member.status === "active" && member.kind === "adult",
   );
@@ -436,7 +436,9 @@ function EditMemberSheet({
   onClose: () => void;
   onSave: (body: Record<string, unknown>) => Promise<boolean>;
 }) {
-  const [role, setRole] = useState(member.role);
+  // A Requested member has no role and is never editable here, so "member"
+  // is only ever the starting value of a control the caller will not see.
+  const [role, setRole] = useState(member.role ?? "member");
   const [residency, setResidency] = useState<ResidencyType>(member.residency);
   const [canCook, setCanCook] = useState(member.canCook);
 
@@ -452,6 +454,7 @@ function EditMemberSheet({
           onChange={(event) => setRole(event.target.value as typeof role)}
         >
           <option value="member">Member</option>
+          <option value="co_admin">Co-admin</option>
           <option value="admin">Admin</option>
         </Select>
       </div>

@@ -296,7 +296,7 @@ export async function splitContextOn(
   const members: SplitParticipant[] = (membersResult.data ?? [])
     // A never-approved joiner was never a member; a former one still was, on the
     // dates they were here, which the dated window below decides.
-    .filter((member) => member.status !== "pending")
+    .filter((member) => member.status !== "requested")
     .map((member) => ({
       memberId: member.id,
       joinedDate: member.joined_date,

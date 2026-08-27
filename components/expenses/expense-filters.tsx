@@ -91,7 +91,7 @@ export function ExpenseFilters({
           >
             <option value="">Anybody</option>
             {members
-              .filter((member) => member.status !== "pending")
+              .filter((member) => member.status !== "requested")
               .map((member) => (
                 <option key={member.id} value={member.id}>
                   {member.displayName}

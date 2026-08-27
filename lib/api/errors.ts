@@ -9,10 +9,21 @@
 export const ERROR_CATALOGUE = {
   UNAUTHENTICATED: { status: 401, message: "Sign in to continue" },
   NOT_HOUSE_MEMBER: { status: 403, message: "You're not a member of this house" },
-  MEMBERSHIP_PENDING: { status: 403, message: "Your admin hasn't approved you yet" },
+  // docs/05-API-SPEC.md section 1: `requested` and `inactive` are refused with
+  // this one code and receive no data in any shape.
+  MEMBERSHIP_NOT_ACTIVE: {
+    status: 403,
+    message: "You're not an active member of this home yet",
+  },
+  LEAD_REQUIRED: { status: 403, message: "Only an admin or co-admin can do that" },
   ADMIN_REQUIRED: { status: 403, message: "Only an admin can do that" },
   NOT_YOUR_RECORD: { status: 403, message: "You can only do that to your own items" },
   INVALID_INVITE_CODE: { status: 404, message: "That code isn't valid" },
+  // SEC-15: the same answer for expired, revoked and never-existed, so the
+  // endpoint never confirms that a home exists.
+  INVALID_INVITE: { status: 404, message: "That invite link isn't valid any more" },
+  ALREADY_MEMBER: { status: 409, message: "You're already part of that home" },
+  REQUEST_NOT_OPEN: { status: 409, message: "That request has already been answered" },
   LAST_ADMIN: { status: 409, message: "Promote another admin first" },
   BAD_CREDENTIALS: {
     status: 401,

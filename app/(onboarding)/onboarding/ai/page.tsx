@@ -18,7 +18,7 @@ export default async function OnboardingAiPage() {
   const membership = await getMembership(session);
 
   if (!membership) redirect("/onboarding/house");
-  if (membership.member.status === "pending") redirect("/onboarding/pending");
+  if (membership.member.status === "requested") redirect("/onboarding/pending");
   // Only the admin who set the house up has anything to do here.
   if (membership.member.role !== "admin") redirect("/onboarding/profile");
 
