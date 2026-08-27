@@ -53,8 +53,18 @@ function links({ isPot, isRota }: { isPot: boolean; isRota: boolean }): MoreLink
           },
         ]),
     {
-      href: "/expenses/approvals",
+      href: "/more/approvals",
       label: "Approvals",
+      body: "Everything the house is asking you to decide, in one queue",
+    },
+    {
+      href: "/more/decisions",
+      label: "Decisions",
+      body: "Everything the house has been asked, and how it answered",
+    },
+    {
+      href: "/expenses/approvals",
+      label: "Expense approvals",
       body: "Expenses waiting on somebody other than the payer",
     },
     {

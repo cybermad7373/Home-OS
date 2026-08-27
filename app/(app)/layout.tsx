@@ -4,6 +4,7 @@ import { BottomTabBar, Sidebar } from "@/components/layout/nav";
 import { PushRegistrar } from "@/components/notifications/push-registrar";
 import { getHouseContext, getMembership, requireSession } from "@/lib/data/house";
 import { listHomes, listOwnJoinRequests } from "@/lib/data/homes";
+import { countDecisionsAwaiting } from "@/lib/data/governance";
 
 /**
  * The app shell. Everything inside it requires an active membership; a signed-in
@@ -24,7 +25,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (membership.member.status === "requested") redirect("/onboarding/pending");
 
   const context = await getHouseContext(session);
-  const homes = await listHomes(session, membership.house.id);
+  const [homes, pendingApprovals] = await Promise.all([
+    listHomes(session, membership.house.id),
+    // AP-05: Approvals is promoted into the bar the moment anything is waiting
+    // on this person, and leaves it again when the queue empties.
+    countDecisionsAwaiting(session, membership.house.id, membership.member.id),
+  ]);
 
   // A Google account that joined before usernames existed, or one whose name
   // was claimed in the gap during sign-up, has none yet.
@@ -45,13 +51,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         memberName={context.me.displayName}
         isPot={context.shape.isPot}
         isRota={context.shape.effortMode === "rota"}
+        pendingApprovals={pendingApprovals}
       />
       <div className="flex-1">
         <main className="mx-auto w-full max-w-[1120px] px-4 pb-28 pt-6 md:px-6 lg:pb-10">
           {children}
         </main>
       </div>
-      <BottomTabBar />
+      <BottomTabBar pendingApprovals={pendingApprovals} />
       <PushRegistrar vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
     </div>
   );

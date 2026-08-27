@@ -1,3 +1,9 @@
+import type { QueueGroup } from "@/lib/domain/governance/queue";
+import type {
+  DecisionLevel,
+  DecisionStatus,
+  DecisionType,
+} from "@/lib/domain/governance/types";
 import type {
   EffortMode,
   HouseMemberRow,
@@ -114,4 +120,79 @@ export const STATUS_LABEL: Record<MemberStatus, string> = {
   requested: "Requested",
   active: "Active",
   inactive: "Inactive",
+};
+
+// ---------------------------------------------------------------------------
+// Governance — docs/14-GOVERNANCE-SPEC.md, S-35 and S-36
+// ---------------------------------------------------------------------------
+
+/**
+ * A decision names two things on every card: what is being asked, and what
+ * changes if it happens (AP-02). The second one is the half people actually
+ * decide on, so it is written per type rather than left to the reader.
+ */
+export const DECISION_TYPE_LABEL: Record<DecisionType, string> = {
+  close_settlement: "Close the month",
+  reopen_settlement: "Reopen a closed month",
+  remove_member: "Remove a member",
+  change_rule: "Change a house rule",
+  change_governance: "Change how decisions are made",
+  change_home_mode: "Change how the home works",
+  balance_adjustment: "Adjust a balance",
+  absence_request: "Time away",
+  join_request: "Somebody wants to join",
+  expense_approval: "An expense",
+  chore_confirmation: "A chore was done",
+  set_expected_contribution: "Set an expected contribution",
+  create_reserve: "Start a reserve",
+  reserve_draw: "Draw from the reserve",
+};
+
+export const DECISION_EFFECT: Record<DecisionType, string> = {
+  close_settlement:
+    "The month is settled: who pays whom is fixed from the numbers at that moment, and nothing in it can be edited afterwards.",
+  reopen_settlement:
+    "The closed month opens again and its settlement is withdrawn until it is closed a second time.",
+  remove_member:
+    "They stop being a member. Anything they still owe or are owed stays outstanding until it is settled.",
+  change_rule: "The rule takes effect in its new form, and the old version is kept.",
+  change_governance:
+    "How every future decision is made changes — who is asked, and how many must agree.",
+  change_home_mode: "How the home splits money or shares work changes for everybody.",
+  balance_adjustment: "Somebody's balance moves by the stated amount.",
+  absence_request:
+    "Their chores in that window move to somebody else, and the days do not count against them.",
+  join_request: "They become a member and can see everything the home does.",
+  expense_approval: "The expense counts, and everybody's share moves with it.",
+  chore_confirmation: "The chore counts as done, and the points are awarded.",
+  set_expected_contribution:
+    "What this member is expected to put in each month changes. Nobody is charged anything by it.",
+  create_reserve: "The home starts a shared reserve that expenses can be drawn from.",
+  reserve_draw: "The amount leaves the reserve and covers the expense it was asked for.",
+};
+
+export const QUEUE_GROUP_LABEL: Record<QueueGroup, string> = {
+  expenses: "Expenses",
+  chores: "Chores",
+  absences: "Absences",
+  join_requests: "Join requests",
+  members: "Member changes",
+  rules: "Rules",
+  money: "Money",
+  settlement: "Settlement",
+};
+
+export const DECISION_LEVEL_LABEL: Record<DecisionLevel, string> = {
+  normal: "Normal",
+  important: "Important",
+  critical: "Critical",
+};
+
+export const DECISION_STATUS_LABEL: Record<DecisionStatus, string> = {
+  waiting: "Waiting",
+  approved: "Approved",
+  rejected: "Rejected",
+  lapsed: "Nobody answered in time",
+  cancelled: "Withdrawn",
+  applied: "Done",
 };

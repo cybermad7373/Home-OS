@@ -133,6 +133,62 @@ export const ERROR_CATALOGUE = {
     status: 500,
     message: "Penalties owed do not equal penalties credited. This is a defect.",
   },
+  // Governance — docs/14-GOVERNANCE-SPEC.md. These are matched by name out of
+  // the exception message the database raises, so they sit above the generic
+  // `NOT_FOUND`: `SUPERSEDED_NOT_FOUND` contains it as a substring and the
+  // first catalogue entry that matches wins.
+  PARTICIPANTS_REQUIRED: {
+    status: 422,
+    message: "That decision needs somebody to answer it",
+  },
+  PARTICIPANT_NOT_ACTIVE_MEMBER: {
+    status: 422,
+    message: "Everybody asked has to be an active member of this home",
+  },
+  SUBJECT_NOT_A_MEMBER: {
+    status: 422,
+    message: "That decision is about somebody who isn't in this home",
+  },
+  SUBJECT_IS_PARTICIPANT: {
+    status: 422,
+    message: "Nobody votes on a decision about themselves",
+  },
+  NOT_ENOUGH_PARTICIPANTS: {
+    status: 409,
+    message: "There aren't enough people here to decide this",
+  },
+  SUPERSEDED_NOT_FOUND: { status: 404, message: "That earlier decision isn't here" },
+  SUPERSEDED_NOT_LAPSED: {
+    status: 409,
+    message: "Only a decision that lapsed or was withdrawn can be re-proposed",
+  },
+  PROPOSER_REQUIRED: {
+    status: 403,
+    message: "Only the person who proposed this can withdraw it",
+  },
+  DECISION_NOT_FOUND: { status: 404, message: "That decision isn't here" },
+  NOT_APPROVED: { status: 409, message: "That decision hasn't been approved" },
+  DECISION_REJECTED: { status: 409, message: "That decision was rejected" },
+  MANDATORY_RESPONSE_MISSING: {
+    status: 409,
+    message: "Somebody who has to answer this still hasn't",
+  },
+  CRITICAL_NEEDS_TWO_RESPONDERS: {
+    status: 409,
+    message: "A decision this serious needs two people to answer it",
+  },
+  // The decision stays approved and visibly unapplied, which is the honest
+  // state: the Home agreed, and the effect it agreed to is not built yet.
+  EFFECT_NOT_IMPLEMENTED: {
+    status: 501,
+    message: "This home agreed to it, but that change isn't wired up yet",
+  },
+  NOT_A_PARTICIPANT: {
+    status: 403,
+    message: "You weren't asked to answer this one",
+  },
+  ALREADY_RESPONDED: { status: 409, message: "You've already answered this" },
+
   NOT_FOUND: { status: 404, message: "That doesn't exist, or isn't yours to see" },
   RATE_LIMITED: { status: 429, message: "Slow down a moment and try again" },
   AI_DISABLED: { status: 501, message: "AI features aren't set up for this house" },

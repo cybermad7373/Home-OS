@@ -1,0 +1,859 @@
+import "server-only";
+
+import { ApiError, apiErrorFromPostgres } from "@/lib/api/errors";
+import { createAdminClient } from "@/lib/infra/supabase/admin";
+import { deadlineHoursFor } from "@/lib/domain/governance/matrix";
+import {
+  affirmativeFor,
+  candidateFrom,
+  checkResponse,
+  progressFor,
+  planBatch,
+  type DecisionRecord,
+} from "@/lib/domain/governance/record";
+import { selectParticipants } from "@/lib/domain/governance/participants";
+import { awaitsResponse } from "@/lib/domain/governance/queue";
+import type {
+  DecisionResponse,
+  DecisionStatus,
+  DecisionType,
+  GovernanceMember,
+  GovernancePolicy,
+  Participant,
+  ResponseCapacity,
+  ResponseKind,
+} from "@/lib/domain/governance/types";
+import type { Session } from "./house";
+import type {
+  DecisionParticipantRow,
+  DecisionResponseRow,
+  DecisionRow,
+  GovernancePolicyRow,
+  Json,
+} from "@/lib/types/database";
+import type { ProposeDecisionInput, RespondInput } from "@/lib/validation/governance";
+
+/**
+ * The governance repository — docs/14-GOVERNANCE-SPEC.md.
+ *
+ * The division of labour this module exists to hold:
+ *
+ *   * **who is asked** is decided by `lib/domain/governance`, over plain
+ *     values, where it is property-tested;
+ *   * **whether that is allowed** is decided by the database, which re-checks
+ *     every invariant that must hold whatever produced the list (D-54);
+ *   * **when the effect runs** is decided here, and it runs with the
+ *     service-role key. A browser responds; the server applies what the
+ *     responses produced. `apply_decision` is granted to `service_role` and to
+ *     nobody else, so this is not a convention — it is the only door.
+ *
+ * Nothing in this file decides that a decision has passed. It reads the status
+ * the database wrote, and acts on it.
+ */
+
+// ---------------------------------------------------------------------------
+// Reading the Home
+// ---------------------------------------------------------------------------
+
+interface GovernanceContext {
+  policy: GovernancePolicy;
+  members: GovernanceMember[];
+  names: Map<string, string>;
+  autoConfirmHours: number;
+}
+
+function policyFrom(row: GovernancePolicyRow): GovernancePolicy {
+  return {
+    criticalRequiresCoadmin: row.critical_requires_coadmin,
+    criticalMemberRule: row.critical_member_rule,
+    criticalMemberValue: row.critical_member_value,
+    governanceRequiresAll: row.governance_requires_all,
+    absenceApproverRoles: row.absence_approver_roles,
+    joinApproverRoles: row.join_approver_roles,
+    expenseApprovalsRequired: row.expense_approvals_required,
+    decisionDeadlineDays: row.decision_deadline_days,
+    absenceDeadlineHours: row.absence_deadline_hours,
+  };
+}
+
+type MemberJoinRow = {
+  id: string;
+  role: GovernanceMember["role"];
+  status: GovernanceMember["status"];
+  member_kind: GovernanceMember["kind"];
+  display_name: string | null;
+  users: { display_name: string | null } | null;
+};
+
+/**
+ * Everything the selector needs about a Home, in one round of queries.
+ *
+ * Every Home has a `governance_policy` row — migration 051 seeds the existing
+ * ones and a trigger on `houses` seeds the rest — so a missing row is a defect
+ * rather than a Home that has not been configured, and it is reported as one.
+ */
+export async function loadGovernanceContext(
+  session: Session,
+  houseId: string,
+): Promise<GovernanceContext> {
+  const [policyResult, membersResult, settingsResult] = await Promise.all([
+    session.supabase
+      .from("governance_policy")
+      .select("*")
+      .eq("house_id", houseId)
+      .maybeSingle(),
+    session.supabase
+      .from("house_members")
+      .select("id, role, status, member_kind, display_name, users(display_name)")
+      .eq("house_id", houseId),
+    session.supabase
+      .from("house_settings")
+      .select("auto_confirm_hours")
+      .eq("house_id", houseId)
+      .maybeSingle(),
+  ]);
+
+  if (policyResult.error) throw apiErrorFromPostgres(policyResult.error);
+  if (membersResult.error) throw apiErrorFromPostgres(membersResult.error);
+  if (settingsResult.error) throw apiErrorFromPostgres(settingsResult.error);
+  if (!policyResult.data) throw new ApiError("INTERNAL");
+
+  const rows = (membersResult.data ?? []) as unknown as MemberJoinRow[];
+
+  return {
+    policy: policyFrom(policyResult.data),
+    members: rows.map((row) => ({
+      id: row.id,
+      role: row.role,
+      status: row.status,
+      kind: row.member_kind,
+    })),
+    names: new Map(
+      rows.map((row) => [
+        row.id,
+        row.users?.display_name ?? row.display_name ?? "Unknown",
+      ]),
+    ),
+    autoConfirmHours: settingsResult.data?.auto_confirm_hours ?? 48,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// The view a screen renders
+// ---------------------------------------------------------------------------
+
+export interface DecisionParticipantView {
+  memberId: string;
+  displayName: string;
+  capacity: ResponseCapacity;
+  isMandatory: boolean;
+  response: ResponseKind | null;
+  reason: string | null;
+  respondedAt: string | null;
+}
+
+export interface DecisionView {
+  id: string;
+  type: DecisionType;
+  level: DecisionRow["level"];
+  status: DecisionStatus;
+  requestedBy: { memberId: string; displayName: string };
+  subjectMember: { memberId: string; displayName: string } | null;
+  subjectType: string | null;
+  subjectId: string | null;
+  payload: Json;
+  result: Json | null;
+  reason: string | null;
+  deadline: string | null;
+  autoApproved: boolean;
+  createdAt: string;
+  resolvedAt: string | null;
+  appliedAt: string | null;
+  participants: DecisionParticipantView[];
+  progress: {
+    approvals: { given: number; required: number };
+    acknowledgements: { given: number; required: number };
+    outstanding: string[];
+  };
+  /** What this caller may do with it now, if anything. */
+  viewer: {
+    canRespond: boolean;
+    capacity: ResponseCapacity | null;
+    /** True when the caller's response finishes it — shown alone (AP-04). */
+    completesOnMyResponse: boolean;
+    canCancel: boolean;
+    refusal: string | null;
+  };
+}
+
+function recordFrom(row: DecisionRow): DecisionRecord {
+  return {
+    id: row.id,
+    type: row.type,
+    level: row.level,
+    status: row.status,
+    requestedByMemberId: row.requested_by,
+    subjectMemberId: row.subject_member_id,
+    requiredApprovals: row.required_approvals,
+    requiredAcks: row.required_acks,
+    autoApproved: row.auto_approved,
+    deadline: row.deadline ? new Date(row.deadline) : null,
+  };
+}
+
+function participantsFrom(rows: DecisionParticipantRow[]): Participant[] {
+  return rows.map((row) => ({
+    memberId: row.member_id,
+    capacity: row.capacity,
+    isMandatory: row.is_mandatory,
+  }));
+}
+
+function responsesFrom(rows: DecisionResponseRow[]): DecisionResponse[] {
+  return rows.map((row) => ({
+    memberId: row.member_id,
+    capacity: row.capacity,
+    response: row.response,
+  }));
+}
+
+function toView(
+  row: DecisionRow,
+  participantRows: DecisionParticipantRow[],
+  responseRows: DecisionResponseRow[],
+  names: Map<string, string>,
+  callerMemberId: string,
+): DecisionView {
+  const record = recordFrom(row);
+  const participants = participantsFrom(participantRows);
+  const responses = responsesFrom(responseRows);
+  const progress = progressFor(record, participants, responses);
+  const check = checkResponse(record, participants, responses, callerMemberId);
+
+  const responseByKey = new Map(
+    responseRows.map((response) => [
+      `${response.member_id}:${response.capacity}`,
+      response,
+    ]),
+  );
+
+  const nameOf = (memberId: string) => names.get(memberId) ?? "Unknown";
+
+  return {
+    id: row.id,
+    type: row.type,
+    level: row.level,
+    status: row.status,
+    requestedBy: {
+      memberId: row.requested_by,
+      displayName: nameOf(row.requested_by),
+    },
+    subjectMember: row.subject_member_id
+      ? {
+          memberId: row.subject_member_id,
+          displayName: nameOf(row.subject_member_id),
+        }
+      : null,
+    subjectType: row.subject_type,
+    subjectId: row.subject_id,
+    payload: row.payload,
+    result: row.result,
+    reason: row.reason,
+    deadline: row.deadline,
+    autoApproved: row.auto_approved,
+    createdAt: row.created_at,
+    resolvedAt: row.resolved_at,
+    appliedAt: row.applied_at,
+    participants: participantRows.map((participant) => {
+      const answer = responseByKey.get(
+        `${participant.member_id}:${participant.capacity}`,
+      );
+      return {
+        memberId: participant.member_id,
+        displayName: nameOf(participant.member_id),
+        capacity: participant.capacity,
+        isMandatory: participant.is_mandatory,
+        response: answer?.response ?? null,
+        reason: answer?.reason ?? null,
+        respondedAt: answer?.responded_at ?? null,
+      };
+    }),
+    progress: {
+      approvals: progress.approvals,
+      acknowledgements: progress.acknowledgements,
+      outstanding: progress.outstandingMandatory.map(nameOf),
+    },
+    viewer: {
+      canRespond: !("refusal" in check),
+      capacity: "refusal" in check ? null : check.capacity,
+      completesOnMyResponse: "refusal" in check ? false : check.wouldComplete,
+      canCancel: row.status === "waiting" && row.requested_by === callerMemberId,
+      refusal: "refusal" in check ? check.refusal : null,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Listing
+// ---------------------------------------------------------------------------
+
+interface DecisionBundle {
+  rows: DecisionRow[];
+  participantsByDecision: Map<string, DecisionParticipantRow[]>;
+  responsesByDecision: Map<string, DecisionResponseRow[]>;
+}
+
+/**
+ * The rows, their participants and their responses.
+ *
+ * Three queries rather than one nested select: the participant and response
+ * tables have their own RLS policies, and reading them separately means a
+ * caller who can see a decision but not its detail gets an empty list rather
+ * than a decision that silently loses half its participants.
+ */
+async function loadBundle(
+  session: Session,
+  decisionIds: string[],
+  rows: DecisionRow[],
+): Promise<DecisionBundle> {
+  if (decisionIds.length === 0) {
+    return {
+      rows,
+      participantsByDecision: new Map(),
+      responsesByDecision: new Map(),
+    };
+  }
+
+  const [participantsResult, responsesResult] = await Promise.all([
+    session.supabase
+      .from("decision_participants")
+      .select("*")
+      .in("decision_id", decisionIds),
+    session.supabase
+      .from("decision_responses")
+      .select("*")
+      .in("decision_id", decisionIds),
+  ]);
+
+  if (participantsResult.error) throw apiErrorFromPostgres(participantsResult.error);
+  if (responsesResult.error) throw apiErrorFromPostgres(responsesResult.error);
+
+  const participantsByDecision = new Map<string, DecisionParticipantRow[]>();
+  for (const row of participantsResult.data ?? []) {
+    const list = participantsByDecision.get(row.decision_id) ?? [];
+    list.push(row);
+    participantsByDecision.set(row.decision_id, list);
+  }
+
+  const responsesByDecision = new Map<string, DecisionResponseRow[]>();
+  for (const row of responsesResult.data ?? []) {
+    const list = responsesByDecision.get(row.decision_id) ?? [];
+    list.push(row);
+    responsesByDecision.set(row.decision_id, list);
+  }
+
+  return { rows, participantsByDecision, responsesByDecision };
+}
+
+export interface DecisionListFilter {
+  status?: DecisionStatus;
+  /** `mine` is the Approvals surface: the ones still waiting on this caller. */
+  scope?: "all" | "mine";
+}
+
+export interface DecisionListView {
+  decisions: DecisionView[];
+  /** What Approve All would act on right now, and what it would leave behind. */
+  batch: { approvable: number; heldBack: { id: string; reason: string }[] };
+}
+
+export async function listDecisions(
+  session: Session,
+  houseId: string,
+  callerMemberId: string,
+  filter: DecisionListFilter = {},
+): Promise<DecisionListView> {
+  const context = await loadGovernanceContext(session, houseId);
+
+  let query = session.supabase
+    .from("decisions")
+    .select("*")
+    .eq("house_id", houseId)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (filter.status) query = query.eq("status", filter.status);
+
+  const { data, error } = await query;
+  if (error) throw apiErrorFromPostgres(error);
+
+  const rows = data ?? [];
+  const bundle = await loadBundle(
+    session,
+    rows.map((row) => row.id),
+    rows,
+  );
+
+  const views = rows.map((row) =>
+    toView(
+      row,
+      bundle.participantsByDecision.get(row.id) ?? [],
+      bundle.responsesByDecision.get(row.id) ?? [],
+      context.names,
+      callerMemberId,
+    ),
+  );
+
+  const now = new Date();
+  const candidates = rows
+    .filter((row) => row.status === "waiting")
+    .map((row) =>
+      candidateFrom(
+        recordFrom(row),
+        participantsFrom(bundle.participantsByDecision.get(row.id) ?? []),
+        responsesFrom(bundle.responsesByDecision.get(row.id) ?? []),
+      ),
+    );
+  const plan = planBatch(candidates, callerMemberId, now);
+
+  return {
+    decisions:
+      filter.scope === "mine" ? views.filter((view) => view.viewer.canRespond) : views,
+    batch: {
+      approvable: plan.approve.length,
+      // Only the deliberate-action hold-backs are worth naming: the rest are
+      // decisions the caller was never part of.
+      heldBack: plan.skip
+        .filter((entry) => entry.reason === "CRITICAL_NEEDS_DELIBERATE_ACTION")
+        .map((entry) => ({ id: entry.id, reason: entry.reason })),
+    },
+  };
+}
+
+/**
+ * How many decisions are still waiting on this one member.
+ *
+ * The tab bar asks this on every page load (AP-05), so it does not build the
+ * queue to answer it: three narrow queries, and the rule that decides is the
+ * pure `awaitsResponse`, shared with the screen so the badge and the list
+ * cannot disagree. A decision past its deadline is not counted — the hourly
+ * job has not marked it `lapsed` yet, but nobody's answer can change it now.
+ */
+export async function countDecisionsAwaiting(
+  session: Session,
+  houseId: string,
+  callerMemberId: string,
+): Promise<number> {
+  const { data: rows, error } = await session.supabase
+    .from("decisions")
+    .select("id, status, deadline")
+    .eq("house_id", houseId)
+    .eq("status", "waiting")
+    .limit(200);
+  if (error) throw apiErrorFromPostgres(error);
+
+  const ids = (rows ?? []).map((row) => row.id);
+  if (ids.length === 0) return 0;
+
+  const [participantsResult, responsesResult] = await Promise.all([
+    session.supabase
+      .from("decision_participants")
+      .select("decision_id, capacity")
+      .in("decision_id", ids)
+      .eq("member_id", callerMemberId),
+    session.supabase
+      .from("decision_responses")
+      .select("decision_id, capacity")
+      .in("decision_id", ids)
+      .eq("member_id", callerMemberId),
+  ]);
+
+  if (participantsResult.error) throw apiErrorFromPostgres(participantsResult.error);
+  if (responsesResult.error) throw apiErrorFromPostgres(responsesResult.error);
+
+  const capacities = new Map<string, ResponseCapacity[]>();
+  for (const row of participantsResult.data ?? []) {
+    capacities.set(row.decision_id, [
+      ...(capacities.get(row.decision_id) ?? []),
+      row.capacity,
+    ]);
+  }
+
+  const responded = new Map<string, ResponseCapacity[]>();
+  for (const row of responsesResult.data ?? []) {
+    responded.set(row.decision_id, [
+      ...(responded.get(row.decision_id) ?? []),
+      row.capacity,
+    ]);
+  }
+
+  const now = new Date();
+  return (rows ?? []).filter((row) =>
+    awaitsResponse({
+      status: row.status,
+      deadline: row.deadline ? new Date(row.deadline) : null,
+      capacities: capacities.get(row.id) ?? [],
+      responded: responded.get(row.id) ?? [],
+      now,
+    }),
+  ).length;
+}
+
+export async function getDecision(
+  session: Session,
+  houseId: string,
+  decisionId: string,
+  callerMemberId: string,
+): Promise<DecisionView> {
+  const context = await loadGovernanceContext(session, houseId);
+
+  const { data, error } = await session.supabase
+    .from("decisions")
+    .select("*")
+    .eq("id", decisionId)
+    .maybeSingle();
+  if (error) throw apiErrorFromPostgres(error);
+  if (!data) throw new ApiError("DECISION_NOT_FOUND");
+
+  const bundle = await loadBundle(session, [decisionId], [data]);
+  return toView(
+    data,
+    bundle.participantsByDecision.get(decisionId) ?? [],
+    bundle.responsesByDecision.get(decisionId) ?? [],
+    context.names,
+    callerMemberId,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Proposing
+// ---------------------------------------------------------------------------
+
+const REFUSAL_ERRORS = {
+  SUBJECT_IS_PARTICIPANT: "SUBJECT_IS_PARTICIPANT",
+  NOT_ENOUGH_PARTICIPANTS: "NOT_ENOUGH_PARTICIPANTS",
+  NO_ACTIVE_MEMBERS: "NO_ACTIVE_MEMBERS",
+} as const;
+
+/**
+ * `create_decision` raises `NOT_A_MEMBER`, which the catalogue does not carry
+ * under that name. Everything else it raises is named there already.
+ */
+function governanceError(error: { message?: string | null; code?: string | null }) {
+  if ((error.message ?? "").includes("NOT_A_MEMBER")) {
+    return new ApiError("NOT_HOUSE_MEMBER");
+  }
+  return apiErrorFromPostgres(error);
+}
+
+export interface ProposalResult {
+  decision: DecisionView;
+  /** Whether the effect ran, and why not when it did not. */
+  applied: boolean;
+  applyRefusal: string | null;
+}
+
+export async function proposeDecision(
+  session: Session,
+  houseId: string,
+  callerMemberId: string,
+  input: ProposeDecisionInput,
+): Promise<ProposalResult> {
+  const context = await loadGovernanceContext(session, houseId);
+
+  const selection = selectParticipants({
+    proposal: {
+      type: input.type,
+      proposerId: callerMemberId,
+      subjectMemberId: input.subject_member_id,
+    },
+    members: context.members,
+    policy: context.policy,
+    autoConfirmHours: context.autoConfirmHours,
+  });
+
+  if ("refusal" in selection) {
+    throw new ApiError(REFUSAL_ERRORS[selection.refusal]);
+  }
+
+  const requirement = selection.requirement;
+
+  if (requirement.level === "critical" && !input.reason) {
+    throw new ApiError("REASON_REQUIRED");
+  }
+
+  const deadlineHours =
+    requirement.deadlineHours ??
+    deadlineHoursFor(input.type, context.policy, context.autoConfirmHours);
+  const deadline =
+    deadlineHours === null
+      ? null
+      : new Date(Date.now() + deadlineHours * 3_600_000).toISOString();
+
+  const { data: created, error } = await session.supabase.rpc("create_decision", {
+    p_house_id: houseId,
+    p_type: input.type,
+    p_level: requirement.level,
+    p_participants: requirement.participants.map((participant) => ({
+      member_id: participant.memberId,
+      capacity: participant.capacity,
+      is_mandatory: participant.isMandatory,
+    })) as unknown as Json,
+    p_required_approvals: requirement.requiredApprovals,
+    p_required_acks: requirement.requiredAcks,
+    p_subject_type: input.subject_type ?? null,
+    p_subject_id: input.subject_id ?? null,
+    p_subject_member_id: input.subject_member_id ?? null,
+    p_payload: (input.payload ?? {}) as Json,
+    p_reason: input.reason ?? null,
+    p_deadline: deadline,
+    p_supersedes_id: input.supersedes_id ?? null,
+  });
+
+  if (error) throw governanceError(error);
+  const row = created as unknown as DecisionRow;
+
+  // The proposer's proposal is their approval (§3.3). They are listed as a
+  // participant on a Critical decision, so the response is written here rather
+  // than waiting for them to answer their own question — and it is written
+  // through the caller's own client, so the insert policy applies to it like
+  // any other response.
+  const asParticipant = requirement.participants.find(
+    (participant) => participant.memberId === callerMemberId,
+  );
+  if (asParticipant && row.status === "waiting") {
+    const { error: responseError } = await session.supabase
+      .from("decision_responses")
+      .insert({
+        decision_id: row.id,
+        member_id: callerMemberId,
+        capacity: asParticipant.capacity,
+        response: affirmativeFor(asParticipant.capacity),
+      });
+    if (responseError) throw apiErrorFromPostgres(responseError);
+  }
+
+  return finish(session, houseId, row.id, callerMemberId);
+}
+
+// ---------------------------------------------------------------------------
+// Responding
+// ---------------------------------------------------------------------------
+
+export async function respondToDecision(
+  session: Session,
+  houseId: string,
+  decisionId: string,
+  callerMemberId: string,
+  input: RespondInput,
+): Promise<ProposalResult> {
+  const current = await getDecision(session, houseId, decisionId, callerMemberId);
+
+  if (current.status !== "waiting") throw new ApiError("ALREADY_RESOLVED");
+
+  const mine = current.participants.filter(
+    (participant) => participant.memberId === callerMemberId,
+  );
+  if (mine.length === 0) throw new ApiError("NOT_A_PARTICIPANT");
+
+  const capacity =
+    input.capacity ??
+    mine.find((participant) => participant.response === null)?.capacity;
+  if (!capacity) throw new ApiError("ALREADY_RESPONDED");
+
+  const slot = mine.find((participant) => participant.capacity === capacity);
+  if (!slot) throw new ApiError("NOT_A_PARTICIPANT");
+  if (slot.response !== null) throw new ApiError("ALREADY_RESPONDED");
+
+  // An acknowledger accepts that something is happening; they were never asked
+  // whether it should (§2). The check constraint refuses this too — this is
+  // the half that produces a sentence rather than a constraint violation.
+  if (capacity === "acknowledger" && input.response !== "acknowledge") {
+    throw new ApiError("NOT_A_PARTICIPANT", { capacity }, "You were asked to acknowledge this, not to approve it");
+  }
+  if (capacity === "approver" && input.response === "acknowledge") {
+    throw new ApiError("NOT_A_PARTICIPANT", { capacity }, "You were asked to approve this, not to acknowledge it");
+  }
+  if (input.response === "reject" && !input.reason) {
+    throw new ApiError("REASON_REQUIRED");
+  }
+
+  const { error } = await session.supabase.from("decision_responses").insert({
+    decision_id: decisionId,
+    member_id: callerMemberId,
+    capacity,
+    response: input.response,
+    reason: input.reason ?? null,
+  });
+  if (error) throw apiErrorFromPostgres(error);
+
+  return finish(session, houseId, decisionId, callerMemberId);
+}
+
+// ---------------------------------------------------------------------------
+// Approve All
+// ---------------------------------------------------------------------------
+
+export interface BatchResult {
+  approved: string[];
+  skipped: { id: string; reason: string }[];
+  applied: string[];
+}
+
+/**
+ * Approve All — §5.
+ *
+ * The batch is planned by the domain, not by this function and not by the
+ * client: a Critical decision that would complete on the caller's tap is left
+ * out and shown on its own. The plan is recomputed here from rows read a
+ * moment ago, and a response that races another member's is refused by the
+ * insert policy rather than by this list — which is why a failed insert only
+ * drops that one decision from the batch.
+ */
+export async function approveAll(
+  session: Session,
+  houseId: string,
+  callerMemberId: string,
+): Promise<BatchResult> {
+  const { data, error } = await session.supabase
+    .from("decisions")
+    .select("*")
+    .eq("house_id", houseId)
+    .eq("status", "waiting");
+  if (error) throw apiErrorFromPostgres(error);
+
+  const rows = data ?? [];
+  const bundle = await loadBundle(
+    session,
+    rows.map((row) => row.id),
+    rows,
+  );
+
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const plan = planBatch(
+    rows.map((row) =>
+      candidateFrom(
+        recordFrom(row),
+        participantsFrom(bundle.participantsByDecision.get(row.id) ?? []),
+        responsesFrom(bundle.responsesByDecision.get(row.id) ?? []),
+      ),
+    ),
+    callerMemberId,
+    new Date(),
+  );
+
+  const approved: string[] = [];
+  const skipped: { id: string; reason: string }[] = plan.skip.map((entry) => ({
+    id: entry.id,
+    reason: entry.reason,
+  }));
+
+  for (const entry of plan.approve) {
+    const { error: insertError } = await session.supabase
+      .from("decision_responses")
+      .insert({
+        decision_id: entry.id,
+        member_id: callerMemberId,
+        capacity: entry.capacity,
+        response: affirmativeFor(entry.capacity),
+      });
+
+    if (insertError) {
+      skipped.push({ id: entry.id, reason: "RESPONSE_REFUSED" });
+      continue;
+    }
+    approved.push(entry.id);
+  }
+
+  const applied: string[] = [];
+  for (const id of approved) {
+    const row = byId.get(id);
+    const outcome = await applyIfApproved(session, id, row?.house_id ?? houseId);
+    if (outcome.applied) applied.push(id);
+  }
+
+  return { approved, skipped, applied };
+}
+
+// ---------------------------------------------------------------------------
+// Withdrawing
+// ---------------------------------------------------------------------------
+
+export async function cancelDecision(
+  session: Session,
+  houseId: string,
+  decisionId: string,
+  callerMemberId: string,
+): Promise<DecisionView> {
+  const { error } = await session.supabase.rpc("cancel_decision", {
+    p_decision_id: decisionId,
+  });
+  if (error) throw governanceError(error);
+  return getDecision(session, houseId, decisionId, callerMemberId);
+}
+
+// ---------------------------------------------------------------------------
+// Applying
+// ---------------------------------------------------------------------------
+
+interface ApplyOutcome {
+  applied: boolean;
+  refusal: string | null;
+}
+
+/**
+ * Runs the effect if — and only if — the database says the decision is
+ * approved.
+ *
+ * Two things this deliberately does not do. It does not decide that a decision
+ * has passed: `resolve_decision` wrote the status from the rows, and
+ * `apply_decision` re-derives every check from those same rows before running
+ * anything. And it does not fail the caller's request when the effect refuses:
+ * a member who approved a settlement close should not receive a 500 because
+ * the close effect is not built yet. The decision stays `approved` and visibly
+ * unapplied, which is the honest state, and the refusal is reported alongside
+ * it.
+ */
+async function applyIfApproved(
+  session: Session,
+  decisionId: string,
+  houseId: string,
+): Promise<ApplyOutcome> {
+  const { data, error } = await session.supabase
+    .from("decisions")
+    .select("id, status, house_id")
+    .eq("id", decisionId)
+    .maybeSingle();
+  if (error) throw apiErrorFromPostgres(error);
+  if (!data || data.house_id !== houseId) return { applied: false, refusal: null };
+  if (data.status === "applied") return { applied: true, refusal: null };
+  if (data.status !== "approved") return { applied: false, refusal: null };
+
+  const admin = createAdminClient();
+  const { error: applyError } = await admin.rpc("apply_decision", {
+    p_decision_id: decisionId,
+    p_input: {} as Json,
+  });
+
+  if (applyError) {
+    const refusal = apiErrorFromPostgres(applyError).code;
+    console.error("[governance] apply refused", decisionId, applyError.message);
+    return { applied: false, refusal };
+  }
+
+  return { applied: true, refusal: null };
+}
+
+/** Read the decision back, apply it if it now passes, and read it back again. */
+async function finish(
+  session: Session,
+  houseId: string,
+  decisionId: string,
+  callerMemberId: string,
+): Promise<ProposalResult> {
+  const outcome = await applyIfApproved(session, decisionId, houseId);
+  const decision = await getDecision(session, houseId, decisionId, callerMemberId);
+  return { decision, applied: outcome.applied, applyRefusal: outcome.refusal };
+}
+
+export { applyIfApproved };
