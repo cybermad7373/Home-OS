@@ -109,7 +109,10 @@ create or replace function generate_invite_token() returns text as $$
   select translate(encode(gen_random_bytes(18), 'base64'), '+/', '-_');
 $$ language sql volatile;
 
-revoke execute on function generate_invite_token() from anon, authenticated;
+-- Postgres grants EXECUTE on a new function to PUBLIC, which anon and
+-- authenticated inherit; revoking from those two alone leaves it callable by
+-- everybody. Migration 037 is the record of learning that the hard way.
+revoke execute on function generate_invite_token() from public, anon, authenticated;
 
 -- Creates the Home's first link, or replaces the live one. Rotation revokes
 -- the previous link in the same statement, and touches neither an existing
@@ -392,4 +395,4 @@ grant execute on function withdraw_join_request(uuid)          to authenticated;
 grant execute on function create_house(text, text, text, text, home_type,
                                        text, text, text, text) to authenticated;
 revoke execute on function seed_default_categories(uuid, home_type)
-  from anon, authenticated;
+  from public, anon, authenticated;

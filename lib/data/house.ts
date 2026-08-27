@@ -173,6 +173,7 @@ function toMemberView(
     sharesCost: row.shares_cost,
     doesChores: row.does_chores,
     guardianMemberId: row.guardian_member_id,
+    pendingSettlement: row.pending_settlement,
   };
 }
 

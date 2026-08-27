@@ -1,9 +1,11 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * Phase-1 acceptance, run rather than read (docs/07-ROADMAP.md section 6):
- * an admin creates a house, a second person joins by code, and the admin
- * approves them.
+ * Phase-1 and phase-10 acceptance, run rather than read
+ * (docs/07-ROADMAP.md sections 6 and phase 10): an admin creates a Home, a
+ * second person opens the invite link and asks to join, and a lead lets them
+ * in. Along the way it proves the thing phase 10 exists for — that the person
+ * asking sees nothing of the Home until somebody answers.
  *
  * It needs a running app pointed at a real Supabase project with email sign-up
  * enabled and email confirmation switched off — the local stack, or a scratch
@@ -48,14 +50,14 @@ async function signIn(page: import("@playwright/test").Page, identifier: string)
 
 test.describe.configure({ mode: "serial" });
 
-let inviteCode = "";
+let inviteUrl = "";
 
-test("an admin creates a house", async ({ page }) => {
+test("an admin creates a home", async ({ page }) => {
   await signUp(page, admin);
 
-  await page.getByText("Create a new house").click();
-  await page.getByLabel("House name").fill(`Anna Nagar ${stamp}`);
-  await page.getByRole("button", { name: "Create house" }).click();
+  await page.getByText("Set up a new home").click();
+  await page.getByLabel("Home name").fill(`Anna Nagar ${stamp}`);
+  await page.getByRole("button", { name: "Create home" }).click();
 
   await page.waitForURL("**/onboarding/profile");
   await page.getByRole("button", { name: "Yes" }).click();
@@ -64,38 +66,39 @@ test("an admin creates a house", async ({ page }) => {
   await page.waitForURL("**/dashboard");
   await expect(page.getByRole("heading", { name: `Anna Nagar ${stamp}` })).toBeVisible();
 
-  await page.goto("/house/members");
-  const subtitle = await page.getByText(/Invite code/).innerText();
-  inviteCode = subtitle.replace("Invite code", "").trim();
-  expect(inviteCode).toMatch(/^[A-Z2-9]{3}-[A-Z2-9]{3}$/);
+  // The link is what a person is sent. It exists from the moment the Home does.
+  await page.goto("/admin/settings");
+  inviteUrl = (await page.getByText(/\/join\//).first().innerText()).trim();
+  expect(inviteUrl).toMatch(/\/join\/[A-Za-z0-9_-]{16,}$/);
 });
 
-test("a joiner waits for approval and sees nothing of the house", async ({ page }) => {
+test("a joiner asks, waits, and sees nothing of the home", async ({ page }) => {
   await signUp(page, joiner);
 
-  await page.getByText("I have an invite code").click();
-  await page.getByLabel("Invite code").fill(inviteCode);
-  await page.getByRole("button", { name: "Join house" }).click();
+  // Straight to the link, the way somebody who was sent one arrives.
+  await page.goto(new URL(inviteUrl).pathname);
+  await expect(page.getByText(`Anna Nagar ${stamp}`)).toBeVisible();
+  await page.getByRole("button", { name: /Ask to join/ }).click();
 
   await page.waitForURL("**/onboarding/pending");
-  await expect(page.getByText("Waiting for approval")).toBeVisible();
+  await expect(page.getByText("Waiting to be let in")).toBeVisible();
 
-  // BR-003 — a pending member is not a member. The app shell must refuse them.
+  // HM-07 — asking is not joining. The app shell must refuse them.
   await page.goto("/house/rooms");
   await page.waitForURL("**/onboarding/pending");
 });
 
-test("the admin approves them and they appear in the house", async ({ page }) => {
+test("a lead lets them in and they appear in the home", async ({ page }) => {
   // Signing in by username, which is the point of the username at all.
   await signIn(page, admin.username);
   await page.waitForURL("**/dashboard");
 
   await page.goto("/house/members");
-  await expect(page.getByText("Waiting to join")).toBeVisible();
-  await page.getByRole("button", { name: "Approve" }).click();
+  await expect(page.getByText("Waiting to be let in (1)")).toBeVisible();
+  await page.getByRole("button", { name: "Let them in" }).click();
 
   await expect(page.getByText(joiner.name)).toBeVisible();
-  await expect(page.getByText("Waiting to join")).toHaveCount(0);
+  await expect(page.getByText(/Waiting to be let in/)).toHaveCount(0);
 });
 
 test("every screen works at 360 px", async ({ page }) => {
@@ -103,7 +106,14 @@ test("every screen works at 360 px", async ({ page }) => {
   await signIn(page, admin.email); // the same account, reached by email this time
   await page.waitForURL("**/dashboard");
 
-  for (const path of ["/dashboard", "/house/members", "/house/rooms", "/more", "/admin/settings"]) {
+  for (const path of [
+    "/dashboard",
+    "/homes",
+    "/house/members",
+    "/house/rooms",
+    "/more",
+    "/admin/settings",
+  ]) {
     await page.goto(path);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

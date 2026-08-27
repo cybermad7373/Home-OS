@@ -199,4 +199,4 @@ end;
 $$ language plpgsql security definer set search_path = public;
 
 grant execute on function is_house_lead(uuid) to authenticated;
-revoke execute on function is_house_lead(uuid) from anon;
+revoke execute on function is_house_lead(uuid) from public, anon;

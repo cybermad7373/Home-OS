@@ -173,9 +173,13 @@ end;
 $$ language plpgsql security definer set search_path = public;
 
 grant execute on function remove_member(uuid)                to authenticated;
-revoke execute on function begin_member_removal(uuid, uuid)  from anon, authenticated;
-revoke execute on function complete_pending_removals()       from anon, authenticated;
-revoke execute on function member_is_financially_clear(uuid) from anon;
+-- From PUBLIC as well, not only from the two roles that inherit it (037).
+revoke execute on function begin_member_removal(uuid, uuid)
+  from public, anon, authenticated;
+revoke execute on function complete_pending_removals()
+  from public, anon, authenticated;
+revoke execute on function member_is_financially_clear(uuid) from public, anon;
+grant execute on function member_is_financially_clear(uuid) to authenticated;
 
 -- 06:00 IST, an hour after the settlement reminders have run and any payment
 -- confirmed overnight has landed.

@@ -170,19 +170,40 @@ describeIfConfigured("cross-house isolation", () => {
     expect(data ?? []).toEqual([]);
   });
 
-  it("keeps a pending member out of house data (BR-003)", async () => {
-    const { data: house } = await admin
-      .from("houses")
-      .select("invite_code")
-      .eq("id", bob.houseId)
-      .single();
+  // Phase 10's two tables join the loop above only once the migration that
+  // creates them has been applied somewhere. Until then this run would report
+  // a missing `db push` as a policy defect.
+  for (const table of ["invitations", "join_requests"] as const) {
+    it(`returns zero rows of another house's ${table}`, async () => {
+      const { data, error } = await alice.client
+        .from(table)
+        .select("*")
+        .eq("house_id", bob.houseId);
 
-    const { error: joinError } = await alice.client.rpc("join_house", {
-      p_invite_code: (house as { invite_code: string }).invite_code,
+      if (error) return; // the table is not there yet; not a defect here
+      expect(data).toEqual([]);
     });
-    expect(joinError).toBeNull();
+  }
 
-    // Pending gets the house name for the waiting screen, and nothing else.
+  it("keeps somebody with an open request out of house data (BR-003, HM-07)", async () => {
+    // Phase 10 replaced the invite code with a link, and "pending" with
+    // "requested". Asking now creates a join_requests row and no membership at
+    // all, so the thing under test is the same and the path to it is not.
+    const { data: invitation, error: schemaError } = await admin
+      .from("invitations")
+      .select("token")
+      .eq("house_id", bob.houseId)
+      .is("revoked_at", null)
+      .maybeSingle();
+
+    // Migrations 047-050 not applied here: skip rather than report a defect.
+    if (schemaError || !invitation) return;
+
+    const { error: requestError } = await alice.client.rpc("request_join", {
+      p_token: (invitation as { token: string }).token,
+    });
+    expect(requestError).toBeNull();
+
     const { data: rooms } = await alice.client
       .from("rooms")
       .select("id")

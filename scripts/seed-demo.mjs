@@ -19,6 +19,7 @@ config({ path: ".env.local" });
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 if (!url || !serviceKey || !anonKey) {
   console.error("Missing Supabase settings in .env.local");
@@ -176,14 +177,22 @@ async function main() {
   //    that function needs a signed-in caller and the seed has to work even
   //    when every sign-in method is switched off in the project. The rows it
   //    writes are the same ones create_house would.
-  console.log("Creating the house…");
+  console.log("Creating the home…");
   const inviteCode = "DEMO24";
+  // The link is what a person is actually sent. Fixed here so that a reseeded
+  // demo keeps the same URL and whatever you pasted into a chat still works.
+  const inviteToken = "demo-invite-token-0000";
 
   const { data: house, error: houseError } = await admin
     .from("houses")
     .insert({
       name: HOUSE_NAME,
+      home_type: "shared",
       address: "12 Second Street, Anna Nagar",
+      country_code: "IN",
+      state: "Tamil Nadu",
+      city: "Chennai",
+      area: "Anna Nagar",
       timezone: "Asia/Kolkata",
       currency: "INR",
       invite_code: inviteCode,
@@ -195,12 +204,23 @@ async function main() {
   const houseId = house.id;
 
   await admin.from("house_settings").insert({ house_id: houseId });
-  await admin.from("house_members").insert({
+
+  const { data: adminMember } = await admin
+    .from("house_members")
+    .insert({
+      house_id: houseId,
+      user_id: userIds[0],
+      role: "admin",
+      status: "active",
+      can_cook: PEOPLE[0].canCook,
+    })
+    .select("id")
+    .single();
+
+  await admin.from("invitations").insert({
     house_id: houseId,
-    user_id: userIds[0],
-    role: "admin",
-    status: "active",
-    can_cook: PEOPLE[0].canCook,
+    token: inviteToken,
+    created_by: adminMember.id,
   });
 
   const DEFAULT_CATEGORIES = [
@@ -232,18 +252,38 @@ async function main() {
     .update({ upi_vpa: PEOPLE[0].upi })
     .eq("id", userIds[0]);
 
-  // 3. The other seven, straight to active.
+  // 3. The other seven, each through the path a real person takes.
+  //
+  //    Nobody is created into a home in version 2.0 (HM-06): they open a link,
+  //    they ask, and a lead accepts. The seed writes both halves rather than
+  //    only the membership, so the demo home has the join history a real one
+  //    would — including the record of who let each person in.
   console.log("Adding the housemates…");
   for (let index = 1; index < PEOPLE.length; index += 1) {
     const person = PEOPLE[index];
-    await admin.from("house_members").insert({
+
+    const { data: member } = await admin
+      .from("house_members")
+      .insert({
+        house_id: houseId,
+        user_id: userIds[index],
+        role: person.role,
+        status: "active",
+        can_cook: person.canCook,
+        joined_date: joined,
+      })
+      .select("id")
+      .single();
+
+    await admin.from("join_requests").insert({
       house_id: houseId,
       user_id: userIds[index],
-      role: person.role,
-      status: "active",
-      can_cook: person.canCook,
-      joined_date: joined,
+      status: "accepted",
+      decided_by: adminMember.id,
+      decided_at: new Date().toISOString(),
+      member_id: member.id,
     });
+
     if (person.upi) {
       await admin.from("users").update({ upi_vpa: person.upi }).eq("id", userIds[index]);
     }
@@ -634,7 +674,7 @@ async function main() {
 Demo house ready.
 
   House        ${HOUSE_NAME}
-  Invite code  ${inviteCode}
+  Invite link  ${appUrl}/join/${inviteToken}
   Sign in      demo  /  ${PASSWORD}          (admin)
   Others       kumar, vinoth, suresh, arun, deepak, manoj, sathish  — same password
 

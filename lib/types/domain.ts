@@ -41,6 +41,8 @@ export interface MemberView {
   /** False for a resident the scheduler must not give work to. */
   doesChores: boolean;
   guardianMemberId: string | null;
+  /** True for somebody removed while money was still outstanding (D-45). */
+  pendingSettlement: boolean;
 }
 
 export interface RoomView {

@@ -21,7 +21,6 @@ import { Leaderboard } from "@/components/chores/leaderboard";
 import { concentrationRatio, rankStanding } from "@/lib/domain/fairness/targets";
 import { weekDates } from "@/lib/domain/scheduling/capacity";
 import { formatMoney } from "@/lib/utils/money";
-import { formatInviteCode } from "@/lib/utils/invite-code";
 import { formatDate, houseToday } from "@/lib/utils/date";
 import { RESIDENCY_LABEL } from "@/lib/types/domain";
 
@@ -348,9 +347,7 @@ export default async function DashboardPage() {
               />
               <SetupStep
                 done={active.length > 1}
-                label={`Invite the others with code ${formatInviteCode(
-                  context.house.invite_code,
-                )}`}
+                label="Send the others your invite link"
                 href="/admin/settings"
               />
             </ul>

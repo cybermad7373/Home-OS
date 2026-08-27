@@ -10,6 +10,7 @@ import {
   Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { HomeSwitcher, type HomeOption } from "@/components/homes/home-switcher";
 
 /**
  * Navigation — docs/08-UI-UX-SPEC.md section 3. Bottom tab bar on mobile, left
@@ -127,16 +128,19 @@ function sidebarLinks({
     { href: "/admin/chores", label: "Chore list" },
     { href: "/admin/schedule", label: "Schedule" },
     { href: "/admin/settings", label: "House settings" },
+    { href: "/homes", label: "My homes" },
   ];
 }
 
 export function Sidebar({
-  houseName,
+  homes,
+  selectedHouseId,
   memberName,
   isPot,
   isRota,
 }: {
-  houseName: string;
+  homes: HomeOption[];
+  selectedHouseId: string;
   memberName: string;
   isPot: boolean;
   isRota: boolean;
@@ -147,7 +151,7 @@ export function Sidebar({
   return (
     <aside className="hidden w-60 shrink-0 border-r border-border bg-surface lg:block">
       <div className="sticky top-0 p-4">
-        <p className="heading-text truncate">{houseName}</p>
+        <HomeSwitcher homes={homes} selectedId={selectedHouseId} />
         <p className="caption-text mb-6 text-text-muted">Signed in as {memberName}</p>
         <nav aria-label="Primary">
           <ul className="flex flex-col gap-0.5">

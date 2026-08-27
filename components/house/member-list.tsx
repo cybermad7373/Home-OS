@@ -58,7 +58,9 @@ export function MemberList({
     return true;
   }
 
-  const waiting = members.filter((member) => member.status === "requested");
+  // No `waiting` list here any more. Somebody who has asked to join has a
+  // `join_requests` row and no membership at all until a lead accepts, so the
+  // queue lives in `JoinRequests` above this component (HM-06).
   const active = members.filter(
     (member) => member.status === "active" && member.kind === "adult",
   );
@@ -69,6 +71,34 @@ export function MemberList({
 
   const nameOf = (memberId: string | null) =>
     members.find((member) => member.id === memberId)?.displayName ?? "nobody";
+
+  /**
+   * Removal, not a status patch (D-45).
+   *
+   * The answer tells us which of the two states it landed in: gone, or gone
+   * and still in the settlement. Saying so here is the difference between the
+   * Home believing the matter is closed and knowing it is not.
+   */
+  async function removeMember(member: MemberView) {
+    setBusyId(member.id);
+    const response = await fetch(`/api/members/${member.id}`, { method: "DELETE" });
+    const payload = await response.json().catch(() => ({}));
+    setBusyId(null);
+
+    if (!response.ok) {
+      toast(payload?.error?.message ?? "That did not work", "danger");
+      return;
+    }
+
+    setEditing(null);
+    toast(
+      payload.pending_settlement
+        ? `${member.displayName} is out, and still in this month's settlement until they are paid up.`
+        : `${member.displayName} is out.`,
+      "success",
+    );
+    startTransition(() => router.refresh());
+  }
 
   async function removeDependent(member: MemberView) {
     setBusyId(member.id);
@@ -88,57 +118,6 @@ export function MemberList({
 
   return (
     <div className="flex flex-col gap-4">
-      {waiting.length > 0 ? (
-        <section>
-          <h2 className="heading-text mb-2">
-            Waiting to join
-            <span className="ml-2 text-text-muted">{waiting.length}</span>
-          </h2>
-          <Card className="p-0">
-            <ul className="divide-y divide-border">
-              {waiting.map((member) => (
-                <li key={member.id} className="flex items-center gap-3 px-4 py-3">
-                  <MemberAvatar name={member.displayName} avatarUrl={member.avatarUrl} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{member.displayName}</p>
-                    <p className="caption-text truncate text-text-muted">
-                      {member.username ? `@${member.username}` : member.email}
-                    </p>
-                  </div>
-                  {isAdmin ? (
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        loading={busyId === member.id}
-                        onClick={async () => {
-                          const ok = await patchMember(member, { status: "inactive" });
-                          if (ok) toast(`${member.displayName} declined.`);
-                        }}
-                      >
-                        Decline
-                      </Button>
-                      <Button
-                        size="sm"
-                        loading={busyId === member.id}
-                        onClick={async () => {
-                          const ok = await patchMember(member, { status: "active" });
-                          if (ok) toast(`${member.displayName} is in.`, "success");
-                        }}
-                      >
-                        Approve
-                      </Button>
-                    </div>
-                  ) : (
-                    <Badge tone="warning">Pending</Badge>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </section>
-      ) : null}
-
       <section>
         <h2 className="heading-text mb-2">Members</h2>
         <Card className="p-0">
@@ -239,18 +218,13 @@ export function MemberList({
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-text-muted">{member.displayName}</p>
                     <p className="caption-text text-text-subtle">
-                      Left {member.leftDate ?? "—"}
+                      {member.pendingSettlement
+                        ? "Leaving — still in the settlement"
+                        : `Left ${member.leftDate ?? "—"}`}
                     </p>
                   </div>
-                  {isAdmin ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      loading={busyId === member.id}
-                      onClick={() => patchMember(member, { status: "active" })}
-                    >
-                      Reactivate
-                    </Button>
+                  {member.pendingSettlement ? (
+                    <Badge tone="warning">Owes money</Badge>
                   ) : null}
                 </li>
               ))}
@@ -265,6 +239,7 @@ export function MemberList({
           busy={busyId === editing.id || pending}
           onClose={() => setEditing(null)}
           onSave={(body) => patchMember(editing, body)}
+          onRemove={() => removeMember(editing)}
         />
       ) : null}
 
@@ -430,11 +405,13 @@ function EditMemberSheet({
   busy,
   onClose,
   onSave,
+  onRemove,
 }: {
   member: MemberView;
   busy: boolean;
   onClose: () => void;
   onSave: (body: Record<string, unknown>) => Promise<boolean>;
+  onRemove: () => void;
 }) {
   // A Requested member has no role and is never editable here, so "member"
   // is only ever the starting value of a control the caller will not see.
@@ -502,13 +479,14 @@ function EditMemberSheet({
         variant="ghost"
         className="mt-2 text-danger"
         loading={busy}
-        onClick={() => onSave({ status: "inactive" })}
+        onClick={onRemove}
       >
-        Deactivate member
+        Remove from the home
       </Button>
       <p className="caption-text mt-2 text-text-muted">
-        Deactivating keeps every expense, split and assignment they were part of. It only
-        stops new ones.
+        Removing keeps every expense, split and assignment they were part of. If they
+        still owe the home money, or the home owes them, they stay in the settlement
+        until it is paid.
       </p>
     </BottomSheet>
   );

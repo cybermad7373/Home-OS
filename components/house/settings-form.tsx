@@ -9,7 +9,6 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/label";
 import { Input, Select } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
-import { formatInviteCode } from "@/lib/utils/invite-code";
 import { formatMoney, paiseToRupeeString, rupeesToPaise } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
 import type {
@@ -28,12 +27,13 @@ const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
  */
 export function SettingsForm({
   settings,
-  inviteCode,
+  inviteUrl,
   currency,
   llmConfigured,
 }: {
   settings: HouseSettingsRow;
-  inviteCode: string;
+  /** Null when the Home has no live link — nobody new can ask until one exists. */
+  inviteUrl: string | null;
   currency: string;
   llmConfigured: boolean;
 }) {
@@ -58,7 +58,8 @@ export function SettingsForm({
   const [dailyBudget, setDailyBudget] = useState(
     settings.daily_budget_paise ? paiseToRupeeString(settings.daily_budget_paise) : "",
   );
-  const [code, setCode] = useState(inviteCode);
+  const [link, setLink] = useState(inviteUrl);
+  const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,9 +104,9 @@ export function SettingsForm({
     startTransition(() => router.refresh());
   }
 
-  async function regenerate() {
+  async function rotate() {
     setBusy(true);
-    const response = await fetch("/api/houses/current/invite-code", { method: "POST" });
+    const response = await fetch("/api/invitations", { method: "POST" });
     const payload = await response.json().catch(() => ({}));
     setBusy(false);
 
@@ -114,9 +115,21 @@ export function SettingsForm({
       return;
     }
 
-    setCode(payload.invite_code);
-    toast("New code. The old one stopped working immediately.", "success");
+    setLink(payload.invite_url);
+    setCopied(false);
+    toast("New link. The old one stopped working immediately.", "success");
     startTransition(() => router.refresh());
+  }
+
+  async function copyLink() {
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+    } catch {
+      // A browser that refuses clipboard access is not an error worth a toast:
+      // the link is on screen and can be selected by hand.
+    }
   }
 
   return (
@@ -124,14 +137,30 @@ export function SettingsForm({
       {error ? <Alert tone="danger">{error}</Alert> : null}
 
       <Card>
-        <CardTitle>Invite code</CardTitle>
+        <CardTitle>Invite link</CardTitle>
         <CardDescription>
-          Anyone with this code can ask to join. They still need your approval.
+          Anyone holding this link can ask to join. Holding it grants nothing on
+          its own — somebody here still has to let them in.
         </CardDescription>
-        <p className="display-number my-3 tracking-[0.2em]">{formatInviteCode(code)}</p>
-        <Button variant="outline" size="sm" loading={busy} onClick={regenerate}>
-          Generate a new code
-        </Button>
+        {link ? (
+          <p className="my-3 break-all rounded-[10px] bg-surface-2 px-3 py-2 font-mono text-[13px]">
+            {link}
+          </p>
+        ) : (
+          <p className="my-3 text-text-muted">
+            There is no live link. Nobody new can ask until you make one.
+          </p>
+        )}
+        <div className="flex gap-2">
+          {link ? (
+            <Button variant="outline" size="sm" onClick={copyLink}>
+              {copied ? "Copied" : "Copy link"}
+            </Button>
+          ) : null}
+          <Button variant="outline" size="sm" loading={busy} onClick={rotate}>
+            {link ? "Replace this link" : "Make a link"}
+          </Button>
+        </div>
       </Card>
 
       <Card>
