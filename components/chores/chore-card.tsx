@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MemberAvatar } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/toast";
+import { canConfirm } from "@/lib/domain/governance/quorum";
 import { cn } from "@/lib/utils/cn";
 import { relativeTime } from "@/lib/utils/date";
 
@@ -31,8 +32,42 @@ export interface ChoreItem {
   autoConfirmed: boolean;
   rejectedReason: string | null;
   retryCount: number;
-  assignee: { memberId: string; displayName: string; avatarUrl: string | null } | null;
+  assignee: {
+    memberId: string;
+    displayName: string;
+    avatarUrl: string | null;
+    kind: "adult" | "dependent";
+    guardianMemberId: string | null;
+  } | null;
   confirmedBy: { memberId: string; displayName: string } | null;
+  /** The quorum snapshotted at "done", and who has signed — migration 054. */
+  quorum: {
+    required: number;
+    received: number;
+    leadRequired: boolean;
+    confirmations: { memberId: string; displayName: string; isLead: boolean; at: string }[];
+  };
+}
+
+/**
+ * How the quorum reads to somebody looking at a chore waiting on it.
+ *
+ * A count on its own ("1 of 2") does not say what the missing signature has to
+ * be, and an Admin's is not interchangeable with anybody else's above four
+ * adults. Both halves are stated.
+ */
+function quorumSentence(chore: ChoreItem): string | null {
+  if (chore.status !== "done_pending" || chore.quorum.required <= 1) return null;
+  const outstanding = Math.max(chore.quorum.required - chore.quorum.received, 0);
+  const leadMissing =
+    chore.quorum.leadRequired && !chore.quorum.confirmations.some((entry) => entry.isLead);
+  const count = `${chore.quorum.received} of ${chore.quorum.required} confirmations`;
+  if (leadMissing) {
+    return outstanding <= 1
+      ? `${count} · an Admin or Co-Admin still has to sign`
+      : `${count} · one has to be an Admin or Co-Admin`;
+  }
+  return count;
 }
 
 /** The coloured left rail, by category — docs/08-UI-UX-SPEC.md section 2.1. */
@@ -91,7 +126,37 @@ export function ChoreCard({
     guardianFor !== undefined && chore.assignee?.memberId === guardianFor.memberId;
   const status = STATUS_LABEL[chore.status];
 
-  async function act(path: string, body: unknown, success: string) {
+  // The card never offers a button the database will refuse. `canConfirm` is
+  // the one statement of who may sign — the same function the confirmation
+  // queue filters on, and the rule migration 054's trigger enforces.
+  const alreadySigned = chore.quorum.confirmations.some(
+    (entry) => entry.memberId === myMemberId,
+  );
+  const guardsAssignee =
+    chore.assignee?.kind === "dependent" &&
+    chore.assignee.guardianMemberId === myMemberId;
+  const mayRespond = canConfirm(
+    {
+      status: chore.status,
+      assigneeMemberId: chore.assignee?.memberId ?? null,
+      assigneeKind: chore.assignee?.kind ?? "adult",
+      assigneeGuardianMemberId: chore.assignee?.guardianMemberId ?? null,
+      confirmedBy: chore.quorum.confirmations.map((entry) => entry.memberId),
+    },
+    myMemberId,
+  );
+  const progress = quorumSentence(chore);
+
+  async function act(
+    path: string,
+    body: unknown,
+    /**
+     * A function rather than a string, because "Confirmed" is only true when
+     * the signature completed the quorum. The route returns the status the
+     * write actually produced, and the message follows it.
+     */
+    success: string | ((payload: { status?: string }) => string),
+  ) {
     setBusy(true);
     const response = await fetch(`/api/chores/${chore.id}/${path}`, {
       method: "POST",
@@ -108,7 +173,7 @@ export function ChoreCard({
 
     setRejecting(false);
     setReason("");
-    toast(success, "success");
+    toast(typeof success === "string" ? success : success(payload ?? {}), "success");
     router.refresh();
   }
 
@@ -147,6 +212,10 @@ export function ChoreCard({
             </span>
           ) : null}
         </div>
+
+        {progress ? (
+          <p className="caption-text mt-1 text-text-muted">{progress}</p>
+        ) : null}
 
         {chore.rejectedReason ? (
           <p className="caption-text mt-1 text-danger">
@@ -205,8 +274,9 @@ export function ChoreCard({
             ) : null}
 
             {/* Nobody confirms their own work — the payer of the effort never
-                sees these buttons on their own row. */}
-            {chore.status === "done_pending" && !isMine ? (
+                sees these buttons on their own row — and above three adults
+                one signature is no longer the whole quorum. */}
+            {mayRespond ? (
               rejecting ? (
                 <div className="w-full rounded-[10px] bg-surface-2 p-3">
                   <Input
@@ -244,10 +314,10 @@ export function ChoreCard({
                     size="sm"
                     loading={busy}
                     onClick={() =>
-                      act(
-                        "confirm",
-                        {},
-                        `Confirmed — ${chore.effortPoints} points to ${chore.assignee?.displayName ?? "them"}.`,
+                      act("confirm", {}, (payload) =>
+                        payload.status === "confirmed"
+                          ? `Confirmed — ${chore.effortPoints} points to ${chore.assignee?.displayName ?? "them"}.`
+                          : "Your confirmation is in. It needs one more before the points post.",
                       )
                     }
                   >
@@ -259,7 +329,22 @@ export function ChoreCard({
 
             {chore.status === "done_pending" && isMine ? (
               <p className="caption-text text-text-muted">
-                Waiting for somebody else to confirm it.
+                {chore.quorum.required > 1
+                  ? `Waiting on ${chore.quorum.required} people to confirm it.`
+                  : "Waiting for somebody else to confirm it."}
+              </p>
+            ) : null}
+
+            {chore.status === "done_pending" && !isMine && alreadySigned ? (
+              <p className="caption-text text-text-muted">
+                You confirmed this. It is waiting on somebody else.
+              </p>
+            ) : null}
+
+            {chore.status === "done_pending" && guardsAssignee ? (
+              <p className="caption-text text-text-muted">
+                You marked this done for {chore.assignee?.displayName ?? "them"}, so
+                somebody else confirms it.
               </p>
             ) : null}
           </div>

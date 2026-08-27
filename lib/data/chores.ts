@@ -19,6 +19,7 @@ import type {
   SchedulingMember,
   WeekWindows,
 } from "@/lib/domain/scheduling/types";
+import { canConfirm, type ConfirmableAssignment } from "@/lib/domain/governance/quorum";
 import { proposeWithLlm } from "./schedule-llm";
 import { getHouseAvailability, getHouseExceptions } from "./availability";
 import { listGuests } from "./guests";
@@ -31,6 +32,7 @@ import type {
   ChoreAssignmentRow,
   ChoreTemplateRow,
   EffortLedgerRow,
+  MemberKind,
   ScheduleRunRow,
 } from "@/lib/types/database";
 
@@ -57,25 +59,62 @@ export interface AssignmentView {
   autoConfirmed: boolean;
   rejectedReason: string | null;
   retryCount: number;
-  assignee: { memberId: string; displayName: string; avatarUrl: string | null } | null;
+  assignee: {
+    memberId: string;
+    displayName: string;
+    avatarUrl: string | null;
+    kind: MemberKind;
+    guardianMemberId: string | null;
+  } | null;
   confirmedBy: { memberId: string; displayName: string } | null;
+  /**
+   * The quorum snapshotted onto this assignment when it was marked done, and
+   * who has signed so far. `required` is 0 on a chore that auto-confirmed for
+   * want of anybody to ask.
+   */
+  quorum: {
+    required: number;
+    received: number;
+    leadRequired: boolean;
+    confirmations: {
+      memberId: string;
+      displayName: string;
+      isLead: boolean;
+      at: string;
+    }[];
+  };
 }
 
 const ASSIGNMENT_SELECT = `
   *,
   chore_templates ( id, name, category ),
   assignee:house_members!chore_assignments_assignee_member_id_fkey (
-    id, users ( display_name, avatar_url )
+    id, member_kind, guardian_member_id, users ( display_name, avatar_url )
   ),
   confirmer:house_members!chore_assignments_confirmed_by_fkey (
     id, users ( display_name )
+  ),
+  chore_confirmations (
+    member_id, is_lead, created_at,
+    house_members ( users ( display_name ) )
   )
 `;
 
 type RawAssignment = ChoreAssignmentRow & {
   chore_templates: { id: string; name: string; category: string } | null;
-  assignee: { id: string; users: { display_name: string; avatar_url: string | null } | null } | null;
+  assignee: {
+    id: string;
+    member_kind: MemberKind;
+    guardian_member_id: string | null;
+    users: { display_name: string; avatar_url: string | null } | null;
+  } | null;
   confirmer: { id: string; users: { display_name: string } | null } | null;
+  chore_confirmations: {
+    member_id: string;
+    is_lead: boolean;
+    created_at: string;
+    house_members: { users: { display_name: string } | null } | null;
+  }[];
 };
 
 function toAssignmentView(row: RawAssignment): AssignmentView {
@@ -99,6 +138,8 @@ function toAssignmentView(row: RawAssignment): AssignmentView {
           memberId: row.assignee.id,
           displayName: row.assignee.users?.display_name ?? "Someone",
           avatarUrl: row.assignee.users?.avatar_url ?? null,
+          kind: row.assignee.member_kind,
+          guardianMemberId: row.assignee.guardian_member_id,
         }
       : null,
     confirmedBy: row.confirmer
@@ -107,6 +148,28 @@ function toAssignmentView(row: RawAssignment): AssignmentView {
           displayName: row.confirmer.users?.display_name ?? "Someone",
         }
       : null,
+    quorum: {
+      required: row.confirmations_required,
+      received: row.confirmations_received,
+      leadRequired: row.requires_lead_confirmer,
+      confirmations: (row.chore_confirmations ?? []).map((entry) => ({
+        memberId: entry.member_id,
+        displayName: entry.house_members?.users?.display_name ?? "Someone",
+        isLead: entry.is_lead,
+        at: entry.created_at,
+      })),
+    },
+  };
+}
+
+/** An `AssignmentView` as the pure eligibility rule wants to see it. */
+export function confirmable(assignment: AssignmentView): ConfirmableAssignment {
+  return {
+    status: assignment.status,
+    assigneeMemberId: assignment.assignee?.memberId ?? null,
+    assigneeKind: assignment.assignee?.kind ?? "adult",
+    assigneeGuardianMemberId: assignment.assignee?.guardianMemberId ?? null,
+    confirmedBy: assignment.quorum.confirmations.map((entry) => entry.memberId),
   };
 }
 
@@ -169,7 +232,12 @@ export async function listAwaitingConfirmation(
     .order("done_at", { ascending: true });
 
   if (error) throw apiErrorFromPostgres(error);
-  return (data as unknown as RawAssignment[]).map(toAssignmentView);
+  // The quorum makes "awaiting me" narrower than "awaiting somebody": a chore
+  // I have already signed is waiting on other people, not on me, and my
+  // dependent's chore was never mine to sign.
+  return (data as unknown as RawAssignment[])
+    .map(toAssignmentView)
+    .filter((assignment) => canConfirm(confirmable(assignment), myMemberId));
 }
 
 export async function listOpenPool(

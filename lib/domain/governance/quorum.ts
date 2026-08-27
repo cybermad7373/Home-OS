@@ -83,6 +83,40 @@ export function quorumFor(
   };
 }
 
+/** The slice of a marked-done chore the eligibility rules need. */
+export interface ConfirmableAssignment {
+  status: string;
+  assigneeMemberId: string | null;
+  assigneeKind: "adult" | "dependent";
+  /** Set when the assignee is a dependent; the adult who marked it done. */
+  assigneeGuardianMemberId: string | null;
+  /** Who has already signed. */
+  confirmedBy: string[];
+}
+
+/**
+ * May this member still add a signature to this chore?
+ *
+ * The three bans the `chore_confirmation_is_peer` trigger enforces, stated
+ * here so that no queue and no button offers somebody a confirmation the
+ * database is going to refuse: not your own work, not your dependent's work
+ * (D-24), and not twice — the quorum counts people, not signatures.
+ *
+ * This says nothing about whether the signature would *complete* the chore.
+ * `quorumMet` answers that, and the database decides it.
+ */
+export function canConfirm(assignment: ConfirmableAssignment, memberId: string): boolean {
+  if (assignment.status !== "done_pending") return false;
+  if (assignment.assigneeMemberId === memberId) return false;
+  if (
+    assignment.assigneeKind === "dependent" &&
+    assignment.assigneeGuardianMemberId === memberId
+  ) {
+    return false;
+  }
+  return !assignment.confirmedBy.includes(memberId);
+}
+
 /**
  * Has a set of confirmations satisfied a snapshotted quorum?
  *

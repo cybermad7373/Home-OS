@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { selectParticipants, thresholdFor } from "@/lib/domain/governance/participants";
 import { progressOf, resolve, wouldComplete } from "@/lib/domain/governance/resolve";
-import { quorumFor, quorumMet } from "@/lib/domain/governance/quorum";
+import { canConfirm, quorumFor, quorumMet } from "@/lib/domain/governance/quorum";
 import { planApproveAll } from "@/lib/domain/governance/approvals";
 import { DECISION_LEVEL } from "@/lib/domain/governance/matrix";
 import {
@@ -391,5 +391,46 @@ describe("the chore confirmation quorum", () => {
       required: 1,
       leadRequired: false,
     });
+  });
+});
+
+describe("who may add a signature", () => {
+  const chore = {
+    status: "done_pending",
+    assigneeMemberId: "kumar",
+    assigneeKind: "adult" as const,
+    assigneeGuardianMemberId: null,
+    confirmedBy: [] as string[],
+  };
+
+  it("lets any other adult sign a chore that is waiting", () => {
+    expect(canConfirm(chore, "ravi")).toBe(true);
+  });
+
+  it("never lets the assignee sign their own work", () => {
+    expect(canConfirm(chore, "kumar")).toBe(false);
+  });
+
+  it("never lets the same person sign twice", () => {
+    expect(canConfirm({ ...chore, confirmedBy: ["ravi"] }, "ravi")).toBe(false);
+    expect(canConfirm({ ...chore, confirmedBy: ["ravi"] }, "vinoth")).toBe(true);
+  });
+
+  it("never lets a guardian sign the chore they marked done (D-24)", () => {
+    const dependents = {
+      ...chore,
+      assigneeMemberId: "child",
+      assigneeKind: "dependent" as const,
+      assigneeGuardianMemberId: "ravi",
+    };
+    expect(canConfirm(dependents, "ravi")).toBe(false);
+    // Everybody else in the Home is still in the quorum.
+    expect(canConfirm(dependents, "kumar")).toBe(true);
+  });
+
+  it("offers nothing on a chore that is not waiting for a signature", () => {
+    for (const status of ["assigned", "confirmed", "rejected", "missed", "open"]) {
+      expect(canConfirm({ ...chore, status }, "ravi")).toBe(false);
+    }
   });
 });
