@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CAPABILITIES } from "@/lib/domain/llm/capabilities";
 import { PROVIDERS } from "@/lib/infra/llm/providers";
 
 /** Section 10 of docs/05-API-SPEC.md, and section 3.4 of the LLM spec. */
@@ -49,6 +50,23 @@ export const putCredentialSchema = z.object({
 export const parseTextSchema = z.object({
   text: z.string().trim().min(2, "Say what you spent or did").max(400),
 });
+
+/**
+ * The six switches — AI-02, docs/10-LLM-SPEC.md section 3.6a.
+ *
+ * Every key optional, because the request is a merge rather than a replacement,
+ * and at least one required, because a request that turns nothing is a request
+ * that should not have been sent.
+ */
+export const capabilitiesSchema = z
+  .object(
+    Object.fromEntries(
+      CAPABILITIES.map((capability) => [capability, z.boolean().optional()]),
+    ) as Record<(typeof CAPABILITIES)[number], z.ZodOptional<z.ZodBoolean>>,
+  )
+  .refine((body) => Object.values(body).some((value) => value !== undefined), {
+    message: "Nothing to change",
+  });
 
 export const digestQuerySchema = z.object({
   week_start: z

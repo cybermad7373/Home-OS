@@ -73,6 +73,11 @@ function links({ isPot, isRota }: { isPot: boolean; isRota: boolean }): MoreLink
       body: "Rent, the electricity bill and the maid, posted automatically",
     },
     {
+      href: "/more/rules",
+      label: "House rules",
+      body: "What this home agreed, in its own words — and every version of it",
+    },
+    {
       href: "/house/categories",
       label: "Categories and budgets",
       body: "What the house buys, and what it means to spend on each",

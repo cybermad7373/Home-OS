@@ -55,12 +55,20 @@ const MIN_REASON = 3;
  * the same selector the proposal will run, so the list here is the list the
  * decision gets.
  */
+/** What a proposal came back as, whichever endpoint made it. */
+export interface ProposalOutcome {
+  decisionId: string;
+  autoApproved: boolean;
+  applied: boolean;
+}
+
 export function ProposeSheet({
   draft,
   title,
   summary,
   effect,
   submitLabel,
+  submit,
   onClose,
   onProposed,
 }: {
@@ -72,6 +80,17 @@ export function ProposeSheet({
   /** S-36's "what changes if this happens", when the caller can compute it. */
   effect?: ReactNode;
   submitLabel?: string;
+  /**
+   * Where the proposal is actually sent, when it is not `POST /api/decisions`.
+   *
+   * Some proposals are made by an endpoint that has other rows to write in the
+   * same breath — `POST /api/rules` writes a rule and its first version and
+   * *then* asks the Home, and the three have to succeed or fail together. The
+   * sheet still owns the preview, the reason field and the three outcomes,
+   * because those are the same wherever the decision came from; only the one
+   * request differs.
+   */
+  submit?: (reason: string) => Promise<ProposalOutcome>;
   onClose: () => void;
   /** Given the created decision's id. Defaults to opening it. */
   onProposed?: (decisionId: string) => void;
@@ -114,29 +133,26 @@ export function ProposeSheet({
     setSending(true);
     setError(null);
 
-    const response = await fetch("/api/decisions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...draft, reason: reason.trim() || undefined }),
-    });
-    const payload = await response.json().catch(() => ({}));
-    setSending(false);
-
-    if (!response.ok) {
-      setError(payload?.error?.message ?? "That did not go through");
+    let outcome: ProposalOutcome;
+    try {
+      outcome = submit
+        ? await submit(reason.trim())
+        : await proposeHere(draft, reason.trim());
+    } catch (failure) {
+      setSending(false);
+      setError((failure as Error).message || "That did not go through");
       return;
     }
-
-    const decision = payload.decision;
+    setSending(false);
 
     // Three outcomes, and they are said apart. A Home with nobody to ask has
     // already done the thing; a Home with people to ask has not.
-    if (decision.autoApproved) {
+    if (outcome.autoApproved) {
       toast(
-        payload.applied
+        outcome.applied
           ? "Done, and recorded — there was nobody to ask."
           : "Recorded. The effect is not built yet.",
-        payload.applied ? "success" : "neutral",
+        outcome.applied ? "success" : "neutral",
       );
     } else {
       toast("Asked. Nothing changes until they answer.", "success");
@@ -144,10 +160,10 @@ export function ProposeSheet({
 
     onClose();
     if (onProposed) {
-      onProposed(decision.id);
+      onProposed(outcome.decisionId);
       return;
     }
-    router.push(`/more/approvals/${decision.id}`);
+    router.push(`/more/approvals/${outcome.decisionId}`);
     router.refresh();
   }
 
@@ -252,4 +268,27 @@ export function ProposeSheet({
       </Button>
     </BottomSheet>
   );
+}
+
+/** The ordinary path: the proposal is the whole of what is being written. */
+async function proposeHere(
+  draft: ProposalDraft,
+  reason: string,
+): Promise<ProposalOutcome> {
+  const response = await fetch("/api/decisions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...draft, reason: reason || undefined }),
+  });
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload?.error?.message ?? "That did not go through");
+  }
+
+  return {
+    decisionId: payload.decision.id,
+    autoApproved: Boolean(payload.decision.autoApproved),
+    applied: Boolean(payload.applied),
+  };
 }

@@ -5,6 +5,12 @@ import type {
   DecisionType,
 } from "@/lib/domain/governance/types";
 import type {
+  ActionKind,
+  AppliesToKind,
+  ConditionKind,
+  RuleStatus,
+} from "@/lib/domain/rules/types";
+import type {
   EffortMode,
   HouseMemberRow,
   HouseRow,
@@ -222,3 +228,65 @@ export const DECISION_STATUS_LABEL: Record<DecisionStatus, string> = {
   cancelled: "Withdrawn",
   applied: "Done",
 };
+
+/**
+ * The rules vocabulary, in the words the screen uses — S-40 and S-41.
+ *
+ * The structured kinds are a small closed list (docs/14-GOVERNANCE-SPEC.md
+ * section 6.1) and the form renders them as two dropdowns. Design principle 7:
+ * the interface says When, Then and Applies to. It never says condition kind.
+ */
+export const RULE_CONDITION_LABEL: Record<ConditionKind, string> = {
+  chore_missed: "A chore is missed",
+  state_at_time: "Something is left undone at a time of day",
+  time_of_day: "After a certain time",
+  guest_present: "A guest is staying",
+  spend_exceeds: "Spending goes over an amount",
+  other: "Something else — written below",
+};
+
+export const RULE_ACTION_LABEL: Record<ActionKind, string> = {
+  task: "Somebody has to do something",
+  reschedule: "The missed job is rescheduled",
+  points_penalty: "Points come off",
+  money_penalty: "A money penalty",
+  notify: "The house is told",
+  other: "Something else — written below",
+};
+
+export const RULE_APPLIES_TO_LABEL: Record<AppliesToKind, string> = {
+  all: "Everyone",
+  role: "Anyone with a role",
+  named_members: "Named people",
+  room: "A room",
+  assignee: "Whoever it was assigned to",
+  responsible_person: "Whoever was responsible",
+};
+
+export const RULE_STATUS_LABEL: Record<RuleStatus, string> = {
+  draft: "Draft",
+  proposed: "Waiting for the house",
+  active: "In force",
+  disabled: "Disabled",
+  superseded: "Replaced",
+};
+
+export const RULE_STATUS_TONE: Record<RuleStatus, "neutral" | "success" | "warning"> = {
+  draft: "neutral",
+  proposed: "warning",
+  active: "success",
+  disabled: "neutral",
+  superseded: "neutral",
+};
+
+/**
+ * The two combinations version 2.0 actually executes, named where the form can
+ * reach them (docs/14-GOVERNANCE-SPEC.md section 6.3). Everything else is a
+ * rule the Home wrote down and agreed to, which is most of the value and is
+ * honest about what the system can enforce — so the form says so rather than
+ * implying an automation that will not happen.
+ */
+export function ruleIsExecuted(condition: ConditionKind, action: ActionKind): boolean {
+  if (condition === "chore_missed" && action === "reschedule") return true;
+  return action === "points_penalty" || action === "money_penalty";
+}

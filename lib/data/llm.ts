@@ -42,6 +42,8 @@ export interface LlmConfigView {
   status?: LlmCredentialStatus;
   last_verified_at?: string | null;
   last_error?: string | null;
+  /** Which of the six call sites this Home lets the key serve (AI-02). */
+  capabilities?: Record<string, boolean>;
 }
 
 export interface StoredCredential {
@@ -56,7 +58,9 @@ export interface StoredCredential {
 export async function getLlmConfig(session: Session, houseId: string): Promise<LlmConfigView> {
   const { data, error } = await loose(session.supabase)
     .from("house_llm_config")
-    .select("provider, model, base_url, key_last4, status, last_verified_at, last_error")
+    .select(
+      "provider, model, base_url, key_last4, status, last_verified_at, last_error, capabilities",
+    )
     .eq("house_id", houseId)
     .maybeSingle();
 
@@ -72,6 +76,7 @@ export async function getLlmConfig(session: Session, houseId: string): Promise<L
     status: data.status,
     last_verified_at: data.last_verified_at,
     last_error: data.last_error,
+    capabilities: (data.capabilities ?? {}) as Record<string, boolean>,
   };
 }
 
@@ -105,6 +110,29 @@ export async function storeCredential(
   });
 
   if (error) throw apiErrorFromPostgres(error);
+}
+
+/**
+ * Turn call sites on or off for this Home.
+ *
+ * Through the RPC because `house_llm_credentials` has no policy of any kind and
+ * never will (migration 045): a security-definer function is the only way any
+ * column on it moves, and this is the second such function beside
+ * `set_house_llm_credential`. It is separate from that one because switching a
+ * call site off must never require re-pasting a key.
+ */
+export async function setCapabilities(
+  session: Session,
+  houseId: string,
+  capabilities: Record<string, boolean | undefined>,
+): Promise<Record<string, boolean>> {
+  const { data, error } = await loose(session.supabase).rpc("set_llm_capabilities", {
+    p_house_id: houseId,
+    p_capabilities: capabilities,
+  });
+
+  if (error) throw apiErrorFromPostgres(error);
+  return (data ?? {}) as Record<string, boolean>;
 }
 
 export async function deleteCredential(session: Session, houseId: string): Promise<void> {

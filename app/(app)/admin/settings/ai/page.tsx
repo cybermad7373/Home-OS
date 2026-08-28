@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { AiCapabilities } from "@/components/house/ai-capabilities";
 import { AiSettings } from "@/components/house/ai-settings";
 import { PageHeader } from "@/components/layout/page-header";
 import { getHouseContext, requireSession } from "@/lib/data/house";
@@ -26,6 +27,10 @@ export default async function AiSettingsPage() {
     <>
       <PageHeader title="AI features" subtitle={context.house.name} />
       <AiSettings initialConfig={config} />
+      {/* AI-02. Under the key, because that is what they are switches on. */}
+      <div className="mt-4">
+        <AiCapabilities initial={config.capabilities} disabled={!config.configured} />
+      </div>
     </>
   );
 }

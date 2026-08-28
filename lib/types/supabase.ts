@@ -177,6 +177,7 @@ export type Database = {
           requires_lead_confirmer: boolean
           retry_count: number
           schedule_run_id: string | null
+          shared_with: string[]
           slot: Database["public"]["Enums"]["chore_slot"]
           source: Database["public"]["Enums"]["assignment_source"]
           status: Database["public"]["Enums"]["assignment_status"]
@@ -207,6 +208,7 @@ export type Database = {
           requires_lead_confirmer?: boolean
           retry_count?: number
           schedule_run_id?: string | null
+          shared_with?: string[]
           slot: Database["public"]["Enums"]["chore_slot"]
           source?: Database["public"]["Enums"]["assignment_source"]
           status?: Database["public"]["Enums"]["assignment_status"]
@@ -237,6 +239,7 @@ export type Database = {
           requires_lead_confirmer?: boolean
           retry_count?: number
           schedule_run_id?: string | null
+          shared_with?: string[]
           slot?: Database["public"]["Enums"]["chore_slot"]
           source?: Database["public"]["Enums"]["assignment_source"]
           status?: Database["public"]["Enums"]["assignment_status"]
@@ -2517,6 +2520,7 @@ export type Database = {
       house_llm_config: {
         Row: {
           base_url: string | null
+          capabilities: Json | null
           house_id: string | null
           key_last4: string | null
           last_error: string | null
@@ -2528,6 +2532,7 @@ export type Database = {
         }
         Insert: {
           base_url?: string | null
+          capabilities?: Json | null
           house_id?: string | null
           key_last4?: string | null
           last_error?: string | null
@@ -2539,6 +2544,7 @@ export type Database = {
         }
         Update: {
           base_url?: string | null
+          capabilities?: Json | null
           house_id?: string | null
           key_last4?: string | null
           last_error?: string | null
@@ -2811,11 +2817,7 @@ export type Database = {
       check_budget_thresholds: { Args: never; Returns: number }
       chore_quorum_for: {
         Args: { p_assignee_member_id: string; p_house_id: string }
-        Returns: {
-          auto_confirm: boolean
-          lead_required: boolean
-          required: number
-        }[]
+        Returns: Record<string, unknown>[]
       }
       claim_chore: {
         Args: { p_assignment_id: string }
@@ -2989,6 +2991,10 @@ export type Database = {
       }
       delete_room: { Args: { p_room_id: string }; Returns: undefined }
       effect_absence_request: {
+        Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
+        Returns: Json
+      }
+      effect_change_confirmation_policy: {
         Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
         Returns: Json
       }
@@ -3233,6 +3239,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_llm_capabilities: {
+        Args: { p_capabilities: Json; p_house_id: string }
+        Returns: Json
+      }
       set_notification_prefs: {
         Args: {
           p_chore_outcomes?: boolean
@@ -3361,6 +3371,7 @@ export type Database = {
         | "set_expected_contribution"
         | "create_reserve"
         | "reserve_draw"
+        | "change_confirmation_policy"
       effort_mode: "points" | "rota"
       exception_type: "away" | "home_all_day" | "custom_hours"
       expense_status: "pending_approval" | "approved" | "rejected" | "void"
@@ -3571,6 +3582,7 @@ export const Constants = {
         "set_expected_contribution",
         "create_reserve",
         "reserve_draw",
+        "change_confirmation_policy",
       ],
       effort_mode: ["points", "rota"],
       exception_type: ["away", "home_all_day", "custom_hours"],

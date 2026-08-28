@@ -192,6 +192,63 @@ describeIfReady("house LLM credentials", () => {
     expect(String(data?.key_ciphertext)).not.toContain("gsk_");
   });
 
+  // -------------------------------------------------------------------------
+  // The capability switches — AI-02, docs/10-LLM-SPEC.md section 3.6a
+  // -------------------------------------------------------------------------
+
+  it("starts with all six call sites on", async () => {
+    const { data } = await adminActor.client
+      .from("house_llm_config")
+      .select("capabilities")
+      .eq("house_id", houseId)
+      .single();
+
+    const capabilities = (data as { capabilities: Record<string, boolean> }).capabilities;
+    expect(Object.keys(capabilities).sort()).toEqual([
+      "food_ideas",
+      "food_normalise",
+      "natural_language",
+      "rule_parsing",
+      "schedule_proposals",
+      "weekly_summary",
+    ]);
+    expect(Object.values(capabilities).every(Boolean)).toBe(true);
+  });
+
+  it("merges a switch rather than replacing the object", async () => {
+    const { data, error } = await adminActor.client.rpc("set_llm_capabilities", {
+      p_house_id: houseId,
+      p_capabilities: { rule_parsing: false },
+    });
+
+    expect(error).toBeNull();
+    const capabilities = data as Record<string, boolean>;
+    expect(capabilities.rule_parsing).toBe(false);
+    // The other five are untouched. Switching one off never affects another.
+    expect(capabilities.food_ideas).toBe(true);
+    expect(capabilities.weekly_summary).toBe(true);
+  });
+
+  it("refuses a non-admin, and refuses a key that is not a call site", async () => {
+    const refused = await plainMember.client.rpc("set_llm_capabilities", {
+      p_house_id: houseId,
+      p_capabilities: { rule_parsing: true },
+    });
+    expect(refused.error?.message ?? "").toContain("ADMIN_REQUIRED");
+
+    const typo = await adminActor.client.rpc("set_llm_capabilities", {
+      p_house_id: houseId,
+      p_capabilities: { rule_parseing: false },
+    });
+    expect(typo.error?.message ?? "").toContain("capabilities_well_formed");
+
+    const notBoolean = await adminActor.client.rpc("set_llm_capabilities", {
+      p_house_id: houseId,
+      p_capabilities: { rule_parsing: "off" },
+    });
+    expect(notBoolean.error?.message ?? "").toContain("capabilities_well_formed");
+  });
+
   it("lets an admin remove it, and a non-admin not", async () => {
     const refused = await plainMember.client.rpc("delete_house_llm_credential", {
       p_house_id: houseId,
