@@ -107,7 +107,7 @@ create policy lead_reads_join_requests on join_requests
 -- retains it, but nothing reads it as a credential any more.
 create or replace function generate_invite_token() returns text as $$
   select translate(encode(gen_random_bytes(18), 'base64'), '+/', '-_');
-$$ language sql volatile;
+$$ language sql volatile set search_path = public, extensions;
 
 -- Postgres grants EXECUTE on a new function to PUBLIC, which anon and
 -- authenticated inherit; revoking from those two alone leaves it callable by
@@ -139,7 +139,7 @@ begin
 
   return v_row;
 end;
-$$ language plpgsql security definer set search_path = public;
+$$ language plpgsql security definer set search_path = public, extensions;
 
 -- What a stranger sees when they open the link, before signing in. Public by
 -- design, and deliberately thin: a name, a shape and a size. An invalid,
@@ -359,7 +359,7 @@ begin
 
   return query select v_house.id, v_house.invite_code, v_invite.token;
 end;
-$$ language plpgsql security definer set search_path = public;
+$$ language plpgsql security definer set search_path = public, extensions;
 
 -- ---------------------------------------------------------------------------
 -- Retirement (R-2, docs/05-API-SPEC.md section 0.5)

@@ -20,6 +20,7 @@ import type {
   WeekWindows,
 } from "@/lib/domain/scheduling/types";
 import { canConfirm, type ConfirmableAssignment } from "@/lib/domain/governance/quorum";
+import { absenceDates } from "@/lib/domain/absence";
 import { proposeWithLlm } from "./schedule-llm";
 import { getHouseAvailability, getHouseExceptions } from "./availability";
 import { listGuests } from "./guests";
@@ -66,6 +67,8 @@ export interface AssignmentView {
     kind: MemberKind;
     guardianMemberId: string | null;
   } | null;
+  /** Other memberIds who share this assignment (CE-11). */
+  sharedWith: string[];
   confirmedBy: { memberId: string; displayName: string } | null;
   /**
    * The quorum snapshotted onto this assignment when it was marked done, and
@@ -87,6 +90,7 @@ export interface AssignmentView {
 
 const ASSIGNMENT_SELECT = `
   *,
+  shared_with,
   chore_templates ( id, name, category ),
   assignee:house_members!chore_assignments_assignee_member_id_fkey (
     id, member_kind, guardian_member_id, users ( display_name, avatar_url )
@@ -101,6 +105,7 @@ const ASSIGNMENT_SELECT = `
 `;
 
 type RawAssignment = ChoreAssignmentRow & {
+  shared_with: string[];
   chore_templates: { id: string; name: string; category: string } | null;
   assignee: {
     id: string;
@@ -142,6 +147,7 @@ function toAssignmentView(row: RawAssignment): AssignmentView {
           guardianMemberId: row.assignee.guardian_member_id,
         }
       : null,
+    sharedWith: row.shared_with ?? [],
     confirmedBy: row.confirmer
       ? {
           memberId: row.confirmer.id,
@@ -169,6 +175,7 @@ export function confirmable(assignment: AssignmentView): ConfirmableAssignment {
     assigneeMemberId: assignment.assignee?.memberId ?? null,
     assigneeKind: assignment.assignee?.kind ?? "adult",
     assigneeGuardianMemberId: assignment.assignee?.guardianMemberId ?? null,
+    sharedWith: assignment.sharedWith ?? [],
     confirmedBy: assignment.quorum.confirmations.map((entry) => entry.memberId),
   };
 }
@@ -768,6 +775,20 @@ export interface RedistributionResult {
 }
 
 /**
+ * Which rows a redistribution pass is for.
+ *
+ * `declared` is the phase-5 path: somebody has just said they are away, their
+ * chores are still assigned to them, and this moves them.
+ *
+ * `fill` is the phase-11 path. An approved absence opens the chores inside
+ * `apply_decision`'s transaction — the database will not leave work on a member
+ * the Home has excused, whatever the application does next — so by the time
+ * this runs there is nothing assigned to move, only an open pool to offer.
+ * Same candidates, same constraints, same ordering; a different starting state.
+ */
+export type RedistributionMode = "declared" | "fill";
+
+/**
  * Moves one member's outstanding chores off a single published day.
  *
  * Called when somebody declares themselves away on a day the schedule already
@@ -787,6 +808,7 @@ export async function redistributePublishedDay(
   houseId: string,
   awayMemberId: string,
   date: string,
+  mode: RedistributionMode = "declared",
 ): Promise<RedistributionResult> {
   const result: RedistributionResult = { reassigned: [], opened: [] };
   const weekStart = weekStartOf(date);
@@ -828,12 +850,20 @@ export async function redistributePublishedDay(
   // do it, so the only places it could go are back to the absent host or into
   // an open pool nobody is allowed to claim from. Somebody who is away and had
   // registered a guest should cancel the guest, which removes the work with it.
-  const moving = dayRows.filter(
-    (row) =>
-      row.status === "assigned" &&
-      row.assignee_member_id === awayMemberId &&
-      row.guest_id === null,
-  );
+  const moving =
+    mode === "declared"
+      ? dayRows.filter(
+          (row) =>
+            row.status === "assigned" &&
+            row.assignee_member_id === awayMemberId &&
+            row.guest_id === null,
+        )
+      : dayRows.filter(
+          (row) =>
+            row.status === "open" &&
+            row.assignee_member_id === null &&
+            row.guest_id === null,
+        );
   if (moving.length === 0) return result;
 
   const roomByMember = roomByMemberFrom(occupancyResult.data);
@@ -867,7 +897,13 @@ export async function redistributePublishedDay(
     hostMemberId: row.guest_id ? (row.assignee_member_id ?? undefined) : undefined,
   });
 
-  if (members.length === 0) return openAll(session, houseId, moving, result);
+  if (members.length === 0) {
+    // In `fill` mode the rows are already open, so there is nothing to write —
+    // only the truthful answer that nobody took them.
+    return mode === "declared"
+      ? openAll(session, houseId, moving, result)
+      : { ...result, opened: moving.map((row) => row.id) };
+  }
 
   const [patternByMember, exceptionsByMember] = await Promise.all([
     getHouseAvailability(session, houseId),
@@ -932,15 +968,22 @@ export async function redistributePublishedDay(
 
     const taker = candidates[0];
 
+    // Nothing to write when a `fill` pass finds no taker: the row is already
+    // open, which is where it should stay.
+    if (!taker && mode === "fill") {
+      result.opened.push(row.id);
+      continue;
+    }
+
     const { error } = await session.supabase
       .from("chore_assignments")
       .update(
         taker
-          ? { assignee_member_id: taker.memberId, source: "engine" }
+          ? { assignee_member_id: taker.memberId, status: "assigned", source: "engine" }
           : { assignee_member_id: null, status: "open", source: "engine" },
       )
       .eq("id", row.id)
-      .eq("status", "assigned");
+      .eq("status", mode === "declared" ? "assigned" : "open");
 
     if (error) throw apiErrorFromPostgres(error);
 
@@ -1103,6 +1146,49 @@ export async function addGuestChores(
   }
 
   return result;
+}
+
+/**
+ * Offer an absent member's opened chores to whoever can legally take them.
+ *
+ * Runs after an absence is approved, from whichever request completed it —
+ * which is usually the approver's, not the absent member's. `apply_decision`
+ * has already opened the rows inside its own transaction; choosing who takes
+ * them needs the solver's eight hard constraints, which live in TypeScript, so
+ * it happens here immediately afterwards.
+ *
+ * Every day is attempted. A failure on one day must not abandon the rest: the
+ * open pool is a safe resting state for anything this misses, and
+ * `mark-missed-chores` cancels an unclaimed open chore without a miss against
+ * anybody.
+ */
+export async function fillOpenedDays(
+  session: Session,
+  houseId: string,
+  absentMemberId: string,
+  from: string,
+  to: string,
+): Promise<{ reassigned: number; opened: number }> {
+  let reassigned = 0;
+  let opened = 0;
+
+  for (const date of absenceDates(from, to)) {
+    try {
+      const outcome = await redistributePublishedDay(
+        session,
+        houseId,
+        absentMemberId,
+        date,
+        "fill",
+      );
+      reassigned += outcome.reassigned.length;
+      opened += outcome.opened.length;
+    } catch (failure) {
+      console.error("[absence] could not redistribute", date, failure);
+    }
+  }
+
+  return { reassigned, opened };
 }
 
 /** Nobody left to take anything: everything outstanding goes to the pool. */

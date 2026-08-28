@@ -135,6 +135,53 @@ export function selectParticipants(input: SelectionInput): Selection {
     return { refusal: "SUBJECT_IS_PARTICIPANT" };
   }
 
+  // -------------------------------------------------------------------------
+  // The lead with nobody above them
+  // -------------------------------------------------------------------------
+  // An absence is approved by the roles the policy names, and never by the
+  // person asking. In a Home whose only Admin has no Co-Admin, that pool is
+  // empty when the Admin is the one going away — and refusing would mean the
+  // one person who may approve everybody else's time away can never record
+  // their own. So it is recorded and approved on the spot, exactly as a
+  // one-person Home's is, and the record says `auto_approved` rather than
+  // pretending somebody agreed.
+  //
+  // Only for the two approver-pool types, and only when the proposer is
+  // themselves in the approving set. A `join_request` never reaches this: the
+  // person asking to join holds no role in the Home yet.
+  if (
+    pool.length === 0 &&
+    (type === "absence_request" || type === "join_request")
+  ) {
+    const approverRoles =
+      type === "absence_request"
+        ? policy.absenceApproverRoles
+        : policy.joinApproverRoles;
+    const proposerIsApprover = adults.some(
+      (member) =>
+        member.id === proposal.proposerId &&
+        member.role !== null &&
+        approverRoles.includes(member.role),
+    );
+
+    if (proposerIsApprover) {
+      return {
+        requirement: {
+          level,
+          participants: [],
+          requiredApprovals: 0,
+          requiredAcks: 0,
+          deadlineHours: deadlineHoursFor(
+            type,
+            policy,
+            input.autoConfirmHours ?? 48,
+          ),
+          autoApprove: true,
+        },
+      };
+    }
+  }
+
   if (pool.length === 0) return { refusal: "NOT_ENOUGH_PARTICIPANTS" };
 
   // -------------------------------------------------------------------------

@@ -1,8 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { config } from "dotenv";
-
-config({ path: ".env.local", quiet: true });
 
 /**
  * The phase-4 acceptance criteria that cannot be checked in memory:
@@ -15,21 +12,29 @@ config({ path: ".env.local", quiet: true });
  * proves is the path from a tap to a number in the effort ledger.
  */
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const configured = Boolean(url && anonKey && serviceKey);
-const describeIfConfigured = configured ? describe : describe.skip;
+function getConfig() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return { url, anonKey, serviceKey, configured: Boolean(url && anonKey && serviceKey) };
+}
 
 const PASSWORD = "test-password-1";
 const stamp = Date.now();
 
-describeIfConfigured("the chore lifecycle", () => {
-  const admin = configured
-    ? createClient(url!, serviceKey!, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      })
-    : (null as never);
+describe("the chore lifecycle", () => {
+  const { url, anonKey, serviceKey, configured } = getConfig();
+
+  console.log("DEBUG: configured =", configured, "url =", url);
+
+  if (!configured) {
+    console.log("Skipping integration test: Supabase credentials not configured");
+    return;
+  }
+
+  const admin = createClient(url!, serviceKey!, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 
   let ravi: SupabaseClient;
   let kumar: SupabaseClient;
@@ -88,10 +93,13 @@ describeIfConfigured("the chore lifecycle", () => {
       can_cook: true,
     });
 
-    const { data: members } = await admin
+    const { data: members, error: membersError } = await admin
       .from("house_members")
       .select("id, user_id")
       .eq("house_id", houseId);
+
+    if (membersError) throw membersError;
+    console.log('Members:', members);
 
     raviMemberId = (members as { id: string; user_id: string }[]).find(
       (row) => row.user_id === first.id,

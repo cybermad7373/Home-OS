@@ -81,6 +81,8 @@ export type WeekWindows = Map<string, AvailabilityWindow[]>;
 export interface Assignment {
   instanceId: string;
   memberId: string | null; // null means it went to the open pool
+  /** Other memberIds who share this assignment (CE-11). */
+  sharedWith?: string[];
 }
 
 export interface SolveResult {

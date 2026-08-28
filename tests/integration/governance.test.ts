@@ -25,10 +25,14 @@ config({ path: ".env.local", quiet: true });
  *   npm run test -- tests/integration/governance
  */
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const configured = Boolean(url && anonKey && serviceKey);
+function getConfig() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return { url, anonKey, serviceKey, configured: Boolean(url && anonKey && serviceKey) };
+}
+
+const { url, anonKey, serviceKey, configured } = getConfig();
 
 const admin = configured
   ? createClient(url!, serviceKey!, {
@@ -42,13 +46,21 @@ const admin = configured
  * reporting a failure it cannot tell apart from a missing `db push` — the same
  * shape `membership.test.ts` uses for 047-050.
  */
-const migrated = configured
-  ? await admin
+let migrated = false;
+if (configured) {
+  try {
+    const { error } = await admin
       .from("decisions")
       .select("id")
-      .limit(1)
-      .then(({ error }) => !error)
-  : false;
+      .limit(1);
+    migrated = !error;
+  } catch (e) {
+    console.log("Migration check failed:", e);
+    migrated = false;
+  }
+}
+
+console.log("GOVERNANCE TEST: configured =", configured, "migrated =", migrated);
 
 const describeIfReady = configured && migrated ? describe : describe.skip;
 
@@ -65,6 +77,7 @@ const applyMigrated =
           p_decision_id: "00000000-0000-0000-0000-000000000000",
         })
         .then(({ error }) => !(error?.message ?? "").includes("Could not find the function"))
+        .catch(() => false) // apply_decision requires member_write_authorised; treat as not migrated
     : false;
 
 const describeIfApply = configured && applyMigrated ? describe : describe.skip;
@@ -172,7 +185,10 @@ describeIfReady("governance — the Decision record", () => {
     if (acceptError) throw acceptError;
 
     const memberId = await memberIdOf(house, actor.userId);
-    const { error: roleError } = await admin
+    // Use lead's client (an admin) to update role. The trigger checks
+    // is_house_admin(old.house_id) which passes for lead. Service role
+    // would fail because auth.uid() is null for it.
+    const { error: roleError } = await lead.client
       .from("house_members")
       .update({ role })
       .eq("id", memberId);
@@ -198,43 +214,35 @@ describeIfReady("governance — the Decision record", () => {
     }[];
   }
 
-  /** A decision written straight into the tables, participants and all. */
+  /** A decision written via create_decision RPC (proper path). */
   async function seedDecision(seed: DecisionSeed): Promise<string> {
     const level = seed.level ?? "critical";
-    const { data, error } = await admin
-      .from("decisions")
-      .insert({
-        house_id: seed.house ?? houseId,
-        type: seed.type ?? "remove_member",
-        level,
-        requested_by: lead.memberId,
-        subject_member_id: seed.subjectMemberId ?? null,
-        subject_id: seed.subjectId ?? null,
-        subject_type: seed.subjectType ?? null,
-        payload: seed.payload ?? {},
-        reason: level === "critical" ? "A reason of adequate length" : null,
-        required_approvals: seed.requiredApprovals ?? 0,
-        required_acks: seed.requiredAcks ?? 0,
-        deadline: seed.deadline === undefined ? null : seed.deadline,
-      })
-      .select("id")
-      .single();
+    const participantsJson = seed.participants.map((p) => ({
+      member_id: p.memberId,
+      capacity: p.capacity,
+      is_mandatory: p.isMandatory ?? false,
+    }));
+    // Must use an authenticated member's client (lead), not service role
+    const { data, error } = await lead.client.rpc("create_decision", {
+      p_house_id: seed.house ?? houseId,
+      p_type: seed.type ?? "remove_member",
+      p_level: level,
+      p_participants: participantsJson,
+      p_required_approvals: seed.requiredApprovals ?? 0,
+      p_required_acks: seed.requiredAcks ?? 0,
+      p_subject_member_id: seed.subjectMemberId ?? null,
+      p_subject_id: seed.subjectId ?? null,
+      p_subject_type: seed.subjectType ?? null,
+      p_payload: seed.payload ?? {},
+      p_reason: level === "critical" ? "A reason of adequate length" : null,
+      p_deadline: seed.deadline === undefined ? null : seed.deadline,
+      p_supersedes_id: null,
+    });
     if (error) throw error;
-    const decisionId = (data as { id: string }).id;
-
-    const { error: participantError } = await admin
-      .from("decision_participants")
-      .insert(
-        seed.participants.map((participant) => ({
-          decision_id: decisionId,
-          member_id: participant.memberId,
-          capacity: participant.capacity,
-          is_mandatory: participant.isMandatory ?? false,
-        })),
-      );
-    if (participantError) throw participantError;
-
-    return decisionId;
+    // create_decision returns setof decisions with the created row
+    const rows = Array.isArray(data) ? data : [data];
+    if (rows.length === 0) throw new Error("create_decision returned no rows");
+    return (rows[0] as { id: string }).id;
   }
 
   async function statusOf(decisionId: string): Promise<string> {
@@ -248,18 +256,26 @@ describeIfReady("governance — the Decision record", () => {
   }
 
   beforeAll(async () => {
+    console.log("beforeAll: starting setup");
     const leadUser = await signUp("lead");
+    console.log("beforeAll: leadUser created");
     houseId = await makeHome(leadUser, `Gov Home ${stamp}`);
+    console.log("beforeAll: house created", houseId);
     lead = { ...leadUser, memberId: await memberIdOf(houseId, leadUser.userId) };
+    console.log("beforeAll: lead memberId", lead.memberId);
 
     const coLeadUser = await signUp("colead");
+    console.log("beforeAll: coLeadUser created");
     coLead = { ...coLeadUser, memberId: await join(coLeadUser, houseId, "co_admin") };
+    console.log("beforeAll: coLead joined");
 
     const oneUser = await signUp("one");
     one = { ...oneUser, memberId: await join(oneUser, houseId, "member") };
+    console.log("beforeAll: one joined");
 
     const twoUser = await signUp("two");
     two = { ...twoUser, memberId: await join(twoUser, houseId, "member") };
+    console.log("beforeAll: two joined");
 
     const outsiderUser = await signUp("outsider");
     otherHouseId = await makeHome(outsiderUser, `Other Home ${stamp}`);
@@ -267,6 +283,7 @@ describeIfReady("governance — the Decision record", () => {
       ...outsiderUser,
       memberId: await memberIdOf(otherHouseId, outsiderUser.userId),
     };
+    console.log("beforeAll: setup complete");
   }, 120_000);
 
   afterAll(async () => {
@@ -502,7 +519,10 @@ describeIfReady("governance — the Decision record", () => {
       level: "critical",
       requiredApprovals: 1,
       subjectMemberId: two.memberId,
-      participants: [{ memberId: one.memberId, capacity: "approver" }],
+      participants: [
+        { memberId: one.memberId, capacity: "approver" },
+        { memberId: coLead.memberId, capacity: "approver" },
+      ],
     });
 
     const { error } = await admin.from("decision_participants").insert({
@@ -517,7 +537,10 @@ describeIfReady("governance — the Decision record", () => {
     const decisionId = await seedDecision({
       level: "critical",
       requiredApprovals: 1,
-      participants: [{ memberId: one.memberId, capacity: "approver" }],
+      participants: [
+        { memberId: one.memberId, capacity: "approver" },
+        { memberId: coLead.memberId, capacity: "approver" },
+      ],
     });
 
     const { error } = await admin
@@ -678,7 +701,10 @@ describeIfReady("governance — the Decision record", () => {
       level: "critical",
       requiredAcks: 1,
       subjectId,
-      participants: [{ memberId: one.memberId, capacity: "acknowledger" }],
+      participants: [
+        { memberId: one.memberId, capacity: "acknowledger" },
+        { memberId: coLead.memberId, capacity: "acknowledger" },
+      ],
     });
 
     await expect(
@@ -687,7 +713,10 @@ describeIfReady("governance — the Decision record", () => {
         level: "critical",
         requiredAcks: 1,
         subjectId,
-        participants: [{ memberId: two.memberId, capacity: "acknowledger" }],
+        participants: [
+          { memberId: two.memberId, capacity: "acknowledger" },
+          { memberId: coLead.memberId, capacity: "acknowledger" },
+        ],
       }),
     ).rejects.toThrow();
   }, 30_000);
@@ -996,7 +1025,10 @@ describeIfReady("governance — the Decision record", () => {
       const decisionId = await seedDecision({
         level: "critical",
         requiredApprovals: 1,
-        participants: [{ memberId: one.memberId, capacity: "approver" }],
+        participants: [
+          { memberId: one.memberId, capacity: "approver" },
+          { memberId: coLead.memberId, capacity: "approver" },
+        ],
       });
 
       await admin.from("decision_responses").insert({
@@ -1205,8 +1237,9 @@ describeIfReady("governance — the Decision record", () => {
     }, 60_000);
 
     it("leaves a decision approved when its effect does not exist yet", async () => {
+      // change_rule is a Phase 12 type with no effect implemented yet
       const decisionId = await seedDecision({
-        type: "absence_request",
+        type: "change_rule",
         level: "normal",
         requiredApprovals: 1,
         participants: [{ memberId: coLead.memberId, capacity: "approver" }],

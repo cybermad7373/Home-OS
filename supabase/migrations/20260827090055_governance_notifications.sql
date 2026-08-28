@@ -247,8 +247,8 @@ alter table notification_prefs
   add column decision_outcomes boolean not null default true,
   add column membership        boolean not null default true;
 
-drop function set_notification_prefs(boolean, boolean, boolean, boolean, boolean,
-                                     boolean, time, time, boolean, boolean);
+drop function if exists set_notification_prefs(boolean, boolean, boolean, boolean, boolean,
+                                         boolean, time, time, boolean);
 
 create or replace function set_notification_prefs(
   p_chore_reminders       boolean default null,

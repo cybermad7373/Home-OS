@@ -161,7 +161,10 @@ $$ language plpgsql security definer set search_path = public;
 -- to send a link to. Restated whole, per D-19, from migration 035's definition;
 -- the only changes are the Admin check becoming a lead check and the role now
 -- being stated explicitly, because the column has no default any more.
-create or replace function add_dependent(
+-- Must drop first because Postgres refuses to change parameter defaults via
+-- CREATE OR REPLACE FUNCTION (SQLSTATE 42P13).
+drop function if exists add_dependent(uuid, text, uuid, boolean, boolean, residency_type);
+create function add_dependent(
   p_house_id    uuid,
   p_name        text,
   p_guardian_id uuid,
@@ -200,3 +203,6 @@ $$ language plpgsql security definer set search_path = public;
 
 grant execute on function is_house_lead(uuid) to authenticated;
 revoke execute on function is_house_lead(uuid) from public, anon;
+
+grant execute on function add_dependent(uuid, text, uuid, boolean, boolean, residency_type)
+  to authenticated;

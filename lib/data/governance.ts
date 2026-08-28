@@ -18,6 +18,7 @@ import {
   type ProposalAsk,
 } from "@/lib/domain/governance/preview";
 import { awaitsResponse } from "@/lib/domain/governance/queue";
+import { fillOpenedDays } from "./chores";
 import type {
   DecisionLevel,
   DecisionResponse,
@@ -75,7 +76,7 @@ interface GovernanceContext {
 function policyFrom(row: GovernancePolicyRow): GovernancePolicy {
   return {
     criticalRequiresCoadmin: row.critical_requires_coadmin,
-    criticalMemberRule: row.critical_member_rule,
+    criticalMemberRule: row.critical_member_rule as "count" | "proportion",
     criticalMemberValue: row.critical_member_value,
     governanceRequiresAll: row.governance_requires_all,
     absenceApproverRoles: row.absence_approver_roles,
@@ -561,6 +562,17 @@ export interface ProposalResult {
   /** Whether the effect ran, and why not when it did not. */
   applied: boolean;
   applyRefusal: string | null;
+  /**
+   * What an effect could not finish inside its own transaction.
+   *
+   * One type sets this today. `effect_absence_request` opens the absent
+   * member's chores — the database will not leave work on somebody the Home has
+   * excused, whatever happens next — but choosing who takes them needs the
+   * solver's eight hard constraints, which are TypeScript. So the opening is
+   * atomic with the approval and the re-assignment follows it, and the counts
+   * come back here so the screen can say where the work went.
+   */
+  followUp: { reassigned: number; opened: number } | null;
 }
 
 /**
@@ -692,13 +704,13 @@ export async function proposeDecision(
     })) as unknown as Json,
     p_required_approvals: requirement.requiredApprovals,
     p_required_acks: requirement.requiredAcks,
-    p_subject_type: input.subject_type ?? null,
-    p_subject_id: input.subject_id ?? null,
-    p_subject_member_id: input.subject_member_id ?? null,
+    p_subject_type: input.subject_type,
+    p_subject_id: input.subject_id,
+    p_subject_member_id: input.subject_member_id,
     p_payload: (input.payload ?? {}) as Json,
-    p_reason: input.reason ?? null,
-    p_deadline: deadline,
-    p_supersedes_id: input.supersedes_id ?? null,
+    p_reason: input.reason,
+    p_deadline: deadline ?? undefined,
+    p_supersedes_id: input.supersedes_id,
   });
 
   if (error) throw governanceError(error);
@@ -860,7 +872,18 @@ export async function approveAll(
   for (const id of approved) {
     const row = byId.get(id);
     const outcome = await applyIfApproved(session, id, row?.house_id ?? houseId);
-    if (outcome.applied) applied.push(id);
+    if (!outcome.applied) continue;
+    applied.push(id);
+
+    // The same follow-up the single-response path runs. A batch is the most
+    // likely way an absence gets approved — it is one line in a queue of
+    // eight — so leaving it out here would mean the chores of most approved
+    // absences stayed in the open pool.
+    await afterApply(
+      session,
+      houseId,
+      await getDecision(session, houseId, id, callerMemberId),
+    );
   }
 
   return { approved, skipped, applied };
@@ -947,6 +970,54 @@ async function applyIfApproved(
   return { applied: true, refusal: null };
 }
 
+/**
+ * The half of an effect that could not run inside `apply_decision`.
+ *
+ * Kept to one dispatcher rather than spread through the route handlers that
+ * happen to complete a decision, because the member who *finishes* an absence
+ * is almost never the member who asked for it: the follow-up has to run
+ * wherever the last response lands, which is `respond`, `approveAll` and
+ * `propose` alike.
+ *
+ * It never throws. The decision is applied and recorded by the time this runs,
+ * and a failure to find takers for opened chores must not turn a successful
+ * approval into a 500 — the chores stay open, which is the safe state.
+ */
+async function afterApply(
+  session: Session,
+  houseId: string,
+  decision: DecisionView,
+): Promise<ProposalResult["followUp"]> {
+  if (decision.status !== "applied") return null;
+
+  if (decision.type === "absence_request") {
+    // Read from `result` rather than `payload`: the payload is what was
+    // proposed, the result is what the effect actually wrote.
+    const result = decision.result as {
+      member_id?: string;
+      from_date?: string;
+      to_date?: string;
+    } | null;
+
+    if (!result?.member_id || !result.from_date || !result.to_date) return null;
+
+    try {
+      return await fillOpenedDays(
+        session,
+        houseId,
+        result.member_id,
+        result.from_date,
+        result.to_date,
+      );
+    } catch (failure) {
+      console.error("[governance] follow-up failed", decision.id, failure);
+      return null;
+    }
+  }
+
+  return null;
+}
+
 /** Read the decision back, apply it if it now passes, and read it back again. */
 async function finish(
   session: Session,
@@ -956,7 +1027,13 @@ async function finish(
 ): Promise<ProposalResult> {
   const outcome = await applyIfApproved(session, decisionId, houseId);
   const decision = await getDecision(session, houseId, decisionId, callerMemberId);
-  return { decision, applied: outcome.applied, applyRefusal: outcome.refusal };
+  const followUp = await afterApply(session, houseId, decision);
+  return {
+    decision,
+    applied: outcome.applied,
+    applyRefusal: outcome.refusal,
+    followUp,
+  };
 }
 
 export { applyIfApproved };

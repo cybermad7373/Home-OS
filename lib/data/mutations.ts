@@ -190,7 +190,7 @@ export async function addDependent(
   const { data, error } = await session.supabase.rpc("add_dependent", {
     p_house_id: houseId,
     p_name: input.name,
-    p_guardian_id: input.guardianMemberId ?? undefined,
+    p_guardian_id: (input.guardianMemberId ?? null) as string,
     p_shares_cost: input.sharesCost,
     p_does_chores: input.doesChores,
     p_residency: input.residency,

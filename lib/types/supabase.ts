@@ -2817,7 +2817,11 @@ export type Database = {
       check_budget_thresholds: { Args: never; Returns: number }
       chore_quorum_for: {
         Args: { p_assignee_member_id: string; p_house_id: string }
-        Returns: Record<string, unknown>[]
+        Returns: {
+          auto_confirm: boolean
+          lead_required: boolean
+          required: number
+        }[]
       }
       claim_chore: {
         Args: { p_assignment_id: string }
@@ -2834,6 +2838,11 @@ export type Database = {
         Returns: Database["public"]["Enums"]["period_status"]
       }
       complete_pending_removals: { Args: never; Returns: number }
+      compute_period_balances: {
+        Args: { p_penalty_rate_paise?: number; p_period_id: string }
+        Returns: Json
+      }
+      compute_settlements: { Args: { p_balances: Json }; Returns: Json }
       confirm_chore: {
         Args: { p_assignment_id: string }
         Returns: Database["public"]["Enums"]["assignment_status"]
@@ -2994,6 +3003,10 @@ export type Database = {
         Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
         Returns: Json
       }
+      effect_balance_adjustment: {
+        Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
+        Returns: Json
+      }
       effect_change_confirmation_policy: {
         Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
         Returns: Json
@@ -3010,11 +3023,19 @@ export type Database = {
         Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
         Returns: Json
       }
+      effect_close_settlement: {
+        Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
+        Returns: Json
+      }
       effect_join_request: {
         Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
         Returns: Json
       }
       effect_remove_member: {
+        Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
+        Returns: Json
+      }
+      effect_reopen_settlement: {
         Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
         Returns: Json
       }

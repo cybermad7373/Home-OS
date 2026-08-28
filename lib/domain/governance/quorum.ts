@@ -29,6 +29,7 @@ export interface Quorum {
 export function quorumFor(
   members: GovernanceMember[],
   assigneeMemberId: string,
+  sharedWith: string[] = [],
   policy: ConfirmationPolicy = "size_aware",
 ): Quorum {
   const adults = members.filter(
@@ -42,7 +43,9 @@ export function quorumFor(
     return { required: 0, leadRequired: false, autoConfirm: true };
   }
 
-  const others = adults.filter((member) => member.id !== assigneeMemberId);
+  // Exclude ALL assignees (primary + shared_with) from the eligible pool
+  const allAssignees = new Set([assigneeMemberId, ...sharedWith]);
+  const others = adults.filter((member) => !allAssignees.has(member.id));
 
   // Nobody else in the Home. Auto-confirm rather than leave the chore stuck in
   // `done_pending` for ever.
@@ -90,6 +93,8 @@ export interface ConfirmableAssignment {
   assigneeKind: "adult" | "dependent";
   /** Set when the assignee is a dependent; the adult who marked it done. */
   assigneeGuardianMemberId: string | null;
+  /** Other memberIds who share this assignment (CE-11). */
+  sharedWith: string[];
   /** Who has already signed. */
   confirmedBy: string[];
 }
@@ -100,14 +105,17 @@ export interface ConfirmableAssignment {
  * The three bans the `chore_confirmation_is_peer` trigger enforces, stated
  * here so that no queue and no button offers somebody a confirmation the
  * database is going to refuse: not your own work, not your dependent's work
- * (D-24), and not twice — the quorum counts people, not signatures.
+ * (D-24), not any shared assignee's work (CE-11), and not twice — the quorum
+ * counts people, not signatures.
  *
  * This says nothing about whether the signature would *complete* the chore.
  * `quorumMet` answers that, and the database decides it.
  */
 export function canConfirm(assignment: ConfirmableAssignment, memberId: string): boolean {
   if (assignment.status !== "done_pending") return false;
+  // Exclude primary assignee and all shared assignees
   if (assignment.assigneeMemberId === memberId) return false;
+  if (assignment.sharedWith?.includes(memberId)) return false;
   if (
     assignment.assigneeKind === "dependent" &&
     assignment.assigneeGuardianMemberId === memberId
