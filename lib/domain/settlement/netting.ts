@@ -224,3 +224,54 @@ export function checkSettlement(
     reconciles,
   };
 }
+
+/**
+ * A correction to a settled month, agreed by decision (`balance_adjustments`).
+ *
+ * Direction is the two member ids and never a sign, so `amountPaise` is always
+ * positive — the same rule the settlement rows follow (BR-108).
+ */
+export interface BalanceAdjustment {
+  fromMemberId: string;
+  toMemberId: string;
+  amountPaise: number;
+}
+
+/**
+ * Folds agreed adjustments into computed balances.
+ *
+ * An adjustment moves money between two members and creates none, so the sum of
+ * `finalNetPaise` is unchanged — which is what keeps a re-close of an adjusted
+ * month able to net to zero (BR-107). That property only holds if **both** ends
+ * of an adjustment land, so an adjustment naming somebody who is not in this
+ * month's balances is skipped whole rather than half-applied. Half of a
+ * transfer is money invented.
+ */
+export function applyAdjustments(
+  balances: ComputedBalance[],
+  adjustments: BalanceAdjustment[],
+): ComputedBalance[] {
+  const index = new Map(balances.map((balance) => [balance.memberId, balance]));
+  const shift = new Map<string, number>();
+
+  for (const adjustment of adjustments) {
+    if (!index.has(adjustment.fromMemberId)) continue;
+    if (!index.has(adjustment.toMemberId)) continue;
+    if (adjustment.fromMemberId === adjustment.toMemberId) continue;
+    if (adjustment.amountPaise <= 0) continue;
+
+    shift.set(
+      adjustment.fromMemberId,
+      (shift.get(adjustment.fromMemberId) ?? 0) - adjustment.amountPaise,
+    );
+    shift.set(
+      adjustment.toMemberId,
+      (shift.get(adjustment.toMemberId) ?? 0) + adjustment.amountPaise,
+    );
+  }
+
+  return balances.map((balance) => ({
+    ...balance,
+    finalNetPaise: balance.finalNetPaise + (shift.get(balance.memberId) ?? 0),
+  }));
+}

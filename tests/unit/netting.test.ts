@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
 import {
+  applyAdjustments,
   checkSettlement,
   computeBalances,
   distributePenaltyPool,
@@ -265,5 +266,86 @@ describe("UPI links", () => {
         note: "x",
       }),
     ).toBeNull();
+  });
+});
+
+describe("adjustments folded into a close", () => {
+  const balances = computeBalances([
+    { memberId: "a", paidPaise: 3000, fairSharePaise: 1000 },
+    { memberId: "b", paidPaise: 0, fairSharePaise: 1000 },
+    { memberId: "c", paidPaise: 0, fairSharePaise: 1000 },
+  ]);
+
+  it("moves money between two members and creates none", () => {
+    const adjusted = applyAdjustments(balances, [
+      { fromMemberId: "b", toMemberId: "c", amountPaise: 400 },
+    ]);
+
+    const net = (id: string) =>
+      adjusted.find((balance) => balance.memberId === id)!.finalNetPaise;
+
+    expect(net("a")).toBe(2000);
+    expect(net("b")).toBe(-1400);
+    expect(net("c")).toBe(-600);
+    expect(adjusted.reduce((sum, balance) => sum + balance.finalNetPaise, 0)).toBe(0);
+  });
+
+  it("skips an adjustment whose other end left the Home", () => {
+    // Half a transfer is money invented. Nothing at all is the safe answer,
+    // and the settlement still nets to zero without it.
+    const adjusted = applyAdjustments(balances, [
+      { fromMemberId: "b", toMemberId: "gone", amountPaise: 400 },
+    ]);
+
+    expect(adjusted).toEqual(balances);
+  });
+
+  it("still nets to zero and reconciles, for any set of adjustments", () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.integer({ min: -5000000, max: 5000000 }), {
+          minLength: 2,
+          maxLength: 20,
+        }),
+        fc.array(
+          fc.record({
+            from: fc.nat({ max: 19 }),
+            to: fc.nat({ max: 19 }),
+            amountPaise: fc.integer({ min: 1, max: 2000000 }),
+          }),
+          { maxLength: 12 },
+        ),
+        (nets, moves) => {
+          const total = nets.reduce((sum, value) => sum + value, 0);
+          nets[0] -= total;
+
+          const ids = nets.map((_, index) => `m${String(index).padStart(3, "0")}`);
+          const base = computeBalances(
+            nets.map((net, index) => ({
+              memberId: ids[index],
+              paidPaise: Math.max(0, net),
+              fairSharePaise: Math.max(0, -net),
+            })),
+          );
+
+          // Indices past the end of the member list stand for somebody who has
+          // left: the adjustment names a member this month does not have.
+          const adjustments = moves.map((move) => ({
+            fromMemberId: ids[move.from] ?? `absent-${move.from}`,
+            toMemberId: ids[move.to] ?? `absent-${move.to}`,
+            amountPaise: move.amountPaise,
+          }));
+
+          const adjusted = applyAdjustments(base, adjustments);
+          const payments = minimiseTransfers(adjusted);
+          const checks = checkSettlement(adjusted, payments);
+
+          expect(checks.netsToZero).toBe(true);
+          expect(checks.reconciles).toBe(true);
+          expect(checks.transferCount).toBeLessThanOrEqual(checks.maxPossible);
+        },
+      ),
+      { numRuns: 400 },
+    );
   });
 });

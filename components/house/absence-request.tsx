@@ -121,15 +121,21 @@ export function AbsenceRequests({
   const rangeValid = toDate >= fromDate && fromDate >= today;
 
   useEffect(() => {
-    if (!rangeValid) {
-      setPreview(null);
-      return;
-    }
-
+    // Bumped first, so a reply about a range the person has already left is
+    // discarded whether or not this run goes on to ask anything.
     const token = ++previewToken.current;
-    setPreviewing(true);
 
+    // Nothing is cleared here on purpose. An invalid range renders the warning
+    // instead of the panel, so there is no stale preview on screen to erase —
+    // and clearing state in an effect body cascades renders for no gain.
+    if (!rangeValid) return;
+
+    // The spinner is raised when the request is actually made, not when the
+    // keystroke lands: 250 milliseconds of debounce is below the threshold
+    // where a person reads a skeleton as progress, and setting state in the
+    // effect body cascades a render for every character typed.
     const timer = setTimeout(async () => {
+      setPreviewing(true);
       try {
         const response = await fetch("/api/absences/preview", {
           method: "POST",

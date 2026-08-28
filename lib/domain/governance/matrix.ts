@@ -18,6 +18,7 @@ export const DECISION_LEVEL: Record<DecisionType, DecisionLevel> = {
   change_governance: "critical",
   change_home_mode: "critical",
   balance_adjustment: "critical",
+  change_confirmation_policy: "critical",
   set_expected_contribution: "critical",
   create_reserve: "critical",
   reserve_draw: "critical",
@@ -52,6 +53,9 @@ export const COUNTING_CAPACITY: Record<DecisionType, "approver" | "acknowledger"
   change_rule: "acknowledger",
   change_governance: "acknowledger",
   change_home_mode: "acknowledger",
+  // The Home is told rather than asked, like every other settings change: a
+  // confirmation policy one member can veto is one member's policy.
+  change_confirmation_policy: "acknowledger",
   balance_adjustment: "approver",
   set_expected_contribution: "acknowledger",
   create_reserve: "approver",

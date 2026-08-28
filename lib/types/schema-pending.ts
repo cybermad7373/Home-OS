@@ -26,13 +26,53 @@ type GeneratedFunctions = Public["Functions"];
 export type JoinRequestStatus = "requested" | "accepted" | "declined" | "withdrawn";
 
 // ---------------------------------------------------------------------------
-// Tables — all now generated. The generated types use `home_type` for the
-// houses table (renamed from `household_type` in 049) and include all new
-// governance/absence tables. No overlay needed.
+// Tables — the generated types use `home_type` for the houses table (renamed
+// from `household_type` in 049) and include all the governance/absence tables.
+// One overlay remains: `balance_adjustments`, added by migration 071, which
+// `gen:types` has not seen. Delete it from here the next time the script runs.
 // ---------------------------------------------------------------------------
 
-// Re-export the generated tables as PendingTables
-export type PendingTables = GeneratedTables;
+/** Migration 071 — the record of a correction the Home agreed by decision. */
+interface BalanceAdjustmentsTable {
+  Row: {
+    amount_paise: number;
+    created_at: string;
+    decision_id: string;
+    from_member_id: string;
+    house_id: string;
+    id: string;
+    period_id: string;
+    reason: string | null;
+    to_member_id: string;
+  };
+  Insert: {
+    amount_paise: number;
+    created_at?: string;
+    decision_id: string;
+    from_member_id: string;
+    house_id: string;
+    id?: string;
+    period_id: string;
+    reason?: string | null;
+    to_member_id: string;
+  };
+  Update: {
+    amount_paise?: number;
+    created_at?: string;
+    decision_id?: string;
+    from_member_id?: string;
+    house_id?: string;
+    id?: string;
+    period_id?: string;
+    reason?: string | null;
+    to_member_id?: string;
+  };
+  Relationships: [];
+}
+
+export type PendingTables = GeneratedTables & {
+  balance_adjustments: BalanceAdjustmentsTable;
+};
 
 // ---------------------------------------------------------------------------
 // Functions — all now generated. The generated signatures match what the app

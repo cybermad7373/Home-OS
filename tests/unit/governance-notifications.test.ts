@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CATALOGUE, MANDATORY, pushAllowed } from "@/lib/domain/notifications/catalogue";
@@ -24,6 +24,8 @@ const MIGRATION = join(
 
 const sql = readFileSync(MIGRATION, "utf8").split("\r\n").join("\n");
 
+const MIGRATIONS_DIR = join(process.cwd(), "supabase", "migrations");
+
 /**
  * Reads `decision_action_phrase`'s case arms back out of the migration.
  *
@@ -33,12 +35,23 @@ const sql = readFileSync(MIGRATION, "utf8").split("\r\n").join("\n");
  * that have drifted is not.
  */
 function phrasesFromSql(): Record<string, string> {
-  const start = sql.indexOf("create or replace function decision_action_phrase");
-  expect(start, "decision_action_phrase is missing from migration 055").toBeGreaterThan(-1);
-  const body = sql.slice(start, sql.indexOf("$$ language sql immutable", start));
+  // The *last* restatement wins, the way it does in the database. The map was
+  // written in 055 and restated in 071, which is where the fifteenth decision
+  // type could first be named: 055 runs before the migration that adds the enum
+  // value, and a plain SQL function's body is validated when it is created.
+  let body: string | null = null;
+  for (const file of readdirSync(MIGRATIONS_DIR).filter((name) => name.endsWith(".sql")).sort()) {
+    // No newline normalising needed: the reads below are index and regex.
+    const text = readFileSync(join(MIGRATIONS_DIR, file), "utf8");
+    const start = text.indexOf("create or replace function decision_action_phrase");
+    if (start === -1) continue;
+    body = text.slice(start, text.indexOf("$$ language sql immutable", start));
+  }
+
+  expect(body, "decision_action_phrase is in no migration").not.toBeNull();
 
   const phrases: Record<string, string> = {};
-  for (const [, type, phrase] of body.matchAll(/when '([a-z_]+)'\s+then '([^']+)'/g)) {
+  for (const [, type, phrase] of body!.matchAll(/when '([a-z_]+)'\s+then '([^']+)'/g)) {
     phrases[type] = phrase;
   }
   return phrases;

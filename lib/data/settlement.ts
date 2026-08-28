@@ -2,10 +2,12 @@ import "server-only";
 
 import { ApiError, apiErrorFromPostgres } from "@/lib/api/errors";
 import {
+  applyAdjustments,
   checkSettlement,
   computeBalances,
   distributePenaltyPool,
   minimiseTransfers,
+  type BalanceAdjustment,
   type ComputedBalance,
   type Payment,
 } from "@/lib/domain/settlement/netting";
@@ -255,6 +257,28 @@ export async function monthCarry(
   return carry;
 }
 
+/** The corrections this month has already been given, oldest first. */
+async function periodAdjustments(
+  session: Session,
+  houseId: string,
+  periodId: string,
+): Promise<BalanceAdjustment[]> {
+  const { data, error } = await session.supabase
+    .from("balance_adjustments")
+    .select("from_member_id, to_member_id, amount_paise")
+    .eq("house_id", houseId)
+    .eq("period_id", periodId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw apiErrorFromPostgres(error);
+
+  return (data ?? []).map((row) => ({
+    fromMemberId: row.from_member_id,
+    toMemberId: row.to_member_id,
+    amountPaise: row.amount_paise,
+  }));
+}
+
 /**
  * What the close wizard shows before anything is committed.
  *
@@ -286,14 +310,21 @@ export async function previewClose(
   const ratePaise = options.shadowMode ? 0 : options.penaltyRatePaise;
   const { owed, credit } = distributePenaltyPool(carries, ratePaise);
 
-  const balances = computeBalances(
-    view.position.map((row) => ({
-      memberId: row.memberId,
-      paidPaise: row.paidPaise,
-      fairSharePaise: row.fairSharePaise,
-      penaltyOwedPaise: owed.get(row.memberId) ?? 0,
-      penaltyCreditPaise: credit.get(row.memberId) ?? 0,
-    })),
+  // Corrections the Home already agreed by decision (migration 071). They are
+  // folded in here rather than left to the effect, so the numbers on the review
+  // screen are the numbers that get stored — and because an adjustment moves
+  // money without creating any, the settlement still nets to zero.
+  const balances = applyAdjustments(
+    computeBalances(
+      view.position.map((row) => ({
+        memberId: row.memberId,
+        paidPaise: row.paidPaise,
+        fairSharePaise: row.fairSharePaise,
+        penaltyOwedPaise: owed.get(row.memberId) ?? 0,
+        penaltyCreditPaise: credit.get(row.memberId) ?? 0,
+      })),
+    ),
+    view.periodId ? await periodAdjustments(session, houseId, view.periodId) : [],
   );
 
   const payments = minimiseTransfers(balances);
@@ -413,6 +444,79 @@ export async function closePeriod(
 
   if (error) throw apiErrorFromPostgres(error);
   return { status: data as unknown as string, preview };
+}
+
+/**
+ * The numbers `effect_close_settlement` is applied with (migration 071).
+ *
+ * D-59: closing a month is a Critical decision, and the roadmap is explicit
+ * that the settlement rows are written **at apply time from apply-time
+ * numbers**. So this runs when the last response lands, not when the close was
+ * proposed — a month that gained an expense while the Home was answering is
+ * closed on the month it actually had.
+ *
+ * The blockers are re-checked here for the same reason. If any of them holds
+ * now, the effect refuses and the decision stays `approved` and unapplied,
+ * which is the honest state and the one the specification asks for.
+ */
+export async function closeSettlementInput(
+  session: Session,
+  houseId: string,
+  periodId: string,
+  options: { shadowMode?: boolean } = {},
+): Promise<Record<string, unknown>> {
+  const { data: periodRow, error: lookupError } = await session.supabase
+    .from("monthly_periods")
+    .select("period")
+    .eq("house_id", houseId)
+    .eq("id", periodId)
+    .maybeSingle();
+
+  if (lookupError) throw apiErrorFromPostgres(lookupError);
+  if (!periodRow) throw new ApiError("NOT_FOUND", { period: periodId });
+
+  const settings = await session.supabase
+    .from("house_settings")
+    .select("penalty_rate_paise, penalty_enabled")
+    .eq("house_id", houseId)
+    .single();
+
+  const preview = await previewClose(session, houseId, periodRow.period, {
+    penaltyRatePaise: settings.data?.penalty_enabled
+      ? (settings.data?.penalty_rate_paise ?? 0)
+      : 0,
+    shadowMode: options.shadowMode,
+  });
+
+  if (preview.blockers.length > 0) {
+    throw new ApiError("CLOSE_BLOCKED", { blockers: preview.blockers });
+  }
+
+  return {
+    balances: preview.balances.map((balance) => ({
+      member_id: balance.memberId,
+      total_paid_paise: balance.paidPaise,
+      fair_share_paise: balance.fairSharePaise,
+      expense_net_paise: balance.expenseNetPaise,
+      penalty_owed_paise: balance.penaltyOwedPaise,
+      penalty_credit_paise: balance.penaltyCreditPaise,
+      final_net_paise: balance.finalNetPaise,
+    })),
+    settlements: preview.payments.map((payment) => ({
+      from_member_id: payment.fromMemberId,
+      to_member_id: payment.toMemberId,
+      amount_paise: payment.amountPaise,
+      upi_link: payment.upiLink,
+    })),
+    penalties: preview.penalties.map((row) => ({
+      member_id: row.memberId,
+      deficit_points: row.deficitPoints,
+      surplus_points: row.surplusPoints,
+      rate_paise: row.ratePaise,
+      amount_owed_paise: row.amountOwedPaise,
+      amount_credited_paise: row.amountCreditedPaise,
+    })),
+  };
 }
 
 export async function listSettlements(

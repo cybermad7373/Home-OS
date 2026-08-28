@@ -1,10 +1,12 @@
+import { ApiError } from "@/lib/api/errors";
 import { jsonResponse, parseBody, route } from "@/lib/api/handler";
 import {
   requireActiveMembership,
   requireAdminMembership,
   requireSession,
 } from "@/lib/data/house";
-import { closePeriod, previewClose } from "@/lib/data/settlement";
+import { proposeDecision } from "@/lib/data/governance";
+import { previewClose } from "@/lib/data/settlement";
 import { closePeriodSchema } from "@/lib/validation/settlement";
 import { paiseToRupeeString } from "@/lib/utils/money";
 
@@ -83,16 +85,22 @@ export const GET = route(
 );
 
 /**
- * POST /api/periods/:period/close — admin only.
+ * POST /api/periods/:period/close — proposes the close.
  *
- * Refuses while approvals are pending or the month is unfinished, and refuses
- * outright if the balances do not net to zero — that last one is a defect, not
- * a user error, and it must never be closed over.
+ * D-59 moved this behind the governance engine. An Admin still asks, and the
+ * same three refusals still apply before anybody is asked to answer — pending
+ * approvals, an unfinished month, balances that do not net to zero — because a
+ * question the Home cannot act on is not worth putting to them.
+ *
+ * What changed is what happens after: the handler proposes, the Home answers,
+ * and the money is written at apply time from apply-time numbers. Nothing here
+ * closes anything. A one-person Home is the documented exception and comes back
+ * from `proposeDecision` already applied.
  */
 export const POST = route(
   async (request: Request, context: { params: Promise<{ period: string }> }) => {
     const session = await requireSession();
-    const { house } = await requireAdminMembership(session);
+    const { house, member } = await requireAdminMembership(session);
     const { period } = await context.params;
     const input = await parseBody(request, closePeriodSchema);
 
@@ -102,30 +110,64 @@ export const POST = route(
       .eq("house_id", house.id)
       .single();
 
-    const result = await closePeriod(session, house.id, period, {
-      // A house with the penalty switched off charges nothing, whatever rate
-      // happens to be saved. Zeroing the rate here rather than branching later
-      // keeps one code path: the arithmetic runs, and comes out at nil.
+    // A dry run of exactly the arithmetic the effect will be applied with, so
+    // that a month which cannot be closed is refused here rather than after the
+    // Home has spent a day answering.
+    const preview = await previewClose(session, house.id, period, {
       penaltyRatePaise: settings.data?.penalty_enabled
         ? (settings.data?.penalty_rate_paise ?? 0)
         : 0,
       shadowMode: input.shadow_mode,
     });
 
-    return jsonResponse({
-      period,
-      status: result.status,
-      settlements: result.preview.payments.map((payment) => ({
-        from: payment.fromName,
-        to: payment.toName,
-        amount: paiseToRupeeString(payment.amountPaise),
-        upi_link: payment.upiLink,
-      })),
-      checks: {
-        nets_to_zero: result.preview.checks.netsToZero,
-        transfer_count: result.preview.checks.transferCount,
-        max_possible: result.preview.checks.maxPossible,
-      },
+    if (preview.blockers.length > 0) {
+      throw new ApiError("CLOSE_BLOCKED", { blockers: preview.blockers });
+    }
+
+    const { data: periodRow } = await session.supabase
+      .from("monthly_periods")
+      .select("id")
+      .eq("house_id", house.id)
+      .eq("period", period)
+      .maybeSingle();
+
+    if (!periodRow) throw new ApiError("NOT_FOUND", { period });
+
+    const result = await proposeDecision(session, house.id, member.id, {
+      type: "close_settlement",
+      subject_type: "period",
+      subject_id: periodRow.id,
+      // Read at apply time by the effect and by nothing else. The money is not
+      // in here: it is computed again when the last response lands.
+      payload: { period, shadow_mode: input.shadow_mode },
+      reason: input.reason ?? `Closing ${period}`,
     });
+
+    return jsonResponse(
+      {
+        period,
+        decision: result.decision,
+        applied: result.applied,
+        apply_refusal: result.applyRefusal,
+        // What the Home is being asked to agree to. The stored rows are
+        // recomputed at apply time, so this is a preview and says so.
+        preview: {
+          settlements: result.applied
+            ? []
+            : preview.payments.map((payment) => ({
+                from: payment.fromName,
+                to: payment.toName,
+                amount: paiseToRupeeString(payment.amountPaise),
+                upi_link: payment.upiLink,
+              })),
+          checks: {
+            nets_to_zero: preview.checks.netsToZero,
+            transfer_count: preview.checks.transferCount,
+            max_possible: preview.checks.maxPossible,
+          },
+        },
+      },
+      201,
+    );
   },
 );

@@ -20,7 +20,10 @@ export type DecisionType =
   | "chore_confirmation"
   | "set_expected_contribution"
   | "create_reserve"
-  | "reserve_draw";
+  | "reserve_draw"
+  // The fifteenth, added by migration 058 under D-60: the Home deciding how
+  // many signatures a finished chore needs, or that it needs none.
+  | "change_confirmation_policy";
 
 export type DecisionLevel = "normal" | "important" | "critical";
 

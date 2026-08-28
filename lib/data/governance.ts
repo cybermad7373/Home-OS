@@ -19,6 +19,7 @@ import {
 } from "@/lib/domain/governance/preview";
 import { awaitsResponse } from "@/lib/domain/governance/queue";
 import { fillOpenedDays } from "./chores";
+import { closeSettlementInput } from "./settlement";
 import type {
   DecisionLevel,
   DecisionResponse,
@@ -935,7 +936,7 @@ async function applyIfApproved(
 ): Promise<ApplyOutcome> {
   const { data, error } = await session.supabase
     .from("decisions")
-    .select("id, status, house_id")
+    .select("id, status, house_id, type, subject_id, payload")
     .eq("id", decisionId)
     .maybeSingle();
   if (error) throw apiErrorFromPostgres(error);
@@ -944,18 +945,14 @@ async function applyIfApproved(
   if (data.status !== "approved") return { applied: false, refusal: null };
 
   const admin = createAdminClient();
-  const { error: applyError } = await admin.rpc("apply_decision", {
-    p_decision_id: decisionId,
-    p_input: {} as Json,
-  });
 
-  if (applyError) {
-    const refusal = apiErrorFromPostgres(applyError).code;
-    console.error("[governance] apply refused", decisionId, applyError.message);
-
-    // N-37. The effect ran inside `apply_decision`'s transaction and that
-    // transaction is gone, so a notification written there would have gone with
-    // it. This is the only place the failure still exists (migration 055).
+  /**
+   * N-37. The effect ran inside `apply_decision`'s transaction and that
+   * transaction is gone, so a notification written there would have gone with
+   * it. This is the only place the failure still exists (migration 055).
+   */
+  const reportRefusal = async (refusal: string, detail: string) => {
+    console.error("[governance] apply refused", decisionId, detail);
     const { error: notifyError } = await admin.rpc("notify_apply_refused", {
       p_decision_id: decisionId,
       p_reason: refusal,
@@ -963,8 +960,35 @@ async function applyIfApproved(
     if (notifyError) {
       console.error("[governance] N-37 not written", decisionId, notifyError.message);
     }
-
     return { applied: false, refusal };
+  };
+
+  // The apply-time numbers, for the one decision type that needs them. D-59 and
+  // migration 071: the close is proposed against a month and applied against
+  // whatever that month turned out to contain, so the arithmetic runs now
+  // rather than when somebody tapped Close.
+  let input: Json = {} as Json;
+  if (data.type === "close_settlement" && data.subject_id) {
+    const payload = (data.payload ?? {}) as { shadow_mode?: boolean };
+    try {
+      input = (await closeSettlementInput(session, houseId, data.subject_id, {
+        shadowMode: Boolean(payload.shadow_mode),
+      })) as unknown as Json;
+    } catch (failure) {
+      // A month that can no longer be closed leaves the decision approved and
+      // visibly unapplied, exactly as a refused effect would.
+      const refusal = failure instanceof ApiError ? failure.code : "CLOSE_INPUT_FAILED";
+      return reportRefusal(refusal, String(failure));
+    }
+  }
+
+  const { error: applyError } = await admin.rpc("apply_decision", {
+    p_decision_id: decisionId,
+    p_input: input,
+  });
+
+  if (applyError) {
+    return reportRefusal(apiErrorFromPostgres(applyError).code, applyError.message);
   }
 
   return { applied: true, refusal: null };

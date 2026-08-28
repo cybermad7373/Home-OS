@@ -9,6 +9,15 @@ export const closePeriodSchema = z.object({
    * would have owed before any money changes hands.
    */
   shadow_mode: z.boolean().optional().default(false),
+
+  /**
+   * Why this month is being closed now. Closing is a Critical decision since
+   * D-59, and a Critical decision cannot exist without a reason — the database
+   * says so in a check constraint. Optional here because "the month ended" is
+   * the true answer almost every time, and the handler supplies it; a person
+   * with something more to say may still say it.
+   */
+  reason: z.string().trim().min(3, "Say why").max(500).optional(),
 });
 
 export const markPaidSchema = z.object({

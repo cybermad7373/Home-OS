@@ -70,15 +70,20 @@ const describeIfReady = configured && migrated ? describe : describe.skip;
  * function is a PostgREST schema-cache miss; a present one refuses a uuid that
  * names no decision, which is the answer being looked for here.
  */
-const applyMigrated =
-  configured && migrated
-    ? await admin
-        .rpc("apply_decision", {
-          p_decision_id: "00000000-0000-0000-0000-000000000000",
-        })
-        .then(({ error }) => !(error?.message ?? "").includes("Could not find the function"))
-        .catch(() => false) // apply_decision requires member_write_authorised; treat as not migrated
-    : false;
+async function applyIsMigrated(): Promise<boolean> {
+  if (!configured || !migrated) return false;
+  try {
+    const { error } = await admin.rpc("apply_decision", {
+      p_decision_id: "00000000-0000-0000-0000-000000000000",
+    });
+    return !(error?.message ?? "").includes("Could not find the function");
+  } catch {
+    // apply_decision requires member_write_authorised; treat as not migrated.
+    return false;
+  }
+}
+
+const applyMigrated = await applyIsMigrated();
 
 const describeIfApply = configured && applyMigrated ? describe : describe.skip;
 
@@ -1237,9 +1242,9 @@ describeIfReady("governance — the Decision record", () => {
     }, 60_000);
 
     it("leaves a decision approved when its effect does not exist yet", async () => {
-      // change_rule is a Phase 12 type with no effect implemented yet
+      // expense_approval is a Phase 2 flow becoming a decision; no effect yet
       const decisionId = await seedDecision({
-        type: "change_rule",
+        type: "expense_approval",
         level: "normal",
         requiredApprovals: 1,
         participants: [{ memberId: coLead.memberId, capacity: "approver" }],

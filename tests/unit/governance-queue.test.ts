@@ -32,7 +32,8 @@ function item(overrides: Partial<QueueItem> = {}): QueueItem {
 describe("grouping", () => {
   it("gives every decision type a group", () => {
     const types = Object.keys(GROUP_OF) as DecisionType[];
-    expect(types).toHaveLength(14);
+    // Fifteen since migration 058 added `change_confirmation_policy`.
+    expect(types).toHaveLength(15);
     for (const type of types) {
       expect(GROUP_ORDER).toContain(GROUP_OF[type]);
     }

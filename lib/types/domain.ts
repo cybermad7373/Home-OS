@@ -144,6 +144,7 @@ export const DECISION_TYPE_LABEL: Record<DecisionType, string> = {
   change_rule: "Change a house rule",
   change_governance: "Change how decisions are made",
   change_home_mode: "Change how the home works",
+  change_confirmation_policy: "Change how chores are confirmed",
   balance_adjustment: "Adjust a balance",
   absence_request: "Time away",
   join_request: "Somebody wants to join",
@@ -165,6 +166,8 @@ export const DECISION_EFFECT: Record<DecisionType, string> = {
   change_governance:
     "How every future decision is made changes — who is asked, and how many must agree.",
   change_home_mode: "How the home splits money or shares work changes for everybody.",
+  change_confirmation_policy:
+    "How many people have to sign off a finished chore changes — or nobody does, and chores confirm themselves.",
   balance_adjustment: "Somebody's balance moves by the stated amount.",
   absence_request:
     "Their chores in that window move to somebody else, and the days do not count against them.",
@@ -193,6 +196,7 @@ export const DECISION_ACTION_PHRASE: Record<DecisionType, string> = {
   change_rule: "change a house rule",
   change_governance: "change how decisions are made",
   change_home_mode: "change how the home works",
+  change_confirmation_policy: "change how chores are confirmed",
   balance_adjustment: "adjust a balance",
   absence_request: "take time away",
   join_request: "let somebody join",

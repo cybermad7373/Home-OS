@@ -93,8 +93,8 @@ export interface ConfirmableAssignment {
   assigneeKind: "adult" | "dependent";
   /** Set when the assignee is a dependent; the adult who marked it done. */
   assigneeGuardianMemberId: string | null;
-  /** Other memberIds who share this assignment (CE-11). */
-  sharedWith: string[];
+  /** Other memberIds who share this assignment (CE-11). Absent means none. */
+  sharedWith?: string[];
   /** Who has already signed. */
   confirmedBy: string[];
 }

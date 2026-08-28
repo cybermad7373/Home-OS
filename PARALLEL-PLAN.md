@@ -228,25 +228,25 @@ Acceptance to preserve (Phase 11, `docs/07-ROADMAP.md`):
 
 Migration `20260828090071_governed_close_and_adjustments.sql`.
 
-- [ ] `balance_adjustments` table — house-scoped, RLS policy, isolation test,
+- [x] `balance_adjustments` table — house-scoped, RLS policy, isolation test,
       integer paise, referencing the decision that created it
-- [ ] `effect_close_settlement(decisions, jsonb)`, `effect_reopen_settlement(decisions, jsonb)`,
+- [x] `effect_close_settlement(decisions, jsonb)`, `effect_reopen_settlement(decisions, jsonb)`,
       `effect_balance_adjustment(decisions, jsonb)` — all two-argument, because the
       close needs apply-time numbers through `p_input`. The roadmap is explicit:
       settlement rows are written **at apply time from apply-time numbers**,
       computed by `lib/domain/settlement/netting.ts`, not at proposal time.
-- [ ] `revoke execute … from public, anon, authenticated` on every new `effect_*`,
+- [x] `revoke execute … from public, anon, authenticated` on every new `effect_*`,
       the way every existing effect does it
-- [ ] `POST /api/periods/[period]/close` and `/reopen` move behind a decision
+- [x] `POST /api/periods/[period]/close` and `/reopen` move behind a decision
       (D-59). Keep the handler's validation and authorisation; what changes is
       that it proposes rather than acts.
-- [ ] Tests: closing August requires the Co-Admin's acknowledgement and three
+- [x] Tests: closing August requires the Co-Admin's acknowledgement and three
       members'; `Σ final_net = 0` still holds with adjustments in the close
       (property-test with `fast-check`, as `tests/unit/netting.test.ts` already
       does for the un-adjusted case); `apply_decision` refuses a decision that is
       not `approved`, and one missing a mandatory response, **when called with
       the service-role key**
-- [ ] Commit
+- [x] Commit
 
 ### A4 — Phase 11 slice 6: expected contributions and the reserve
 
@@ -470,3 +470,6 @@ since the snapshot.
 | 2026-08-28 | A | A2 done for the part Track A owns. `governance-notifications` 17/17. Two real 055 defects fixed in place: `set_notification_prefs` wrote `telegram_enabled` (dropped in 044), and `notify_membership_change` had no insert trigger, so N-41 never fired for anybody who joined. The prefs function is now 11 arguments — `(boolean x6, time, time, boolean, boolean, boolean)`, no `p_telegram_enabled` — which B2's grant list should name. Fixing 055 also clears B3's `telegram_enabled` failure in `notifications.test.ts`; B may find that box already green. |
 | 2026-08-28 | A | Blocking both tracks: `20260828090080_routine_grants.sql` fails on `supabase db reset` — `ERROR: function apply_decision(uuid) does not exist (SQLSTATE 42883)` at statement 39. The real identities in the applied database are `apply_decision(p_decision_id uuid, p_input jsonb)`, `publish_schedule_for_house(uuid, date, jsonb, assignment_source, boolean, text, integer)` (080 names a five-argument form that does not exist), `enqueue_notification(uuid, uuid, text, jsonb, text, jsonb, timestamptz, text, boolean)`, and `set_notification_prefs` as above. Until 080 parses, every reset stops at it and the stack stays at 070. |
 | 2026-08-28 | A | Three Track A tests are red for one reason, all of it B2's: no role holds `execute` on `publish_schedule_for_house` or `complete_pending_removals` — 037 and 050 revoked them from `public` and granted them to nobody, so even the service-role key gets `42501`. `chore-lifecycle` x2 and `membership` x1. They need `grant execute … to service_role` in 080. Everything else Track A owns is green: 548 passed, 3 failed across the A suites. |
+| 2026-08-28 | A | A3 done. `20260828090071_governed_close_and_adjustments.sql` adds `balance_adjustments` (RLS read-only for the Home, no write policy — the effect is the sole writer) and two-argument `effect_close_settlement`, `effect_reopen_settlement`, `effect_balance_adjustment`. 059's one-argument versions are left untouched: 066's dispatcher prefers the two-argument overload, so this is a pure addition. The close now checks apply-time numbers rather than recomputing them in PL/pgSQL — including a per-member reconciliation between the settlement rows and the balances, which 033 never needed. `POST /api/periods/:period/close` and `/reopen` propose instead of acting; `applyIfApproved` computes the numbers when the last response lands. `tests/integration/governed-close.test.ts` is new (9 tests) and `applyAdjustments` is property-tested in `unit/netting`. Track A suites: 563 passed, 0 failed — `chore-lifecycle` and `membership` are green again, so B2's grants have landed. |
+| 2026-08-28 | A | Two things fixed on the way, both Track A's own and both needed to get typecheck and lint green: (1) migration 058 added `change_confirmation_policy` to the `decision_type` enum and to nothing else, so `DecisionType`, the level/capacity/queue/label maps, the validation enum and `decision_action_phrase` all lacked the fifteenth type. The SQL phrase could not go in 055 — 055 runs before the enum value exists and a plain SQL function's body is validated at creation — so it is restated in 071, and `unit/governance-notifications` now reads the last restatement across the migrations instead of 055 only. (2) `ConfirmableAssignment.sharedWith` is now optional; it was required, which broke every pre-CE-11 caller. |
+| 2026-08-28 | A | For B, not touched by A: `app/api/auth/signup/route.ts` in the working tree raises `EMAIL_CONFIRMATION_REQUIRED`, which is not in `lib/api/errors.ts`, so `npm run typecheck` fails on it. Everything Track A owns typechecks; this one line is the only error. Also noting that `lib/types/schema-pending.ts` now carries a `balance_adjustments` overlay for migration 071 — delete it the next time `gen:types` runs. |

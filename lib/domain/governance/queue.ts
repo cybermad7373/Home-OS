@@ -38,6 +38,7 @@ export const GROUP_OF: Record<DecisionType, QueueGroup> = {
   change_home_mode: "members",
   change_rule: "rules",
   change_governance: "rules",
+  change_confirmation_policy: "rules",
   balance_adjustment: "money",
   set_expected_contribution: "money",
   create_reserve: "money",

@@ -19,6 +19,7 @@ export const decisionTypeSchema = z.enum([
   "change_rule",
   "change_governance",
   "change_home_mode",
+  "change_confirmation_policy",
   "balance_adjustment",
   "absence_request",
   "join_request",
