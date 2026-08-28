@@ -40,15 +40,16 @@ if (error) {
     if (reason.includes("is invalid")) throw new ApiError("EMAIL_INVALID");
     if (reason.includes("rate limit")) throw new ApiError("EMAIL_RATE_LIMITED");
     if (reason.includes("email confirm")) throw new ApiError("EMAIL_CONFIRMATION_REQUIRED");
-    if (reason.includes("username")) throw new ApiError("USERNAME_INVALID");
+    if (reason.includes("username")) throw new ApiError("INVALID_USERNAME");
     if (reason.includes("password")) throw new ApiError("PASSWORD_INVALID");
     if (reason.includes("weak")) throw new ApiError("PASSWORD_TOO_WEAK");
     if (reason.includes("database")) throw new ApiError("DATABASE_ERROR");
     if (reason.includes("validation")) throw new ApiError("VALIDATION_FAILED", { cause: error.message });
     if (reason.includes("constraint")) throw new ApiError("CONSTRAINT_VIOLATION", { cause: error.message });
     // Log the full error for debugging
-    console.error("Signup error:", JSON.stringify({ message: error.message, code: error.code, details: error.details, hint: error.hint }, null, 2));
-    throw new ApiError("INTERNAL", { cause: error.message, details: error });
+    const err = error as { details?: unknown; hint?: unknown };
+    console.error("Signup error:", JSON.stringify({ message: error.message, code: error.code, details: err.details, hint: err.hint }, null, 2));
+    throw new ApiError("INTERNAL", { cause: error.message, details: err.details as Record<string, unknown> | undefined });
   }
 
   // With email confirmation switched on, Supabase returns a user but no

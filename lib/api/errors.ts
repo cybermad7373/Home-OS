@@ -48,6 +48,26 @@ export const ERROR_CATALOGUE = {
     status: 403,
     message: "Confirm your email address first — check your inbox",
   },
+  EMAIL_CONFIRMATION_REQUIRED: {
+    status: 403,
+    message: "Email confirmation is required before signing in",
+  },
+  PASSWORD_INVALID: {
+    status: 422,
+    message: "That password isn't valid",
+  },
+  PASSWORD_TOO_WEAK: {
+    status: 422,
+    message: "Password is too weak — use at least 8 characters",
+  },
+  DATABASE_ERROR: {
+    status: 500,
+    message: "A database error occurred. It's been logged.",
+  },
+  CONSTRAINT_VIOLATION: {
+    status: 409,
+    message: "That value conflicts with an existing record",
+  },
   ROOM_FULL: { status: 409, message: "That room is already at capacity" },
   ROOM_OCCUPIED: { status: 409, message: "Move the occupants out first" },
   ROOM_NAME_TAKEN: { status: 409, message: "A room with that name already exists" },
