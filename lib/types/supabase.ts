@@ -915,6 +915,7 @@ export type Database = {
           house_id: string
           id: string
           is_adjustment: boolean
+          meal_id: string | null
           paid_by_member_id: string
           period_id: string
           receipt_url: string | null
@@ -938,6 +939,7 @@ export type Database = {
           house_id: string
           id?: string
           is_adjustment?: boolean
+          meal_id?: string | null
           paid_by_member_id: string
           period_id: string
           receipt_url?: string | null
@@ -961,6 +963,7 @@ export type Database = {
           house_id?: string
           id?: string
           is_adjustment?: boolean
+          meal_id?: string | null
           paid_by_member_id?: string
           period_id?: string
           receipt_url?: string | null
@@ -1028,40 +1031,44 @@ export type Database = {
             referencedRelation: "reserves"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_expense_meal"
+            columns: ["meal_id"]
+            isOneToOne: false
+            referencedRelation: "meals"
+            referencedColumns: ["id"]
+          },
         ]
       }
       food_preferences: {
         Row: {
           created_at: string
-          food_id: string
+          food_id: string | null
           house_id: string
           id: string
-          is_disliked: boolean
-          is_house_favorite: boolean
+          item_name: string | null
           member_id: string
-          rating: number | null
+          rating: Database["public"]["Enums"]["food_rating"]
           updated_at: string
         }
         Insert: {
           created_at?: string
-          food_id: string
+          food_id?: string | null
           house_id: string
           id?: string
-          is_disliked?: boolean
-          is_house_favorite?: boolean
+          item_name?: string | null
           member_id: string
-          rating?: number | null
+          rating: Database["public"]["Enums"]["food_rating"]
           updated_at?: string
         }
         Update: {
           created_at?: string
-          food_id?: string
+          food_id?: string | null
           house_id?: string
           id?: string
-          is_disliked?: boolean
-          is_house_favorite?: boolean
+          item_name?: string | null
           member_id?: string
-          rating?: number | null
+          rating?: Database["public"]["Enums"]["food_rating"]
           updated_at?: string
         }
         Relationships: [
@@ -1090,38 +1097,85 @@ export type Database = {
       }
       foods: {
         Row: {
-          canonical_name: string
+          active: boolean
           created_at: string
+          created_by: string
+          default_items: string[]
+          default_source: Database["public"]["Enums"]["meal_source"] | null
+          home_preference: number | null
           house_id: string
           id: string
+          last_eaten_on: string | null
+          meal_types: Database["public"]["Enums"]["meal_type"][]
+          merged_into_id: string | null
           name: string
-          source: Database["public"]["Enums"]["food_source"]
+          normalised_name: string
+          recipe_instructions: string | null
+          region_tag: string | null
+          times_eaten: number
+          typical_cost_paise: number | null
           updated_at: string
         }
         Insert: {
-          canonical_name: string
+          active?: boolean
           created_at?: string
+          created_by: string
+          default_items?: string[]
+          default_source?: Database["public"]["Enums"]["meal_source"] | null
+          home_preference?: number | null
           house_id: string
           id?: string
+          last_eaten_on?: string | null
+          meal_types?: Database["public"]["Enums"]["meal_type"][]
+          merged_into_id?: string | null
           name: string
-          source?: Database["public"]["Enums"]["food_source"]
+          normalised_name: string
+          recipe_instructions?: string | null
+          region_tag?: string | null
+          times_eaten?: number
+          typical_cost_paise?: number | null
           updated_at?: string
         }
         Update: {
-          canonical_name?: string
+          active?: boolean
           created_at?: string
+          created_by?: string
+          default_items?: string[]
+          default_source?: Database["public"]["Enums"]["meal_source"] | null
+          home_preference?: number | null
           house_id?: string
           id?: string
+          last_eaten_on?: string | null
+          meal_types?: Database["public"]["Enums"]["meal_type"][]
+          merged_into_id?: string | null
           name?: string
-          source?: Database["public"]["Enums"]["food_source"]
+          normalised_name?: string
+          recipe_instructions?: string | null
+          region_tag?: string | null
+          times_eaten?: number
+          typical_cost_paise?: number | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "foods_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "foods_house_id_fkey"
             columns: ["house_id"]
             isOneToOne: false
             referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "foods_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "foods"
             referencedColumns: ["id"]
           },
         ]
@@ -1852,28 +1906,34 @@ export type Database = {
       }
       meal_items: {
         Row: {
+          cost_paise: number | null
           food_id: string | null
+          house_id: string
           id: string
           meal_id: string
           name: string
-          notes: string | null
           quantity: string | null
+          sort_order: number
         }
         Insert: {
+          cost_paise?: number | null
           food_id?: string | null
+          house_id: string
           id?: string
           meal_id: string
           name: string
-          notes?: string | null
           quantity?: string | null
+          sort_order?: number
         }
         Update: {
+          cost_paise?: number | null
           food_id?: string | null
+          house_id?: string
           id?: string
           meal_id?: string
           name?: string
-          notes?: string | null
           quantity?: string | null
+          sort_order?: number
         }
         Relationships: [
           {
@@ -1881,6 +1941,13 @@ export type Database = {
             columns: ["food_id"]
             isOneToOne: false
             referencedRelation: "foods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_items_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
             referencedColumns: ["id"]
           },
           {
@@ -1894,21 +1961,47 @@ export type Database = {
       }
       meal_participants: {
         Row: {
+          guest_id: string | null
+          house_id: string
+          id: string
+          label: string | null
           meal_id: string
-          member_id: string
+          member_id: string | null
           share_paise: number
         }
         Insert: {
+          guest_id?: string | null
+          house_id: string
+          id?: string
+          label?: string | null
           meal_id: string
-          member_id: string
+          member_id?: string | null
           share_paise?: number
         }
         Update: {
+          guest_id?: string | null
+          house_id?: string
+          id?: string
+          label?: string | null
           meal_id?: string
-          member_id?: string
+          member_id?: string | null
           share_paise?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "meal_participants_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_participants_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "meal_participants_meal_id_fkey"
             columns: ["meal_id"]
@@ -1925,56 +2018,136 @@ export type Database = {
           },
         ]
       }
+      meal_plans: {
+        Row: {
+          confirmed_meal_id: string | null
+          created_at: string
+          created_by: string
+          food_id: string | null
+          house_id: string
+          id: string
+          name: string
+          planned_date: string
+        }
+        Insert: {
+          confirmed_meal_id?: string | null
+          created_at?: string
+          created_by: string
+          food_id?: string | null
+          house_id: string
+          id?: string
+          name: string
+          planned_date: string
+        }
+        Update: {
+          confirmed_meal_id?: string | null
+          created_at?: string
+          created_by?: string
+          food_id?: string | null
+          house_id?: string
+          id?: string
+          name?: string
+          planned_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_plans_confirmed_meal_id_fkey"
+            columns: ["confirmed_meal_id"]
+            isOneToOne: false
+            referencedRelation: "meals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_plans_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_plans_food_id_fkey"
+            columns: ["food_id"]
+            isOneToOne: false
+            referencedRelation: "foods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_plans_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meals: {
         Row: {
-          confirmed_at: string | null
-          cost_paise: number
+          base_cost_paise: number
           created_at: string
-          created_by_member_id: string
+          created_by: string
+          delivery_cost_paise: number
           expense_id: string | null
           food_id: string | null
           house_id: string
           id: string
-          is_planned: boolean
           meal_date: string
+          meal_type: Database["public"]["Enums"]["meal_type"]
           name: string
-          source: Database["public"]["Enums"]["food_source"]
+          note: string | null
+          other_cost_paise: number
+          photo_url: string | null
+          prep_cost_paise: number
+          recipe_instructions: string | null
+          source: Database["public"]["Enums"]["meal_source"]
+          total_cost_paise: number
           updated_at: string
         }
         Insert: {
-          confirmed_at?: string | null
-          cost_paise?: number
+          base_cost_paise?: number
           created_at?: string
-          created_by_member_id: string
+          created_by: string
+          delivery_cost_paise?: number
           expense_id?: string | null
           food_id?: string | null
           house_id: string
           id?: string
-          is_planned?: boolean
           meal_date: string
+          meal_type?: Database["public"]["Enums"]["meal_type"]
           name: string
-          source?: Database["public"]["Enums"]["food_source"]
+          note?: string | null
+          other_cost_paise?: number
+          photo_url?: string | null
+          prep_cost_paise?: number
+          recipe_instructions?: string | null
+          source?: Database["public"]["Enums"]["meal_source"]
+          total_cost_paise?: number
           updated_at?: string
         }
         Update: {
-          confirmed_at?: string | null
-          cost_paise?: number
+          base_cost_paise?: number
           created_at?: string
-          created_by_member_id?: string
+          created_by?: string
+          delivery_cost_paise?: number
           expense_id?: string | null
           food_id?: string | null
           house_id?: string
           id?: string
-          is_planned?: boolean
           meal_date?: string
+          meal_type?: Database["public"]["Enums"]["meal_type"]
           name?: string
-          source?: Database["public"]["Enums"]["food_source"]
+          note?: string | null
+          other_cost_paise?: number
+          photo_url?: string | null
+          prep_cost_paise?: number
+          recipe_instructions?: string | null
+          source?: Database["public"]["Enums"]["meal_source"]
+          total_cost_paise?: number
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "meals_created_by_member_id_fkey"
-            columns: ["created_by_member_id"]
+            foreignKeyName: "meals_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "house_members"
             referencedColumns: ["id"]
@@ -2980,6 +3153,83 @@ export type Database = {
           },
         ]
       }
+      shopping_items: {
+        Row: {
+          checked_off: boolean
+          checked_off_at: string | null
+          checked_off_by: string | null
+          created_at: string
+          created_by: string
+          estimated_price_paise: number | null
+          house_id: string
+          id: string
+          meal_id: string | null
+          name: string
+          quantity: string | null
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          checked_off?: boolean
+          checked_off_at?: string | null
+          checked_off_by?: string | null
+          created_at?: string
+          created_by: string
+          estimated_price_paise?: number | null
+          house_id: string
+          id?: string
+          meal_id?: string | null
+          name: string
+          quantity?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          checked_off?: boolean
+          checked_off_at?: string | null
+          checked_off_by?: string | null
+          created_at?: string
+          created_by?: string
+          estimated_price_paise?: number | null
+          house_id?: string
+          id?: string
+          meal_id?: string | null
+          name?: string
+          quantity?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_items_checked_off_by_fkey"
+            columns: ["checked_off_by"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopping_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopping_items_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopping_items_meal_id_fkey"
+            columns: ["meal_id"]
+            isOneToOne: false
+            referencedRelation: "meals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       swap_requests: {
         Row: {
           assignment_id: string
@@ -3409,13 +3659,6 @@ export type Database = {
         Returns: Database["public"]["Enums"]["period_status"]
       }
       complete_pending_removals: { Args: never; Returns: number }
-      compute_meal_shares: {
-        Args: { p_meal_id: string }
-        Returns: {
-          member_id: string
-          share_paise: number
-        }[]
-      }
       compute_period_balances: {
         Args: { p_penalty_rate_paise?: number; p_period_id: string }
         Returns: Json
@@ -3514,15 +3757,22 @@ export type Database = {
       }
       create_meal: {
         Args: {
-          p_cost_paise: number
+          p_base_cost_paise?: number
+          p_delivery_cost_paise?: number
           p_expense_id?: string
           p_food_id?: string
           p_house_id: string
-          p_is_planned?: boolean
+          p_items?: Json
           p_meal_date: string
+          p_meal_type?: Database["public"]["Enums"]["meal_type"]
           p_name: string
-          p_participant_member_ids: string[]
-          p_source: Database["public"]["Enums"]["food_source"]
+          p_note?: string
+          p_other_cost_paise?: number
+          p_photo_url?: string
+          p_prep_cost_paise?: number
+          p_recipe_instructions?: string
+          p_shares: Json
+          p_source?: Database["public"]["Enums"]["meal_source"]
         }
         Returns: string
       }
@@ -4045,7 +4295,7 @@ export type Database = {
       effort_mode: "points" | "rota"
       exception_type: "away" | "home_all_day" | "custom_hours"
       expense_status: "pending_approval" | "approved" | "rejected" | "void"
-      food_source: "home_cooked" | "restaurant" | "delivery" | "packaged"
+      food_rating: "like" | "okay" | "dislike"
       home_type: "shared" | "family"
       llm_credential_status: "unverified" | "active" | "failing" | "disabled"
       llm_purpose:
@@ -4055,6 +4305,8 @@ export type Database = {
         | "rule_parse"
         | "food_ideas"
         | "food_normalise"
+      meal_source: "home_cooked" | "bought" | "ordered" | "other"
+      meal_type: "breakfast" | "lunch" | "dinner" | "snack" | "other"
       member_kind: "adult" | "dependent"
       member_role: "admin" | "co_admin" | "member"
       member_status: "requested" | "active" | "inactive"
@@ -4259,7 +4511,7 @@ export const Constants = {
       effort_mode: ["points", "rota"],
       exception_type: ["away", "home_all_day", "custom_hours"],
       expense_status: ["pending_approval", "approved", "rejected", "void"],
-      food_source: ["home_cooked", "restaurant", "delivery", "packaged"],
+      food_rating: ["like", "okay", "dislike"],
       home_type: ["shared", "family"],
       llm_credential_status: ["unverified", "active", "failing", "disabled"],
       llm_purpose: [
@@ -4270,6 +4522,8 @@ export const Constants = {
         "food_ideas",
         "food_normalise",
       ],
+      meal_source: ["home_cooked", "bought", "ordered", "other"],
+      meal_type: ["breakfast", "lunch", "dinner", "snack", "other"],
       member_kind: ["adult", "dependent"],
       member_role: ["admin", "co_admin", "member"],
       member_status: ["requested", "active", "inactive"],

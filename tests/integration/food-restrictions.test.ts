@@ -150,9 +150,9 @@ describeIfReady("food restrictions — the exclusion no score outranks", () => {
         house_id: houseId,
         name: input.name,
         food_id: input.foodId ?? null,
-        cost_paise: 0,
+        total_cost_paise: 0,
         meal_date: "2026-08-28",
-        created_by_member_id: lead.memberId,
+        created_by: lead.memberId,
       })
       .select("id")
       .single();
@@ -161,11 +161,13 @@ describeIfReady("food restrictions — the exclusion no score outranks", () => {
 
     const itemsResult = await admin
       .from("meal_items")
-      .insert(input.items.map((name) => ({ meal_id: mealId, name })));
+      .insert(input.items.map((name) => ({ house_id: houseId, meal_id: mealId, name })));
 
     const participantsResult = await admin
       .from("meal_participants")
-      .insert(input.participants.map((member_id) => ({ meal_id: mealId, member_id })));
+      .insert(
+        input.participants.map((member_id) => ({ house_id: houseId, meal_id: mealId, member_id })),
+      );
 
     return { mealId, itemsResult, participantsResult };
   }
@@ -188,8 +190,8 @@ describeIfReady("food restrictions — the exclusion no score outranks", () => {
     const { data: foods, error: foodError } = await admin
       .from("foods")
       .insert([
-        { house_id: houseId, name: "Peanut Chutney", canonical_name: "peanut chutney" },
-        { house_id: houseId, name: "Curd Rice", canonical_name: "curd rice" },
+        { house_id: houseId, name: "Peanut Chutney", normalised_name: "peanut chutney", created_by: lead.memberId },
+        { house_id: houseId, name: "Curd Rice", normalised_name: "curd rice", created_by: lead.memberId },
       ])
       .select("id, name");
     if (foodError) throw foodError;
@@ -239,7 +241,7 @@ describeIfReady("food restrictions — the exclusion no score outranks", () => {
 
     const { error } = await admin
       .from("meal_items")
-      .insert({ meal_id: mealId, name: "Peanut oil" });
+      .insert({ house_id: houseId, meal_id: mealId, name: "Peanut oil" });
 
     expect(error).not.toBeNull();
     expect(error?.message).toContain("FOOD_RESTRICTION_VIOLATION");

@@ -1054,15 +1054,12 @@ a meal would record an `allergy`-severity item against one of its participants �
 deferred, so a transaction that builds a meal, its items and its participants is
 judged once, when it is complete.
 
-> **Drift, as of 2026-08-28.** Migration 081 (`food.sql`, uncommitted and not yet
-> applied) implements a narrower shape than this section: no `house_id` on
-> `meal_items` or `meal_participants`, no `meal_type`, no cost breakdown into
-> base/prep/delivery/other, no guest or unnamed-eater participant, and
-> preferences per food only rather than per food or per item. The item-level
-> preference is load-bearing for FD-13 — one dislike suppressing every meal
-> containing it — so this is a gap to close in migration 081 before it is
-> applied, not a specification to relax. Migration 082 (restrictions) is written
-> against this section and is consistent with it.
+Migration 081 shipped narrower than this section and was applied anyway;
+migration 085 (`food_schema_reconciliation.sql`) dropped and rebuilt the five
+tables it introduced to match it exactly, added `meal_plans` and
+`shopping_items` (sections 11 and 13), and added `expenses.meal_id` for the
+FD-07 link's other direction. Migration 082 (restrictions) needed no change —
+it was already written against this section.
 
 ### 4.10 Notifications, AI and audit
 
