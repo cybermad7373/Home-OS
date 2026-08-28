@@ -68,6 +68,12 @@ export interface SplitInput {
   customShares?: { memberId: string; sharePaise: number }[];
   /** Required when basis is "payer". The member whose money it was. */
   paidByMemberId?: string;
+  /**
+   * Set when a reserve pays this cost (BR-285). The split is then attributed to
+   * the pot rather than to the members, so nobody is charged for something the
+   * Home's own money has already covered. Absent means the ordinary case.
+   */
+  reserveFunded?: boolean;
 }
 
 export class SplitError extends Error {
@@ -406,6 +412,13 @@ export function splitCustom(input: SplitInput): SplitShare[] {
 
 /** The one entry point the API uses. */
 export function computeSplit(input: SplitInput): SplitShare[] {
+  // BR-285. A cost the pot paid has no member shares at all — not zeroed rows,
+  // no rows — and the exact-sum check below would otherwise refuse the only
+  // correct answer for it. The database says the same thing in
+  // `assert_split_sum`, which admits an empty split set for exactly these
+  // expenses and for no others.
+  if (input.reserveFunded) return [];
+
   const shares =
     input.basis === "custom"
       ? splitCustom(input)

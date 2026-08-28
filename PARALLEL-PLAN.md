@@ -253,22 +253,22 @@ Migration `20260828090071_governed_close_and_adjustments.sql`.
 Migration `20260828090072_expected_contributions_and_reserve.sql`. Last, because
 it is the only remaining slice that changes settlement arithmetic.
 
-- [ ] `member_expected_contributions`, `reserves`, `reserve_movements` — each with
+- [x] `member_expected_contributions`, `reserves`, `reserve_movements` — each with
       RLS and an isolation test
-- [ ] `effect_set_expected_contribution`, `effect_create_reserve`,
+- [x] `effect_set_expected_contribution`, `effect_create_reserve`,
       `effect_reserve_draw`, all with execute revoked from `public`, `anon`,
       `authenticated`
-- [ ] The draw's effect on an expense's split, in `lib/domain/expenses/split.ts`
+- [x] The draw's effect on an expense's split, in `lib/domain/expenses/split.ts`
       and its data layer
-- [ ] A draw larger than the reserve balance is refused **at proposal time**, so
+- [x] A draw larger than the reserve balance is refused **at proposal time**, so
       the Home is never asked to approve a decision that cannot apply. In
       `lib/domain/governance/preview.ts` **and** in the database, not only in the
       route handler.
-- [ ] Tests: a funded reserve changes nobody's settlement position until a draw is
+- [x] Tests: a funded reserve changes nobody's settlement position until a draw is
       applied; `Σ variance(m) + reserve_balance = 0` for the period, property-tested;
       an expected contribution set for a member charges them nothing — it changes
       the position view and no settlement figure
-- [ ] Commit
+- [x] Commit
 
 ---
 
@@ -473,3 +473,6 @@ since the snapshot.
 | 2026-08-28 | A | A3 done. `20260828090071_governed_close_and_adjustments.sql` adds `balance_adjustments` (RLS read-only for the Home, no write policy — the effect is the sole writer) and two-argument `effect_close_settlement`, `effect_reopen_settlement`, `effect_balance_adjustment`. 059's one-argument versions are left untouched: 066's dispatcher prefers the two-argument overload, so this is a pure addition. The close now checks apply-time numbers rather than recomputing them in PL/pgSQL — including a per-member reconciliation between the settlement rows and the balances, which 033 never needed. `POST /api/periods/:period/close` and `/reopen` propose instead of acting; `applyIfApproved` computes the numbers when the last response lands. `tests/integration/governed-close.test.ts` is new (9 tests) and `applyAdjustments` is property-tested in `unit/netting`. Track A suites: 563 passed, 0 failed — `chore-lifecycle` and `membership` are green again, so B2's grants have landed. |
 | 2026-08-28 | A | Two things fixed on the way, both Track A's own and both needed to get typecheck and lint green: (1) migration 058 added `change_confirmation_policy` to the `decision_type` enum and to nothing else, so `DecisionType`, the level/capacity/queue/label maps, the validation enum and `decision_action_phrase` all lacked the fifteenth type. The SQL phrase could not go in 055 — 055 runs before the enum value exists and a plain SQL function's body is validated at creation — so it is restated in 071, and `unit/governance-notifications` now reads the last restatement across the migrations instead of 055 only. (2) `ConfirmableAssignment.sharedWith` is now optional; it was required, which broke every pre-CE-11 caller. |
 | 2026-08-28 | A | For B, not touched by A: `app/api/auth/signup/route.ts` in the working tree raises `EMAIL_CONFIRMATION_REQUIRED`, which is not in `lib/api/errors.ts`, so `npm run typecheck` fails on it. Everything Track A owns typechecks; this one line is the only error. Also noting that `lib/types/schema-pending.ts` now carries a `balance_adjustments` overlay for migration 071 — delete it the next time `gen:types` runs. |
+| 2026-08-28 | A | A4 done. `20260828090072_expected_contributions_and_reserve.sql` replaces the three tables 060 built: they had the wrong shapes against `docs/04-DATABASE.md` §6 — no `decision_id` anywhere (so BR-281 and BR-287 were unenforceable, and 060 shipped a policy letting any lead write expected contributions directly), one unnamed pot per Home instead of named pots, signed movement amounts with a hand-written `balance_after`, and no funding path at all, so no draw could ever have succeeded. 072 states the spec's shapes, adds `apply_reserve_movement` (the balance is a function of the movements, and an over-draw is refused under `for update`), puts `reserve_id` on `expenses` for BR-285, and teaches `assert_split_sum` that a reserve-funded expense carries no member shares. 060 is left on disk unedited, the way 059 was left alone by 071. |
+| 2026-08-28 | A | **A note for the documentation, which Track A does not own.** BR-288 states `Σ variance(m) + reserve_balance = 0`. It cannot hold alongside BR-284 and §6.5's `variance = paid − fair_share`: a Home whose only movement is one ₹5,000 contribution has `Σ variance = +5000` and a balance of `+5000`. What is conserved is the same statement with the pot's *position* — `−Σ contributions` — in place of its cash, because a draw spends the pot's cash and relieves the members of the same cost in one movement. `lib/domain/settlement/position.ts` implements and property-tests that form and says so in a comment; `docs/09-BUSINESS-RULES.md` should be corrected to match. |
+| 2026-08-28 | A | Two failures left in the full run, both in Track B's suites and neither touched by Track A: `notifications.test.ts` → "replaces rather than adds when the same tag repeats inside ten minutes" gets zero rows from `enqueue_notification` called with the **service-role** key, which looks like 080 revoking it without granting it back to `service_role`; and `rls-isolation.test.ts` → "hides a housemate's profile from an unrelated user" now gets `null` rather than `[]` from a `users` select, which is an error rather than an empty result. Full run: 669 passed, 2 failed. |

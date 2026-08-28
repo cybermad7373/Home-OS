@@ -70,8 +70,130 @@ interface BalanceAdjustmentsTable {
   Relationships: [];
 }
 
+/** Migration 072 — EX-13. Display-only, and only ever set by a decision. */
+interface ExpectedContributionsTable {
+  Row: {
+    amount_paise: number;
+    created_at: string;
+    decision_id: string;
+    effective_from: string;
+    effective_to: string | null;
+    house_id: string;
+    id: string;
+    member_id: string;
+  };
+  Insert: {
+    amount_paise: number;
+    created_at?: string;
+    decision_id: string;
+    effective_from: string;
+    effective_to?: string | null;
+    house_id: string;
+    id?: string;
+    member_id: string;
+  };
+  Update: {
+    amount_paise?: number;
+    created_at?: string;
+    decision_id?: string;
+    effective_from?: string;
+    effective_to?: string | null;
+    house_id?: string;
+    id?: string;
+    member_id?: string;
+  };
+  Relationships: [];
+}
+
+/** Migration 072 — EX-14. A named pot whose balance is its movements. */
+interface ReservesTable {
+  Row: {
+    active: boolean;
+    balance_paise: number;
+    created_at: string;
+    decision_id: string;
+    house_id: string;
+    id: string;
+    name: string;
+  };
+  Insert: {
+    active?: boolean;
+    balance_paise?: number;
+    created_at?: string;
+    decision_id: string;
+    house_id: string;
+    id?: string;
+    name: string;
+  };
+  Update: {
+    active?: boolean;
+    balance_paise?: number;
+    created_at?: string;
+    decision_id?: string;
+    house_id?: string;
+    id?: string;
+    name?: string;
+  };
+  Relationships: [];
+}
+
+/** Migration 072 — the movements the balance is computed from. */
+interface ReserveMovementsTable {
+  Row: {
+    amount_paise: number;
+    created_at: string;
+    decision_id: string | null;
+    expense_id: string | null;
+    house_id: string;
+    id: string;
+    kind: "contribution" | "draw";
+    member_id: string | null;
+    note: string | null;
+    period_id: string | null;
+    reserve_id: string;
+  };
+  Insert: {
+    amount_paise: number;
+    created_at?: string;
+    decision_id?: string | null;
+    expense_id?: string | null;
+    house_id: string;
+    id?: string;
+    kind: "contribution" | "draw";
+    member_id?: string | null;
+    note?: string | null;
+    period_id?: string | null;
+    reserve_id: string;
+  };
+  Update: {
+    amount_paise?: number;
+    created_at?: string;
+    decision_id?: string | null;
+    expense_id?: string | null;
+    house_id?: string;
+    id?: string;
+    kind?: "contribution" | "draw";
+    member_id?: string | null;
+    note?: string | null;
+    period_id?: string | null;
+    reserve_id?: string;
+  };
+  Relationships: [];
+}
+
+/** Migration 072 also puts `reserve_id` on `expenses` (BR-285). */
+type ExpensesWithReserve = Omit<GeneratedTables["expenses"], "Row" | "Insert" | "Update"> & {
+  Row: GeneratedTables["expenses"]["Row"] & { reserve_id: string | null };
+  Insert: GeneratedTables["expenses"]["Insert"] & { reserve_id?: string | null };
+  Update: GeneratedTables["expenses"]["Update"] & { reserve_id?: string | null };
+};
+
 export type PendingTables = GeneratedTables & {
   balance_adjustments: BalanceAdjustmentsTable;
+  member_expected_contributions: ExpectedContributionsTable;
+  reserves: ReservesTable;
+  reserve_movements: ReserveMovementsTable;
+  expenses: ExpensesWithReserve;
 };
 
 // ---------------------------------------------------------------------------

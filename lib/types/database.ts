@@ -59,6 +59,9 @@ export type MemberPeriodBalanceRow = Tables["member_period_balances"]["Row"];
 export type SettlementRow = Tables["settlements"]["Row"];
 export type ChorePenaltyRow = Tables["chore_penalties"]["Row"];
 export type BalanceAdjustmentRow = Tables["balance_adjustments"]["Row"];
+export type ExpectedContributionRow = Tables["member_expected_contributions"]["Row"];
+export type ReserveRow = Tables["reserves"]["Row"];
+export type ReserveMovementRow = Tables["reserve_movements"]["Row"];
 
 // --- chores and effort ------------------------------------------------------
 export type ChoreTemplateRow = Tables["chore_templates"]["Row"];

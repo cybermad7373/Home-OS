@@ -88,3 +88,34 @@ export function expectationLine(ask: ProposalAsk): string {
   }
   return "Nothing changes until they respond.";
 }
+
+/**
+ * E-84 — a draw for more than the pot holds, refused before anybody is asked.
+ *
+ * The database refuses it too, under `for update`, because a decision approved
+ * on Tuesday can be applied on Friday after another draw has emptied the pot
+ * (BR-283). The two checks answer different questions and neither replaces the
+ * other: this one stops the Home being asked to approve something that cannot
+ * happen, and that one stops it happening when it no longer can.
+ *
+ * Returns the sentence to show, with the balance in it, or null when the draw
+ * is fine. The balance is shown because "not enough" without a figure sends the
+ * proposer to another screen to find out how much is.
+ */
+export function reserveDrawRefusal(
+  balancePaise: number,
+  amountPaise: number,
+): string | null {
+  if (amountPaise <= 0) return "A draw has to be for more than nothing.";
+  if (amountPaise <= balancePaise) return null;
+
+  return `The reserve holds ${rupees(balancePaise)} and this draw is for ${rupees(amountPaise)}.`;
+}
+
+/** Paise as a plain rupee string. Money crosses into words only here. */
+function rupees(paise: number): string {
+  return `₹${(paise / 100).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}

@@ -95,6 +95,15 @@ export const ERROR_CATALOGUE = {
   ALREADY_CONFIRMED: { status: 409, message: "That payment is already confirmed" },
   PERIOD_ALREADY_OPEN: { status: 409, message: "That month is already open" },
 
+  // The reserve — docs/09-BUSINESS-RULES.md section 1.18.
+  RESERVE_NOT_FOUND: { status: 404, message: "That reserve does not exist" },
+  INSUFFICIENT_RESERVE: {
+    status: 409,
+    // E-84: refused at proposal time, so the Home is never asked to approve a
+    // draw that cannot apply. The balance travels in the error's detail.
+    message: "The reserve does not hold that much",
+  },
+
   // Chores — docs/09-BUSINESS-RULES.md section 4.
   NOT_ASSIGNEE: { status: 403, message: "Only the assigned person can mark this done" },
   SELF_CONFIRM: { status: 403, message: "Somebody else has to confirm your work" },

@@ -80,6 +80,11 @@ export async function getPeriodPosition(
       .from("expenses")
       .select("id, amount_paise, paid_by_member_id, status, category_id, expense_categories(name, icon)")
       .eq("house_id", houseId)
+      // BR-285. A cost the reserve paid is charged to the pot, not to anybody
+      // here: it enters neither `paid` nor `fair share`, so it moves nobody's
+      // position. Its splits are already gone; excluding it from `paid` as well
+      // is what keeps the two sides of the position agreeing.
+      .is("reserve_id", null)
       .gte("expense_date", `${period}-01`)
       .lte("expense_date", endOfMonth(period)),
     session.supabase

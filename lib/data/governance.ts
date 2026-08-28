@@ -15,6 +15,7 @@ import { selectParticipants } from "@/lib/domain/governance/participants";
 import {
   askFrom,
   reasonRequired,
+  reserveDrawRefusal,
   type ProposalAsk,
 } from "@/lib/domain/governance/preview";
 import { awaitsResponse } from "@/lib/domain/governance/queue";
@@ -686,6 +687,14 @@ export async function proposeDecision(
     throw new ApiError("REASON_REQUIRED");
   }
 
+  // E-84. A draw for more than the pot holds is refused here rather than at
+  // apply time, so the Home is never asked to approve something that cannot
+  // happen. The database refuses it again under `for update`, because a
+  // decision approved on Tuesday can be applied on Friday.
+  if (input.type === "reserve_draw") {
+    await assertDrawIsPossible(session, houseId, input.payload ?? {});
+  }
+
   const deadlineHours =
     requirement.deadlineHours ??
     deadlineHoursFor(input.type, context.policy, context.autoConfirmHours);
@@ -738,6 +747,56 @@ export async function proposeDecision(
   }
 
   return finish(session, houseId, row.id, callerMemberId);
+}
+
+/**
+ * Reads the pot and the cost, and refuses the proposal if the one cannot cover
+ * the other. The amount is the expense's own amount and is never taken from the
+ * payload: a draw pays a specific cost, and a payload that could disagree with
+ * it would be a second answer to "how much did this cost".
+ */
+async function assertDrawIsPossible(
+  session: Session,
+  houseId: string,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const reserveId = typeof payload.reserve_id === "string" ? payload.reserve_id : null;
+  const expenseId = typeof payload.expense_id === "string" ? payload.expense_id : null;
+  if (!reserveId || !expenseId) throw new ApiError("VALIDATION_FAILED");
+
+  const [reserve, expense] = await Promise.all([
+    session.supabase
+      .from("reserves")
+      .select("balance_paise, active")
+      .eq("house_id", houseId)
+      .eq("id", reserveId)
+      .maybeSingle(),
+    session.supabase
+      .from("expenses")
+      .select("amount_paise, status, reserve_id")
+      .eq("house_id", houseId)
+      .eq("id", expenseId)
+      .maybeSingle(),
+  ]);
+
+  if (reserve.error) throw apiErrorFromPostgres(reserve.error);
+  if (expense.error) throw apiErrorFromPostgres(expense.error);
+  if (!reserve.data || !reserve.data.active) throw new ApiError("RESERVE_NOT_FOUND");
+  if (!expense.data) throw new ApiError("NOT_FOUND");
+  if (expense.data.status !== "approved") throw new ApiError("VALIDATION_FAILED");
+  if (expense.data.reserve_id) throw new ApiError("VALIDATION_FAILED");
+
+  const refusal = reserveDrawRefusal(
+    reserve.data.balance_paise,
+    expense.data.amount_paise,
+  );
+  if (refusal) {
+    throw new ApiError("INSUFFICIENT_RESERVE", {
+      message: refusal,
+      balance_paise: reserve.data.balance_paise,
+      amount_paise: expense.data.amount_paise,
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
