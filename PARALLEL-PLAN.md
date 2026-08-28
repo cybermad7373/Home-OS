@@ -141,11 +141,16 @@ Read before starting: `AGENTS.md`, `DECISIONS.md` (D-40 to D-43, D-59, D-60),
 
 ### A1 — Fix the auto-confirm regression from migration 058
 
-- [ ] Root-cause and fix
-- [ ] `supabase db reset` and the four affected suites pass
-- [ ] Commit 1: the 058 correction plus `vitest.config.mts`, `tests/setup.ts`, `supabase/config.toml`
-- [ ] Commit 2: the 057 absence slice
-- [ ] Commit 3: the 058 shared-assignment slice
+- [x] Root-cause and fix
+- [x] `supabase db reset` and the affected suites pass — `chore-quorum` 16/16,
+      `household`, `unit/governance`, `unit/governance-property` green.
+      `chore-lifecycle` is 11/13: its two remaining failures are
+      `permission denied for function publish_schedule_for_house`, which is
+      B2's routine-grant gap and not this regression.
+- [x] Commit 1: the 058 correction. `vitest.config.mts`, `tests/setup.ts`,
+      `supabase/config.toml`, and the 057 and 058 slices were already carried
+      into `847988b` by another process before Track A started, so commits 2
+      and 3 have no content left to make.
 
 Nineteen of the 27 failures. Do this before anything else. The shape of it:
 `mark_chore_done` auto-confirms immediately, so every later assertion about the
@@ -449,3 +454,7 @@ since the snapshot.
 | Date | Track | Event |
 |---|---|---|
 | 2026-08-28 | — | Plan written. State snapshot recorded above. No task started. |
+| 2026-08-28 | A | Track A started. Found the tree already committed as `847988b` (057/058/059 plus PARALLEL-PLAN.md) by another process; migrations are unpushed, so A1 fixes 058 in place. About to run `supabase db reset` — Track B, the schema rebuilds for you too. |
+| 2026-08-28 | A | A1 done. 058's `chore_quorum_for` returned `auto_confirm := true` in every branch and counted eligible confirmers instead of Home size; restated on 054's table with all assignees out of the pool, and `mark_chore_done`, `confirm_chore`, `reject_chore` and the peer trigger restated with it. `quorumFor`'s new `sharedWith` parameter moved to fourth so `policy` stays third for every existing caller. Suite: 27 failures to 9. |
+| 2026-08-28 | A | Blocker for B2, not touched by A: `publish_schedule_for_house` answers `42501 permission denied` to the **service-role** key, because 037 revoked it from `public` and no role holds it by name. Two `chore-lifecycle` tests fail on it. `chore_quorum_for` had the same shape and A fixed it inside 058 by granting `service_role` explicitly. B2's routine-grant migration should name `service_role` on the migration-037 service functions, or those two stay red. |
+| 2026-08-28 | A | Noticed in the tree, owned by neither track's checklist yet: `20260828090059_governed_close_reopen_balance.sql` and `20260828090060_expected_contributions_reserve.sql` already exist and apply. A3 and A4 are re-scoped to verifying and finishing them rather than writing them from nothing. |

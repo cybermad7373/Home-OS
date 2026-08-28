@@ -29,8 +29,8 @@ export interface Quorum {
 export function quorumFor(
   members: GovernanceMember[],
   assigneeMemberId: string,
-  sharedWith: string[] = [],
   policy: ConfirmationPolicy = "size_aware",
+  sharedWith: string[] = [],
 ): Quorum {
   const adults = members.filter(
     (member) => member.status === "active" && member.kind === "adult",

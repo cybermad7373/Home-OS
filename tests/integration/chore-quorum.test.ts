@@ -180,6 +180,32 @@ describeIfReady("the chore confirmation quorum", () => {
     return (data as { id: string }).id;
   }
 
+  async function makeSharedAssignment(
+    house: string,
+    template: string,
+    assignee: string,
+    sharedWith: string[],
+    points = 30,
+  ): Promise<string> {
+    const id = await makeAssignment(house, template, assignee, points);
+    const { error } = await admin
+      .from("chore_assignments")
+      .update({ shared_with: sharedWith })
+      .eq("id", id);
+    if (error) throw error;
+    return id;
+  }
+
+  async function earnedBy(memberId: string): Promise<number> {
+    const { data } = await admin
+      .from("effort_ledger")
+      .select("earned_points")
+      .eq("member_id", memberId)
+      .eq("week_start", weekStart)
+      .maybeSingle();
+    return (data as { earned_points: number } | null)?.earned_points ?? 0;
+  }
+
   async function assignmentRow(id: string) {
     const { data, error } = await admin
       .from("chore_assignments")
@@ -417,16 +443,24 @@ describeIfReady("the chore confirmation quorum", () => {
       p_photo_url: null,
     });
 
-    await admin.from("house_members").update({ status: "inactive" }).eq("id", four.memberId);
+    // A dependent is a head in the Home and not a voice in it. The `not an
+    // active adult` half of the rule is checked with one of them rather than
+    // by deactivating an adult with the service key: since 056 an adult's
+    // `status` is writable only by a decision effect or the removal job, so
+    // that route now raises `ADMIN_REQUIRED` before this trigger is reached.
+    const { data: dependent, error: dependentError } = await lead.client.rpc("add_dependent", {
+      p_house_id: houseId,
+      p_name: `Ineligible ${stamp}`,
+      p_guardian_id: coLead.memberId,
+    });
+    expect(dependentError).toBeNull();
 
     const { error } = await admin.from("chore_confirmations").insert({
       house_id: houseId,
       assignment_id: assignmentId,
-      member_id: four.memberId,
+      member_id: (dependent as { id: string }).id,
     });
     expect(error?.message ?? "").toContain("NOT_ELIGIBLE_CONFIRMER");
-
-    await admin.from("house_members").update({ status: "active" }).eq("id", four.memberId);
   });
 
   it("clears the signatures when the chore is rejected (one rejection ends it)", async () => {
@@ -578,5 +612,144 @@ describeIfReady("the chore confirmation quorum", () => {
       .eq("week_start", weekStart)
       .single();
     expect((ledger as { earned_points: number }).earned_points).toBe(20);
+  });
+  // -------------------------------------------------------------------------
+  // A chore two people did together (CE-11)
+  // -------------------------------------------------------------------------
+
+  it("divides a shared chore's points exactly, with nothing lost to rounding", async () => {
+    const before = {
+      one: await earnedBy(one.memberId),
+      two: await earnedBy(two.memberId),
+      three: await earnedBy(three.memberId),
+    };
+
+    const assignmentId = await makeSharedAssignment(
+      houseId,
+      templateId,
+      one.memberId,
+      [two.memberId, three.memberId],
+      25,
+    );
+
+    await one.client.rpc("mark_chore_done", {
+      p_assignment_id: assignmentId,
+      p_photo_url: null,
+    });
+    await coLead.client.rpc("confirm_chore", { p_assignment_id: assignmentId });
+    await four.client.rpc("confirm_chore", { p_assignment_id: assignmentId });
+    expect((await assignmentRow(assignmentId)).status).toBe("confirmed");
+
+    const shares = [
+      (await earnedBy(one.memberId)) - before.one,
+      (await earnedBy(two.memberId)) - before.two,
+      (await earnedBy(three.memberId)) - before.three,
+    ];
+
+    // Twenty-five points among three people: 9 / 8 / 8 in member-id order,
+    // and never 24 and never 27.
+    expect([...shares].sort()).toEqual([8, 8, 9]);
+    expect(shares.reduce((sum, share) => sum + share, 0)).toBe(25);
+  });
+
+  it("lets neither shared assignee confirm the chore they both did", async () => {
+    const assignmentId = await makeSharedAssignment(
+      houseId,
+      templateId,
+      one.memberId,
+      [two.memberId],
+      12,
+    );
+
+    // The person it is shared with may mark it done — they did the work too.
+    const done = await two.client.rpc("mark_chore_done", {
+      p_assignment_id: assignmentId,
+      p_photo_url: null,
+    });
+    expect(done.error).toBeNull();
+    expect(done.data).toBe("done_pending");
+
+    const friendly = await two.client.rpc("confirm_chore", {
+      p_assignment_id: assignmentId,
+    });
+    expect(friendly.error?.message ?? "").toContain("SELF_CONFIRM");
+
+    // And the trigger says the same thing to the service-role key (D-06).
+    const { error } = await admin.from("chore_confirmations").insert({
+      house_id: houseId,
+      assignment_id: assignmentId,
+      member_id: two.memberId,
+    });
+    expect(error?.message ?? "").toContain("SELF_CONFIRM");
+
+    // Neither may reject their own work either.
+    const rejected = await two.client.rpc("reject_chore", {
+      p_assignment_id: assignmentId,
+      p_reason: "Marking our own homework",
+    });
+    expect(rejected.error?.message ?? "").toContain("SELF_REJECT");
+  });
+
+  it("refuses a shared_with that names the assignee, a duplicate, or an outsider", async () => {
+    const assignmentId = await makeAssignment(houseId, templateId, one.memberId, 10);
+
+    const self = await admin
+      .from("chore_assignments")
+      .update({ shared_with: [one.memberId] })
+      .eq("id", assignmentId);
+    expect(self.error?.message ?? "").toContain("SHARED_WITH_INCLUDES_ASSIGNEE");
+
+    const twice = await admin
+      .from("chore_assignments")
+      .update({ shared_with: [two.memberId, two.memberId] })
+      .eq("id", assignmentId);
+    expect(twice.error?.message ?? "").toContain("SHARED_WITH_DUPLICATE");
+
+    const outsider = await admin
+      .from("chore_assignments")
+      .update({ shared_with: [crypto.randomUUID()] })
+      .eq("id", assignmentId);
+    expect(outsider.error?.message ?? "").toContain("SHARED_WITH_NOT_A_MEMBER");
+  });
+
+  it("confirms a shared chore on the spot when its assignees are the whole Home", async () => {
+    const firstUser = await signUp("pair-a");
+    const pairHouse = await makeHome(firstUser, `Pair Home ${stamp}`);
+    const first = { ...firstUser, memberId: await memberIdOf(pairHouse, firstUser.userId) };
+
+    const secondUser = await signUp("pair-b");
+    const second = {
+      ...secondUser,
+      memberId: await addMember(pairHouse, secondUser, "member"),
+    };
+
+    const pairTemplate = await templateOf(pairHouse);
+    const assignmentId = await makeSharedAssignment(
+      pairHouse,
+      pairTemplate,
+      first.memberId,
+      [second.memberId],
+      11,
+    );
+
+    // Both adults are assignees, so the eligible pool is empty. Blocking the
+    // chore until the auto-confirm window would be the same answer, later.
+    const done = await first.client.rpc("mark_chore_done", {
+      p_assignment_id: assignmentId,
+      p_photo_url: null,
+    });
+    expect(done.error).toBeNull();
+    expect(done.data).toBe("confirmed");
+
+    expect(await assignmentRow(assignmentId)).toMatchObject({
+      status: "confirmed",
+      confirmations_required: 0,
+      auto_confirmed: true,
+      confirmed_by: null,
+    });
+
+    // Eleven points between two: 6 and 5.
+    const shares = [await earnedBy(first.memberId), await earnedBy(second.memberId)];
+    expect([...shares].sort()).toEqual([5, 6]);
   });
 });
