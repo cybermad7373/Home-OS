@@ -153,7 +153,11 @@ describeIfReady("governance notifications", () => {
 
     const memberId = await memberIdOf(house, actor.userId);
     if (role !== "member") {
-      const { error: roleError } = await admin
+      // Promoted by the Admin's own session, not by the service-role key. The
+      // privileged-column trigger asks `is_house_admin`, which reads
+      // `auth.uid()`, and a service-role client has none — since 056 that path
+      // answers ADMIN_REQUIRED rather than silently writing the row.
+      const { error: roleError } = await lead.client
         .from("house_members")
         .update({ role })
         .eq("id", memberId);
@@ -238,6 +242,58 @@ describeIfReady("governance notifications", () => {
     }
 
     return decisionId;
+  }
+
+  /**
+   * A removal taken the way the Home takes it: a Critical decision, every
+   * approver's response, and `apply_decision` with the service-role key.
+   * `begin_member_removal` is granted to no role at all, so this is the only
+   * route a test has to an Inactive adult.
+   */
+  async function removeByDecision(
+    subjectMemberId: string,
+    approverMemberIds: string[],
+  ): Promise<void> {
+    const { data: decision, error } = await admin
+      .from("decisions")
+      .insert({
+        house_id: houseId,
+        type: "remove_member",
+        level: "critical",
+        requested_by: lead.memberId,
+        subject_member_id: subjectMemberId,
+        subject_type: "house_member",
+        reason: "They moved out at the end of the month",
+        required_approvals: approverMemberIds.length,
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+    const decisionId = (decision as { id: string }).id;
+
+    const { error: participantError } = await admin.from("decision_participants").insert(
+      approverMemberIds.map((memberId) => ({
+        decision_id: decisionId,
+        member_id: memberId,
+        capacity: "approver",
+      })),
+    );
+    if (participantError) throw participantError;
+
+    const { error: responseError } = await admin.from("decision_responses").insert(
+      approverMemberIds.map((memberId) => ({
+        decision_id: decisionId,
+        member_id: memberId,
+        capacity: "approver",
+        response: "approve",
+      })),
+    );
+    if (responseError) throw responseError;
+
+    const { error: applyError } = await admin.rpc("apply_decision", {
+      p_decision_id: decisionId,
+    });
+    if (applyError) throw applyError;
   }
 
   beforeAll(async () => {
@@ -423,12 +479,11 @@ describeIfReady("governance notifications", () => {
   });
 
   it("tells the proposer and everybody who answered when it lapses", async () => {
-    const past = new Date(Date.now() - 60_000).toISOString();
     const decisionId = await seedDecision({
       type: "change_rule",
       level: "important",
       requiredApprovals: 2,
-      deadline: past,
+      deadline: new Date(Date.now() + 3_600_000).toISOString(),
       participants: [
         { memberId: one.memberId, capacity: "approver" },
         { memberId: two.memberId, capacity: "approver" },
@@ -442,6 +497,16 @@ describeIfReady("governance notifications", () => {
       response: "approve",
     });
     if (responseError) throw responseError;
+
+    // The deadline moves into the past *after* the one answer, because every
+    // response resolves the decision it belongs to. Seeded already expired,
+    // the answer itself would lapse it and leave the sweep below with nothing
+    // to find — which is not what this test is about.
+    const { error: deadlineError } = await admin
+      .from("decisions")
+      .update({ deadline: new Date(Date.now() - 60_000).toISOString() })
+      .eq("id", decisionId);
+    if (deadlineError) throw deadlineError;
 
     const { data: moved, error } = await admin.rpc("expire_decisions");
     if (error) throw error;
@@ -616,7 +681,7 @@ describeIfReady("governance notifications", () => {
     const promoted = await signUp("promoted");
     const memberId = await join(promoted, houseId, "member");
 
-    const { error } = await admin
+    const { error } = await lead.client
       .from("house_members")
       .update({ role: "co_admin" })
       .eq("id", memberId);
@@ -633,15 +698,37 @@ describeIfReady("governance notifications", () => {
     const leaving = await signUp("leaving");
     const memberId = await join(leaving, houseId, "member");
 
-    const { error } = await admin
+    // Money still on the table, so the removal stops in its pending state and
+    // N-43 is the one that says so.
+    const { data: period, error: periodError } = await admin
+      .from("monthly_periods")
+      .insert({ house_id: houseId, period: "2026-07" })
+      .select("id")
+      .single();
+    if (periodError) throw periodError;
+
+    const { error: settlementError } = await admin.from("settlements").insert({
+      house_id: houseId,
+      period_id: (period as { id: string }).id,
+      from_member_id: memberId,
+      to_member_id: lead.memberId,
+      amount_paise: 50000,
+      status: "pending",
+    });
+    if (settlementError) throw settlementError;
+
+    // Through the only door there is. Since 056 an adult's `status` is
+    // writable by a decision effect or the removal job and by nothing else —
+    // the service-role key going straight at the column is refused, which is
+    // BR-165 held by the database rather than by the handler.
+    await removeByDecision(memberId, [lead.memberId, coLead.memberId, one.memberId]);
+
+    const { data: removed } = await admin
       .from("house_members")
-      .update({
-        status: "inactive",
-        pending_settlement: true,
-        left_date: new Date().toISOString().slice(0, 10),
-      })
-      .eq("id", memberId);
-    if (error) throw error;
+      .select("status, pending_settlement")
+      .eq("id", memberId)
+      .single();
+    expect(removed).toMatchObject({ status: "inactive", pending_settlement: true });
 
     const rows = (await feed("N-43")).filter((row) => row.member_id === memberId);
     expect(rows).toHaveLength(1);

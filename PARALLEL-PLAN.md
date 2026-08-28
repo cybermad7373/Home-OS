@@ -205,15 +205,24 @@ Acceptance to preserve (Phase 11, `docs/07-ROADMAP.md`):
 
 ### A2 — Two governance bugs
 
-- [ ] `governance-notifications.test.ts` fails wholesale with `Unknown Error: ADMIN_REQUIRED`
-      raised in `beforeAll`. Determine whether the fixture fails to establish an
-      Admin or whether a role check regressed. Do not "fix" it by weakening the check.
-- [ ] `membership.test.ts` → "leaves a removal pending while money is outstanding,
-      and finishes it when the last payment is confirmed" returns
-      `pending_settlement: true` where `false` is expected. The completion path
-      after the final settlement confirmation is not firing — migration 056 /
-      `complete-pending-removals` territory.
-- [ ] Commit
+- [x] `governance-notifications.test.ts` — the fixture promoted a member to
+      Co-Admin with the service-role key, and since 056 the privileged-column
+      trigger reads `auth.uid()`, which a service-role client has none of. The
+      promotion moves to the Admin's own session and the removal goes through a
+      real `remove_member` decision. Unmasking the suite surfaced two genuine
+      defects in 055, both fixed: `set_notification_prefs` still wrote
+      `telegram_enabled`, dropped in 044 under D-34, so every call failed with
+      `42703`; and `notify_membership_change` fired only on update, while a
+      membership arrives by insert, so N-41 was never written for anybody who
+      joined. 17/17.
+- [ ] `membership.test.ts` → "leaves a removal pending while money is
+      outstanding…". **Root-caused, and the fix is not in a Track A file.**
+      `complete_pending_removals` is revoked from `public` by 050 and granted to
+      no role, so the test's service-role call answers `42501` and the test
+      ignores the error and reads the unchanged row. B2's
+      `20260828090080_routine_grants.sql` already grants it to `service_role`;
+      this test passes the moment that migration applies.
+- [x] Commit
 
 ### A3 — Phase 11 slice 5: governed close and reopen, with `balance_adjustments`
 
@@ -458,3 +467,6 @@ since the snapshot.
 | 2026-08-28 | A | A1 done. 058's `chore_quorum_for` returned `auto_confirm := true` in every branch and counted eligible confirmers instead of Home size; restated on 054's table with all assignees out of the pool, and `mark_chore_done`, `confirm_chore`, `reject_chore` and the peer trigger restated with it. `quorumFor`'s new `sharedWith` parameter moved to fourth so `policy` stays third for every existing caller. Suite: 27 failures to 9. |
 | 2026-08-28 | A | Blocker for B2, not touched by A: `publish_schedule_for_house` answers `42501 permission denied` to the **service-role** key, because 037 revoked it from `public` and no role holds it by name. Two `chore-lifecycle` tests fail on it. `chore_quorum_for` had the same shape and A fixed it inside 058 by granting `service_role` explicitly. B2's routine-grant migration should name `service_role` on the migration-037 service functions, or those two stay red. |
 | 2026-08-28 | A | Noticed in the tree, owned by neither track's checklist yet: `20260828090059_governed_close_reopen_balance.sql` and `20260828090060_expected_contributions_reserve.sql` already exist and apply. A3 and A4 are re-scoped to verifying and finishing them rather than writing them from nothing. |
+| 2026-08-28 | A | A2 done for the part Track A owns. `governance-notifications` 17/17. Two real 055 defects fixed in place: `set_notification_prefs` wrote `telegram_enabled` (dropped in 044), and `notify_membership_change` had no insert trigger, so N-41 never fired for anybody who joined. The prefs function is now 11 arguments — `(boolean x6, time, time, boolean, boolean, boolean)`, no `p_telegram_enabled` — which B2's grant list should name. Fixing 055 also clears B3's `telegram_enabled` failure in `notifications.test.ts`; B may find that box already green. |
+| 2026-08-28 | A | Blocking both tracks: `20260828090080_routine_grants.sql` fails on `supabase db reset` — `ERROR: function apply_decision(uuid) does not exist (SQLSTATE 42883)` at statement 39. The real identities in the applied database are `apply_decision(p_decision_id uuid, p_input jsonb)`, `publish_schedule_for_house(uuid, date, jsonb, assignment_source, boolean, text, integer)` (080 names a five-argument form that does not exist), `enqueue_notification(uuid, uuid, text, jsonb, text, jsonb, timestamptz, text, boolean)`, and `set_notification_prefs` as above. Until 080 parses, every reset stops at it and the stack stays at 070. |
+| 2026-08-28 | A | Three Track A tests are red for one reason, all of it B2's: no role holds `execute` on `publish_schedule_for_house` or `complete_pending_removals` — 037 and 050 revoked them from `public` and granted them to nobody, so even the service-role key gets `42501`. `chore-lifecycle` x2 and `membership` x1. They need `grant execute … to service_role` in 080. Everything else Track A owns is green: 548 passed, 3 failed across the A suites. |

@@ -247,6 +247,10 @@ alter table notification_prefs
   add column decision_outcomes boolean not null default true,
   add column membership        boolean not null default true;
 
+-- Restated to carry the three new switches. `p_telegram_enabled` is **not**
+-- carried across: migration 044 dropped the column under D-34, and a parameter
+-- that writes a column which no longer exists makes every call to this
+-- function fail with `42703` — which is exactly what it did.
 drop function if exists set_notification_prefs(boolean, boolean, boolean, boolean, boolean,
                                          boolean, time, time, boolean);
 
@@ -260,7 +264,6 @@ create or replace function set_notification_prefs(
   p_quiet_hours_start     time default null,
   p_quiet_hours_end       time default null,
   p_quiet_hours_off       boolean default false,
-  p_telegram_enabled      boolean default null,
   p_decision_outcomes     boolean default null,
   p_membership            boolean default null
 ) returns notification_prefs as $$
@@ -290,14 +293,26 @@ begin
          quiet_hours_start     = case when p_quiet_hours_off then null
                                       else coalesce(p_quiet_hours_start, quiet_hours_start) end,
          quiet_hours_end       = case when p_quiet_hours_off then null
-                                      else coalesce(p_quiet_hours_end, quiet_hours_end) end,
-         telegram_enabled      = coalesce(p_telegram_enabled, telegram_enabled)
+                                      else coalesce(p_quiet_hours_end, quiet_hours_end) end
    where member_id = v_member
   returning * into v_row;
 
   return v_row;
 end;
 $$ language plpgsql security definer set search_path = public;
+
+-- Stated rather than inherited. A freshly created function carries `execute`
+-- for PUBLIC, which is how the version above reached a member's session at all
+-- — 044's revoke names a signature this one no longer has.
+revoke execute on function set_notification_prefs(
+  boolean, boolean, boolean, boolean, boolean, boolean, time, time, boolean,
+  boolean, boolean
+) from public, anon;
+
+grant execute on function set_notification_prefs(
+  boolean, boolean, boolean, boolean, boolean, boolean, time, time, boolean,
+  boolean, boolean
+) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- What a decision is asking for, in words
@@ -698,13 +713,23 @@ create trigger trg_join_request_decided
 -- applied by a decision, and a removal completed by the daily job.
 create or replace function notify_membership_change() returns trigger as $$
 declare
+  v_old        house_members%rowtype;
   v_home       text;
   v_name       text;
   v_owed_paise bigint;
 begin
+  -- A membership arrives by insert (`accept_join_request` and `join_house`
+  -- both write a new row) and changes by update, and N-41 is owed on both.
+  -- `old` cannot be read at all in an insert trigger, so it is copied into a
+  -- row variable that simply stays null on that path — which is what every
+  -- comparison below wants it to mean.
+  if tg_op = 'UPDATE' then
+    v_old := old;
+  end if;
+
   select name into v_home from houses where id = new.house_id;
 
-  if new.status = 'active' and old.status is distinct from 'active' then
+  if new.status = 'active' and v_old.status is distinct from 'active' then
     v_name := member_display_name(new.id);
     perform enqueue_house_notification(
       new.house_id, 'N-41',
@@ -715,7 +740,7 @@ begin
     );
   end if;
 
-  if new.role = 'co_admin' and old.role is distinct from 'co_admin' then
+  if new.role = 'co_admin' and v_old.role is distinct from 'co_admin' then
     perform enqueue_notification(
       new.house_id, new.id, 'N-44',
       jsonb_build_object('home', coalesce(v_home, 'the home')),
@@ -734,7 +759,8 @@ begin
   -- rendered now and read by a person, not stored and recalculated.
   if new.status = 'inactive'
      and new.pending_settlement
-     and (old.status is distinct from 'inactive' or not old.pending_settlement)
+     and (v_old.status is distinct from 'inactive'
+          or not coalesce(v_old.pending_settlement, false))
   then
     select coalesce(sum(amount_paise), 0) into v_owed_paise
       from settlements
@@ -765,6 +791,14 @@ create trigger trg_membership_change
     or old.role is distinct from new.role
     or old.pending_settlement is distinct from new.pending_settlement
   )
+  execute function notify_membership_change();
+
+-- The arrival itself. Two triggers rather than one because a `when` clause on
+-- an insert trigger may not mention `old`.
+create trigger trg_membership_created
+  after insert on house_members
+  for each row
+  when (new.status = 'active')
   execute function notify_membership_change();
 
 -- ---------------------------------------------------------------------------
