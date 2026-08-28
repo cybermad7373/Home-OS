@@ -71,7 +71,7 @@ platform capabilities and operational telemetry.
 | NFR-02 | Performance | Any list view (expenses, assignments) returns its first page within 500 ms at p95. |
 | NFR-03 | Performance | Weekly schedule generation for 30 members and 200 chore instances completes in under 5 seconds. |
 | NFR-04 | Responsiveness | Every screen is usable at 360 px width. Mobile is the primary target; desktop is a widened layout, not a separate design. |
-| NFR-05 | Offline | The service worker provides read-only cached/offline shell behaviour. Offline mutations fail honestly in the current build; a future write queue requires a separate idempotency/conflict design and tests. |
+| NFR-05 | Offline | The service worker provides read-only cached/offline shell behaviour. Offline mutations fail honestly in the current build; a future write queue must meet the contract in section 8.1 of [03-ARCHITECTURE.md](03-ARCHITECTURE.md) before being enabled. |
 | NFR-06 | Accessibility | WCAG 2.1 AA contrast. Every interactive element reachable by keyboard. Every form input labelled. |
 | NFR-07 | Availability | Best effort. This is a household tool; there is no uptime commitment. Scheduled jobs must be idempotent so that a missed run can be re-run safely. |
 | NFR-08 | Data integrity | Every monetary calculation is exact. Amounts are stored in integer paise, never floating point. Every split must sum exactly to its expense amount. |
@@ -87,6 +87,8 @@ platform capabilities and operational telemetry.
 | NFR-18 | Unmetered recording | No product-level quota, daily cap, waiting period or paid tier gates the recording of an expense, a chore completion, an absence or a meal. The abuse limits of SEC-10 are sized so that normal household use never reaches them; a limit a real member can hit during ordinary use is a defect, not a tier. Carries BRD commitment CM-1. |
 | NFR-19 | Permanent portability | CSV export of every Insights view, a full-history export of the Home's records, and a PDF settlement statement are permanent capabilities. Removing, restricting or metering an export path is a breaking change requiring the same review as removing a requirement. Carries BRD commitment CM-3 and requirement IN-10. |
 | NFR-20 | Durable writes | The interface reports a record as saved only after the server has confirmed the write. A failed or unreachable write surfaces as a visible failure with the entered values preserved and retryable — never as a success, and never as a silent discard. Applies to expenses, chore completions, meals, absences and decision responses. Carries BRD commitment CM-4. |
+| NFR-21 | Latency budget | The p95 figures of NFR-02 and NFR-17 are the two that were measured; this is the budget for everything else. A read returns within **500 ms at p95 and 1.5 s at p99**; a write within **800 ms at p95 and 2 s at p99**; the four batch paths — weekly generation, month close, insights over a full year, export — are exempt and carry their own bounds (NFR-03, NFR-22). Measured at the route handler, for a Home of 30 members with two years of history. |
+| NFR-22 | Bounded work | Every request does work bounded by the Home, never by the deployment, and no path's cost depends on a search that might not terminate. **The schedule solver is a single greedy pass over chore instances**, scoring each candidate member once — O(instances × members), with no backtracking and therefore no worst case distinct from its typical case. That is why NFR-03's 5-second bound is a statement about size rather than about luck, and it is a property to preserve: replacing the greedy pass with a search would require an explicit iteration and wall-clock cap, and a defined answer for what is returned on hitting it. A month close is O(members × expenses in the period); insights and export stream rather than materialise. |
 
 ---
 
@@ -252,7 +254,7 @@ Three properties must hold and must be tested as such:
 - Real-time collaborative editing or live presence indicators.
 - Native Android and iOS clients, FCM/APNs integration, store packaging and
   store release operations. These belong to product phase 2.
-- Offline write conflict resolution beyond last-write-wins with a warning.
+- The offline write queue itself. The contract it would have to meet — per-endpoint opt-in, idempotency keys, server-side re-validation rather than last-write-wins, a bounded retry and a needs-attention list — is written in section 8.1 of [03-ARCHITECTURE.md](03-ARCHITECTURE.md) so that it is designed against a contract when it is built. It is not built in version 2.
 - Multi-currency and more than one timezone per Home in version 2. Per-expense currency with snapshotted conversion is specified for the post-v2 phase 15+ ([06-ALGORITHMS.md](06-ALGORITHMS.md) section 5.5, [09-BUSINESS-RULES.md](09-BUSINESS-RULES.md) section 1.14); more than one timezone per Home is not scheduled at all.
 - SMS or email notification channels.
 - Any analytics or telemetry service.

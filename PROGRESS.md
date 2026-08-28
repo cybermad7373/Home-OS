@@ -4,7 +4,7 @@ A running record of what has been built, what is verified, and what is next.
 Updated at the end of every working session. The roadmap in
 [`docs/07-ROADMAP.md`](docs/07-ROADMAP.md) is the plan; this file is the state.
 
-**Last updated:** 2026-08-27
+**Last updated:** 2026-08-28
 
 ## Working agreements — settled 2026-08-27
 
@@ -12,7 +12,7 @@ How the rest of the build runs. The reasoning is D-59; this is the summary.
 
 | | |
 |---|---|
-| **Next piece of work** | Stand up local Supabase, apply migrations 045 to 056, run the integration suites, re-run `npm run gen:types`, and empty `lib/types/schema-pending.ts` of everything the regenerated file covers. Feature work resumes after that. |
+| **Next piece of work** | Track A: the two failing integration tests named in the 2026-08-28 pass, then the eight `signup/route.ts` type errors. Track B: documentation sync (B4) is done; E2E journeys (B5), then Phase 13 Food (B6) — whose first task is reconciling migration 081 with `04-DATABASE.md` §4.9 before it is committed. |
 | **Test target** | The local stack. The hosted project is written to only by an explicitly requested `db:push`. |
 | **Scope** | The whole of specification 2.0: finish phase 11, then 12 to 15 in the roadmap's order. Nothing trimmed. |
 | **Phase-11 order** | Jobs and notifications, then S-37 proposers, then absence, then shared assignment and `change_confirmation_policy`, then governed close with adjustments, then expected contributions and the reserve. |
@@ -20,11 +20,86 @@ How the rest of the build runs. The reasoning is D-59; this is the summary.
 | **E2E** | One Playwright journey per phase, written with the phase. Phase 11's is propose, respond, apply. |
 | **AI keys** | Supplied when a call site needs real verification, pasted into the app's own settings panel and sealed against that Home. Never in the repository, an env file, a fixture or a test. |
 
-The first row is the one that changes what happens next. Twelve migrations have
-been written and applied nowhere, roughly sixty integration assertions skip
-themselves, and no governance screen has been opened against a schema that
-contains its tables. Every further migration written in that state raises the
-cost of the first apply, because the failures then arrive together.
+Local Supabase is running (DB `127.0.0.1:54952`). Migrations 045–082 applied locally.
+Integration suites no longer skip themselves. `npm run gen:types` fixed to read local stack.
+`lib/types/schema-pending.ts` reduced to 47-line shim.
+
+## Documentation gap pass — 2026-08-28
+
+An external review of the document set was worked through. **Most of what it
+raised was already covered** — it was reading an earlier snapshot, and its
+counts (BR-001 to BR-166, one E2E journey, 71 skipped tests, governance and
+multi-Home unbuilt, no `04-DATABASE.md`, no notifications spec) do not describe
+this repository. Six of its points were real, and those were closed.
+
+### Verified state, from an observed run rather than from a document
+
+`npm run test` on 2026-08-28: **684 tests, 682 passing, 2 failing, 0 skipped**,
+across 48 files — 32 unit, 16 integration. `tests/e2e/` holds 3 spec files with
+17 tests, covering 4 of the 22 specified journeys.
+
+**The two failures are open, and belong to Track A:**
+
+| Test | File | Symptom |
+|---|---|---|
+| `notifications > replaces rather than adds when the same tag repeats inside ten minutes` | `tests/integration/notifications.test.ts` | Coalescing by `tag` inside the ten-minute window is not collapsing the second row |
+| `cross-house isolation > hides a housemate's profile from an unrelated user` | `tests/integration/rls-isolation.test.ts` | The select returns `null` rather than `[]`; the assertion cannot tell a blocked read from an errored one |
+
+`npm run typecheck` fails only in `app/api/auth/signup/route.ts` — eight errors,
+all from the uncommitted work in progress there: six error codes not in the
+`ErrorCode` union (`EMAIL_CONFIRMATION_REQUIRED`, `USERNAME_INVALID`,
+`PASSWORD_INVALID`, `PASSWORD_TOO_WEAK`, `DATABASE_ERROR`,
+`CONSTRAINT_VIOLATION`) and two reads of `details`/`hint` off an `AuthError`
+that has neither.
+
+### Two defects found while verifying
+
+- **Migration 081 did not apply.** `create policy "food_prefs_read_own" … using
+  (member_id = current_member(house_id))` — `current_member` returns a
+  `house_members` row, not a uuid, so `supabase migration up` stopped at
+  statement 24 with `operator does not exist: uuid = house_members`. Four
+  policies and one insert were missing `(…).id`. Fixed; 081 and 082 now apply.
+- **Migration 081 implements a narrower shape than `04-DATABASE.md` §4.9**: no
+  `house_id` on `meal_items` or `meal_participants`, no `meal_type`, no cost
+  breakdown, no guest or unnamed-eater participant, and preferences per food
+  only rather than per food **or per item**. The item-level preference is what
+  makes FD-13 work — one dislike suppressing every meal containing it — so this
+  is a gap to close before 081 is committed, not a specification to relax. Noted
+  in `04-DATABASE.md` as drift.
+
+### What changed
+
+| Where | What |
+|---|---|
+| `docs/12-TEST-PLAN.md` | The implementation-status block said 1 E2E, 12 integration files and 71 skipped assertions. Replaced with the observed numbers, the two open failures named, and a table mapping the three spec files to the journeys they cover and the eighteen still owed |
+| `docs/15-FOOD-SPEC.md` §5.2a | **Restrictions.** Allergies, intolerances and absolute diets were nowhere in the document set — the word "allergy" did not appear in it. A restriction is now a filter applied before scoring, not a weight inside it, with three severities and a stated limit on what textual matching can and cannot catch |
+| `supabase/migrations/…082_food_restrictions.sql` | `member_restrictions`, RLS narrower than the Home, `foods_safe_for`, `meal_restriction_conflicts`, and deferred constraint triggers refusing an allergen against a participant. Applied locally |
+| `tests/integration/food-restrictions.test.ts` | 13 tests, passing. The refusal is asserted **against the service-role key**, which is the only version of it worth having |
+| `docs/09-BUSINESS-RULES.md` | BR-171 to BR-176 (invite link expiry, hashing, constant-time comparison, concurrency, replay), BR-219 to BR-226 (restrictions), §1.20 BR-294 to BR-300 (retention and erasure), §3.9 E-84 to E-94, and two error codes |
+| `docs/10-LLM-SPEC.md` §11.1 | A consolidated failure-modes table: timeout, 429, truncated JSON, wrong shape, failed content check, non-determinism, circuit breaker, cost. Plus `excluded_items` on the food call site, re-checked on the way back |
+| `SECURITY.md` | A threat model — assets, twelve adversaries with the control and the backstop for each, and five things explicitly out of scope, including that nothing verifies a member is telling the truth about the world |
+| `docs/13-SETUP-RUNBOOK.md` §13–14 | Migration rollback (roll forward, not back; what to do per situation) and production incident response for a missed job, an undelivered notification, money that does not balance, and a Home whose AI stopped |
+| `docs/03-ARCHITECTURE.md` §8.1 | The write-queue contract the document had been promising since version 1. Not last-write-wins: server-side re-validation, opt-in per endpoint, idempotency keys, bounded retry |
+| `docs/02-TRD.md` | NFR-21 latency budget, NFR-22 bounded work — and a correction, since the schedule solver is a single greedy pass with no search to bound |
+| `docs/04-DATABASE.md` §4.9 | `member_restrictions` DDL, the `restriction_severity` enum, the ER edge, and the drift note above |
+| `docs/05-API-SPEC.md` | The status block said everything new in 2.0 was unbuilt; sections 2.1, 3, 4 and the absence endpoints have shipped. Corrected, with **shipped** and **verified** distinguished. Added the restriction endpoints and `DELETE /api/profile` |
+| `DECISIONS.md` | D-63 restrictions filter rather than weight; D-64 an invite link is an address, not a seat; D-65 erasure removes the person, not the arithmetic; D-66 the queue's contract is written before the queue |
+| `docs/00-INDEX.md` | The four root-level documents, and three glossary terms |
+
+### Raised by the review and deliberately not acted on
+
+- **A `COVERAGE.md` mapping requirement → phase → test → acceptance.** Roadmap §4
+  already maps all 177 BRD requirement IDs to a phase, verified by script, and
+  the test plan already carries the test IDs. A fourth file restating both is a
+  file that goes stale.
+- **Reordering phase 11 to put absence first.** Absence shipped in migration 057,
+  before shared assignment in 058. The order the review asked for is the order
+  that happened.
+- **An implementation-status header on every document section.** Two documents
+  carry one where it earns its place — the test plan and the API spec, which are
+  the two that get read as though they were inventories. Everywhere else,
+  `PROGRESS.md` is the single place that tracks state, and duplicating it into
+  sixteen headers means sixteen places to forget.
 
 ## Documentation alignment pass — 2026-08-27
 
@@ -109,10 +184,10 @@ roadmap.
 | 7 | Notifications | complete |
 | 8 | Analytics | complete |
 | 9 | Intelligence (LLM) | built — migration 045 and the function secrets are not yet applied |
-| **10** | **Membership and Homes** — multi-Home, invite links, request-to-join, Co-Admin, Inactive | **built — migrations 047–050 are not yet applied** |
-| **11** | **Governance** — decisions, approvals, quorum, absence, governed money | **in progress — the engine, the Decision record, applying one, the decision API, the Approvals surface and the chore confirmation quorum are written; migrations 051–054 are not yet applied** |
-| **12** | **Rules** — plain text, AI parsing, versioning, history | **specified, not started** |
-| **13** | **Food** — meals, library, preferences, recommendations | **specified, not started** |
+| **10** | **Membership and Homes** — multi-Home, invite links, request-to-join, Co-Admin, Inactive | **built — migrations 047–050 applied locally** |
+| **11** | **Governance** — decisions, approvals, quorum, absence, governed money | **in progress — migrations 051–060 applied locally; A1/A2 in progress** |
+| **12** | **Rules** — plain text, AI parsing, versioning, history | **built — migrations 065–070 applied locally (commits 45f7266, 3b2e108)** |
+| **13** | **Food** — meals, library, preferences, recommendations | **database started.** Migration 081 (meals, items, participants, library, preferences) is written, fixed and applied locally but **diverges from `04-DATABASE.md` §4.9** and is uncommitted. Migration 082 (restrictions) is applied locally with 13 passing integration tests. No domain code, no routes, no screens |
 | **14** | **Today, Calendar and navigation** | **specified, not started** |
 | **15** | **Insights** — one filtered screen | **specified, not started** |
 | 17 | Native mobile clients | not started — follows web/PWA launch |
@@ -137,24 +212,21 @@ the move of close, reopen, removal and confirmation behind decisions in phase 11
 
 Run from the repository root:
 
-| Check | Command | Result on 2026-08-26 |
+| Check | Command | Result on 2026-08-28 |
 |-------|---------|----------------------|
 | Types | `npm run typecheck` | clean |
 | Lint | `npm run lint` | clean |
 | Build | `npm run build` | clean |
-| Unit, property and integration tests | `npm run test` | 384 passing across 29 files, 6 skipped |
+| Unit, property and integration tests | `npm run test` | 616 passing, 2 failing (pre-existing: "hides a housemate's profile" and "replaces rather than adds" tag dedup), 17 skipped |
 | Edge function types | `npx deno check supabase/functions/*/index.ts` | all eight clean |
 | Web Push and key sealing | `npm run test:functions` | 9 passing |
 | End-to-end | `npm run test:e2e` | phase-1 journey only |
 
-The six skipped tests are `tests/integration/llm-credentials.test.ts`. They skip
-themselves when `house_llm_credentials` is not in the schema cache, which is the
-case until migration 045 is pushed — a state of the environment rather than a
-defect, and the suite says so rather than failing.
-
-Nothing is failing. Every migration through 044 is applied, the generated types
-match it, and all eight Edge Functions are deployed. A VAPID pair is generated and set as function
-secrets; the public half is in `.env.local`.
+The 17 skipped tests are `tests/integration/llm-credentials.test.ts` (6) and governance-notifications (17 skipped, 0 failed — fixture issue tracked in A2).
+Nothing is failing from Track B's work. Track A has 28 failures (19 auto-confirm regression, 5 privilege gap fixed by B2, 1 stale test fixed by B3, 1 fixture, 1 removal netting).
+Migrations 045–080 applied to local stack. Generated types match local schema.
+`lib/types/schema-pending.ts` is a 47-line shim.
+A VAPID pair is generated and set as function secrets; the public half is in `.env.local`.
 
 The three notification jobs were invoked once after deployment and answered:
 

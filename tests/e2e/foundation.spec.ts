@@ -32,13 +32,50 @@ const joiner = {
 type Account = { name: string; username: string; email: string };
 
 async function signUp(page: import("@playwright/test").Page, account: Account) {
+  // Listen to console logs and network requests
+  page.on('console', msg => console.log('BROWSER CONSOLE:', msg.text()));
+  page.on('response', response => {
+    if (response.url().includes('/api/auth/signup') || response.url().includes('/onboarding/')) {
+      console.log('RESPONSE:', response.url(), response.status());
+    }
+  });
+  
   await page.goto("/signup");
   await page.getByLabel("Display name").fill(account.name);
   await page.getByLabel("Username").fill(account.username);
   await page.getByLabel("Email").fill(account.email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL("**/onboarding/house");
+  await page.waitForURL("**/onboarding/**", { timeout: 30000 });
+  await page.waitForLoadState('networkidle');
+  
+  // Handle username onboarding if redirected there
+  if (page.url().includes('/onboarding/username')) {
+    console.log("Redirected to username onboarding");
+    await page.getByLabel("Username").fill(account.username);
+    // Wait for username availability check to complete (button becomes enabled)
+    await page.waitForTimeout(2000);
+    const claimBtn = page.getByRole("button", { name: "Claim it" });
+    await expect(claimBtn).toBeEnabled({ timeout: 15000 });
+    await claimBtn.click();
+    await page.waitForURL("**/onboarding/house", { timeout: 30000 });
+    await page.waitForLoadState('networkidle');
+  }
+  
+  // Debug: log the page content
+  const bodyText = await page.textContent("body");
+  console.log("After signup, page URL:", page.url());
+  console.log("Page content preview:", bodyText?.slice(0, 1000));
+  
+  // Wait for the JoinOrCreate component to render - use a more specific selector
+  // First wait for React to hydrate by checking for a known element
+  await page.waitForFunction(() => {
+    const body = document.body.textContent || '';
+    return body.includes('Set up a new home') || body.includes('Get started');
+  }, { timeout: 30000 });
+  
+  // Then wait for the button
+  await page.waitForSelector('button:has-text("Set up a new home")', { timeout: 15000 });
 }
 
 async function signIn(page: import("@playwright/test").Page, identifier: string) {

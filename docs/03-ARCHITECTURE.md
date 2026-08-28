@@ -477,6 +477,42 @@ The application layer repeats these checks for good error messages. It is never 
 | Install | A web app manifest with maskable icons. The app prompts for installation after the third visit, not on the first. |
 | Push | Requested at the end of onboarding, with an explanation of what will be sent — never on first page load. |
 
+### 8.1 The contract a write queue would have to meet
+
+Written now, before phase 16, because the row above makes it a precondition of
+building one. **Nothing below is implemented.** It exists so that the queue is
+designed against a contract rather than the contract being reverse-engineered
+from whatever the queue turned out to do.
+
+**Not every mutation is queueable.** The queue is opt-in per endpoint, and the
+default is refusal:
+
+| Queueable | Not queueable |
+|---|---|
+| Recording something that happened at a knowable time — a chore marked done, an expense, a meal, a presence change | Anything whose validity depends on state the client cannot see: a decision response, a confirmation, a close, a settlement confirmation, a role change, a removal |
+
+The dividing line is whether replaying the mutation an hour later still means
+what the member meant. "I paid ₹400 for groceries" survives the delay. "I agree
+to closing August" does not — the quorum it counts toward may have resolved, and
+the property this product exists to protect is that no Critical decision
+completes on stale input.
+
+| Concern | Contract |
+|---|---|
+| Identity | Every queued mutation carries a client-generated UUID, sent as `Idempotency-Key`. The server records it and returns the original result for a repeat. This is what makes retry safe and is the reason the queue can retry at all |
+| Intent time | The mutation carries `occurred_at` from the device clock, and the server stores both it and its own receipt time. Where they disagree by more than an hour the record is flagged rather than silently trusted — a device clock is not evidence |
+| Ordering | Per member, FIFO, one in flight at a time. A failure stops that member's queue rather than skipping past it, because the entry behind it may depend on the one that failed |
+| Conflict resolution | **Not last-write-wins.** The server re-validates the mutation against current state, exactly as it would a live request. If it is still valid it applies; if the world has moved — the period closed, the chore was confirmed by someone else, the member was removed — it is **rejected and surfaced to the member with what changed**. A queued write never wins over a decision the Home made while the device was offline |
+| Retry policy | Six attempts with exponential backoff over roughly 24 hours. After that the entry moves to a **needs-attention** list the member can see and act on. It is never abandoned silently and never retried forever |
+| What the member sees | Pending, always. Never "saved" (NFR-20, BR-293). A pending count is visible in the shell, and the pending entry is editable and cancellable while it waits |
+| Storage loss | The queue is a cache of intent, not a record. If IndexedDB is cleared, the entries are gone, and the app says so on next launch — "some entries made offline could not be sent" — with what it can still name. It does not pretend they were saved. Nothing else in the product reads from it |
+| Corruption | Every entry is validated against its endpoint's Zod schema on read as well as on write. An entry that fails is moved to needs-attention with its raw values shown, so the member can re-enter it rather than lose it |
+| Server-side expiry | A queued mutation older than 7 days is refused by the server on arrival, regardless of what the client thinks. A record of a chore from last week entering the schedule now is worse than its absence |
+
+The test that gates the feature is E2E-12, extended: go offline, queue a
+mutation, have another member change the world in a way that invalidates it, come
+back online, and assert that the member is told rather than that the write won.
+
 ---
 
 ## 9. Error handling

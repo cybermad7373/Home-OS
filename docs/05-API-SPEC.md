@@ -2,7 +2,7 @@
 
 **Product:** HouseOS
 **Version:** 2.0
-**Date:** 2026-08-27
+**Date:** 2026-08-28
 **Style:** REST over Next.js Route Handlers, JSON in and out
 
 ---
@@ -12,9 +12,16 @@
 This document contains the intended contract for both shipped and planned
 endpoints. **It is not evidence that a contract already has a route handler.**
 
-As of 2026-08-27, `app/api/` contains 67 route files. Section 0 below lists the
-shipped endpoints that this document does not otherwise specify, so that the two
-can be reconciled by counting.
+As of 2026-08-28, `app/api/` contains **90** route files. Section 0 below lists
+the shipped endpoints that this document does not otherwise specify, so that the
+two can be reconciled by counting.
+
+Two words are used precisely below. **Shipped** means a route handler exists.
+**Verified** means a route handler exists and something automated exercises it —
+which for most of section 2.1, 3 and 4 means an integration suite against the
+local stack, and for four journeys means a Playwright test. A shipped endpoint
+with no test is shipped, not verified, and this document does not claim
+otherwise.
 
 - **Shipped**, against specification 1.0: authentication (section 0.1), houses,
   members and dependents, rooms, availability, guests, chores, effort, expenses,
@@ -24,11 +31,21 @@ can be reconciled by counting.
 - **Planned from specification 1.0, still without a route:** `GET
   /api/effort/me`, `GET /api/effort/penalties`, `POST /api/expenses/:id/reject`,
   `POST /api/expenses/:id/resolve-late`, and `GET /api/periods/:period`.
-- **New in specification 2.0, none of it built yet:** everything in sections 2.1
-  (multi-Home, invites and joining), 3 (governance and approvals), 4 (rules), the
-  absence endpoints in 5, 10 (food), 11 (calendar) and 12 (insights, which
-  supersedes analytics), plus the changed contracts marked **changed in 2.0**
-  throughout.
+- **New in specification 2.0 and now shipped:** section 2.1 in full — `/api/homes`,
+  `/api/homes/select`, `/api/invitations`, `/api/join-requests`, `/api/join/:token`;
+  section 3 in full — `/api/decisions` with `respond`, `cancel`, `preview` and
+  `approve-all`, plus the governed `/api/periods/:period/close` and `reopen`;
+  section 4 in full — `/api/rules` with `parse`, `enable`, `disable` and
+  `history`; the absence endpoints of section 5 — `/api/absences` with `preview`;
+  and the AI capability switches, `/api/ai/capabilities`.
+- **New in specification 2.0 and not yet built:** section 10 (food, including the
+  restriction endpoints below — migration 081 is written and unapplied and there
+  is no route yet), section 11 (calendar) and section 12 (insights, which
+  supersedes the analytics routes rather than joining them). The account-erasure
+  endpoint of section 2.2 is likewise specified and unbuilt.
+
+`PROGRESS.md` remains the authority on what has actually been applied to a
+database and what has actually been observed to run.
 
 The current implementation uses `GET/PUT /api/availability` (not
 `/api/availability/me`), and also exposes `GET /api/rooms`, both of which are
@@ -299,6 +316,34 @@ Since migration 056 there is no direct path either: an adult's `status` and
 `left_date` may only be written by an applied decision effect or by the removal
 job. A dependent stays on the Admin path — see
 `DELETE /api/members/dependents/:id`.
+
+### `DELETE /api/profile` — **the caller only, new in 2.0**
+
+Erase the caller's account (D-65, BR-295 to BR-297). Requires a typed
+confirmation in the body, so it cannot be reached by a stray request.
+
+```json
+{ "confirm": "DELETE MY ACCOUNT" }
+```
+→ `200 { "erased_at": "…", "homes_affected": 2, "pseudonym": "Former member 3" }`
+
+Succeeds only when the caller is financially clear in **every** Home they belong
+to. Otherwise:
+
+```json
+{ "error": "ERASURE_BLOCKED",
+  "message": "Settle up in Kovai House before deleting your account",
+  "blockers": [ { "home": "Kovai House", "reason": "unconfirmed_settlement", "amount_paise": 80000 } ] }
+```
+
+What it removes: the `users` row, credentials, devices and push subscriptions,
+notifications, avatar, receipt images, ratings and restrictions. What it
+**retains**: the membership row and its splits, settlements, assignments and
+decision responses, under a stable pseudonym with `user_id` set null. A Home's
+settled arithmetic does not change because one of its authors left (D-65).
+
+Irreversible, and never a side effect of a removal decision — a Home cannot erase
+somebody by vote.
 
 ### `POST /api/members/dependents` — **lead**
 Create a resident with no account: name, `shares_cost`, `does_chores`, guardian.
@@ -1154,6 +1199,52 @@ Rate a food or an item. Idempotent — re-rating replaces.
 ### `GET /api/food/preferences?food_id=`
 Everyone's ratings for one food, and the Home-level score derived from them.
 
+### `GET /api/food/restrictions` · `PUT /api/food/restrictions` · `DELETE /api/food/restrictions/:id` — **new in 2.0**
+
+What the caller cannot eat, as distinct from what they would rather not (D-63).
+`GET` returns **only the caller's own** restrictions, and those of any dependent
+they are guardian to. There is no route that returns another member's
+restrictions, to anyone, at any role — the recommender reads them server-side
+through a security-definer function and the meal form learns about a conflict as
+a conflict, never as a list (BR-226).
+
+```json
+// PUT — idempotent on (member, item). severity is required.
+{ "item_name": "peanut", "severity": "allergy", "note": "carries an EpiPen" }
+{ "item_name": "onion",  "severity": "diet" }
+{ "item_name": "peanut", "severity": "allergy", "member_id": "uuid" }  // a dependent, by their guardian
+```
+→ `200 { "restriction": { "id": "…", "item_name": "peanut", "severity": "allergy" } }`
+
+`severity` is one of `allergy`, `intolerance`, `diet`. All three remove a food
+from that person's suggestions identically; they differ only in what happens when
+a meal is recorded anyway — `allergy` refuses the write, the other two warn.
+
+Errors: `VALIDATION_FAILED` on a blank item; `NOT_YOUR_RECORD` on a `member_id`
+the caller is neither nor guardian to.
+
+### `POST /api/food/meals` — restriction conflicts
+
+Recording a meal whose items are restricted for one of its participants:
+
+- **`allergy`** → `422 FOOD_RESTRICTION_VIOLATION`, refused by a database
+  trigger, not only by the handler.
+
+  ```json
+  { "error": "FOOD_RESTRICTION_VIOLATION",
+    "message": "Arun can't eat peanut. Remove them from this meal or remove the item.",
+    "conflicts": [ { "member_id": "…", "display_name": "Arun", "item": "peanut oil", "restricted_item": "peanut" } ] }
+  ```
+
+  The response names the item and the member **to the person recording the
+  meal**, because they need it to fix the record. It does not say why, does not
+  give the severity beyond the fact of the refusal, and this is the only context
+  in which one member learns about another's restriction.
+
+- **`intolerance` or `diet`** → the meal saves. The response carries a
+  `warnings` array of the same shape, which the form shows and the member
+  confirms past.
+
 ### `GET /api/food/suggestions?meal_type=dinner`
 The two-and-two card (FD-14).
 
@@ -1499,6 +1590,7 @@ version.
 | GET | `/api/members` | member | Member list with standing |
 | PATCH | `/api/members/:id` | admin / lead | Role, residency, flags **2.0** |
 | POST | `/api/members/dependents` | lead | Create a dependent **2.0** |
+| DELETE | `/api/profile` | self | Erase the caller's account **2.0** |
 | POST/PATCH/DELETE | `/api/rooms` | admin | Room management |
 | POST | `/api/rooms/:id/assign` | admin | Move a member |
 | GET/PUT | `/api/availability` | member | Weekly availability |
@@ -1538,6 +1630,7 @@ version.
 | POST/PATCH | `/api/food/library` | member / lead | Create, edit **2.0** |
 | POST | `/api/food/library/:id/merge` | lead | Merge duplicates **2.0** |
 | PUT/GET | `/api/food/preferences` | member | Rate, and read ratings **2.0** |
+| GET/PUT/DELETE | `/api/food/restrictions` | self | What the caller cannot eat **2.0** |
 | GET | `/api/food/suggestions` | member | Two and two **2.0** |
 | GET/POST/DELETE | `/api/food/plans` | member | Planned meals — intentions, not records **2.0** |
 | POST | `/api/food/plans/:id/confirm` | member | Confirm a plan as eaten **2.0** |

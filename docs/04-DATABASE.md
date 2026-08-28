@@ -2,7 +2,7 @@
 
 **Product:** HouseOS
 **Version:** 2.0
-**Date:** 2026-08-27
+**Date:** 2026-08-28
 **Engine:** PostgreSQL 15+ (Supabase)
 
 Sections 4.8 to 4.11, and the enums, indexes, triggers, policies and views that
@@ -105,6 +105,7 @@ erDiagram
     HOUSE_MEMBERS ||--o{ MEAL_PARTICIPANTS : ate
     FOODS ||--o{ FOOD_PREFERENCES : rated
     HOUSE_MEMBERS ||--o{ FOOD_PREFERENCES : rates
+    HOUSE_MEMBERS ||--o{ MEMBER_RESTRICTIONS : cannot_eat
     EXPENSES ||--o| MEALS : optionally_linked
 
     CHORE_ASSIGNMENTS ||--o{ CHORE_ASSIGNMENT_SHARES : shared_between
@@ -179,6 +180,7 @@ create type absence_status    as enum ('requested', 'approved', 'rejected',
 create type meal_source       as enum ('home_cooked', 'bought', 'ordered', 'other');
 create type meal_type         as enum ('breakfast', 'lunch', 'dinner', 'snack', 'other');
 create type food_rating       as enum ('like', 'okay', 'dislike');
+create type restriction_severity as enum ('allergy', 'intolerance', 'diet');
 
 create type confirmation_policy as enum ('size_aware', 'single', 'off');
 ```
@@ -997,9 +999,32 @@ create unique index uq_pref_food on food_preferences (member_id, food_id)
   where food_id is not null;
 create unique index uq_pref_item on food_preferences (member_id, lower(item_name))
   where item_name is not null;
+
+-- What a person cannot eat, as opposed to what they would rather not (D-63).
+-- Separate from food_preferences on purpose: a rating is a term in a score, and
+-- this is a filter applied before any score exists.
+create table member_restrictions (
+  id             uuid primary key default gen_random_uuid(),
+  house_id       uuid not null references houses(id) on delete cascade,
+  member_id      uuid not null references house_members(id) on delete cascade,
+  item_name      text not null,                  -- as entered, shown back verbatim
+  canonical_item text generated always as (      -- generated: no writer can skip it
+    lower(regexp_replace(trim(item_name), '[^a-zA-Z0-9]+', ' ', 'g'))
+  ) stored,
+  severity       restriction_severity not null,  -- allergy | intolerance | diet
+  note           text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  constraint restriction_item_not_blank check (length(trim(item_name)) > 0)
+);
+
+create unique index member_restrictions_unique_item
+  on member_restrictions (member_id, canonical_item);
+create index member_restrictions_canonical_idx
+  on member_restrictions (house_id, canonical_item);
 ```
 
-Three modelling notes worth stating, because each looks like an omission:
+Four modelling notes worth stating, because each looks like an omission:
 
 - **`meals.name` is snapshotted** even when `food_id` is set. Renaming a library
   entry in December must not rewrite what a meal in August was called.
@@ -1011,6 +1036,33 @@ Three modelling notes worth stating, because each looks like an omission:
   is nobody in this system, can still be a head in the per-person cost. A head
   that is nobody is allowed here, unlike in an expense split, because a meal
   creates no debt.
+- **`member_restrictions` is not `food_preferences` with a flag.** They are
+  separate tables because they are read at different moments by different code:
+  a preference is joined into the ranking query, a restriction filters the
+  candidate set before that query runs. They also have different RLS — the whole
+  Home may read each other's ratings, and nobody but the person and a
+  dependent's guardian may read a restriction (BR-226, D-63). One table with a
+  severity column would have to carry both policies at once, which in practice
+  means carrying the weaker one.
+
+**RLS and the trigger, in brief.** `member_restrictions` is readable only by the
+person it describes and by a dependent's guardian. The recommender never selects
+from it: it calls `foods_safe_for(house_id, member_ids[])`, a security-definer
+function returning safe food ids and nothing else. A deferred constraint trigger
+on `meal_items` and `meal_participants` raises `FOOD_RESTRICTION_VIOLATION` when
+a meal would record an `allergy`-severity item against one of its participants —
+deferred, so a transaction that builds a meal, its items and its participants is
+judged once, when it is complete.
+
+> **Drift, as of 2026-08-28.** Migration 081 (`food.sql`, uncommitted and not yet
+> applied) implements a narrower shape than this section: no `house_id` on
+> `meal_items` or `meal_participants`, no `meal_type`, no cost breakdown into
+> base/prep/delivery/other, no guest or unnamed-eater participant, and
+> preferences per food only rather than per food or per item. The item-level
+> preference is load-bearing for FD-13 — one dislike suppressing every meal
+> containing it — so this is a gap to close in migration 081 before it is
+> applied, not a specification to relax. Migration 082 (restrictions) is written
+> against this section and is consistent with it.
 
 ### 4.10 Notifications, AI and audit
 

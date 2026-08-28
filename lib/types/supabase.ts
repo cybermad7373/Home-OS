@@ -154,6 +154,78 @@ export type Database = {
           },
         ]
       }
+      balance_adjustments: {
+        Row: {
+          amount_paise: number
+          created_at: string
+          decision_id: string
+          from_member_id: string
+          house_id: string
+          id: string
+          period_id: string
+          reason: string | null
+          to_member_id: string
+        }
+        Insert: {
+          amount_paise: number
+          created_at?: string
+          decision_id: string
+          from_member_id: string
+          house_id: string
+          id?: string
+          period_id: string
+          reason?: string | null
+          to_member_id: string
+        }
+        Update: {
+          amount_paise?: number
+          created_at?: string
+          decision_id?: string
+          from_member_id?: string
+          house_id?: string
+          id?: string
+          period_id?: string
+          reason?: string | null
+          to_member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "balance_adjustments_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: true
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "balance_adjustments_from_member_id_fkey"
+            columns: ["from_member_id"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "balance_adjustments_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "balance_adjustments_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "balance_adjustments_to_member_id_fkey"
+            columns: ["to_member_id"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chore_assignments: {
         Row: {
           assignee_member_id: string | null
@@ -848,6 +920,7 @@ export type Database = {
           receipt_url: string | null
           recurring_id: string | null
           rejection_reason: string | null
+          reserve_id: string | null
           split_basis: Database["public"]["Enums"]["split_basis"]
           status: Database["public"]["Enums"]["expense_status"]
           updated_at: string
@@ -870,6 +943,7 @@ export type Database = {
           receipt_url?: string | null
           recurring_id?: string | null
           rejection_reason?: string | null
+          reserve_id?: string | null
           split_basis?: Database["public"]["Enums"]["split_basis"]
           status?: Database["public"]["Enums"]["expense_status"]
           updated_at?: string
@@ -892,6 +966,7 @@ export type Database = {
           receipt_url?: string | null
           recurring_id?: string | null
           rejection_reason?: string | null
+          reserve_id?: string | null
           split_basis?: Database["public"]["Enums"]["split_basis"]
           status?: Database["public"]["Enums"]["expense_status"]
           updated_at?: string
@@ -944,6 +1019,109 @@ export type Database = {
             columns: ["recurring_id"]
             isOneToOne: false
             referencedRelation: "recurring_expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_reserve_id_fkey"
+            columns: ["reserve_id"]
+            isOneToOne: false
+            referencedRelation: "reserves"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      food_preferences: {
+        Row: {
+          created_at: string
+          food_id: string
+          house_id: string
+          id: string
+          is_disliked: boolean
+          is_house_favorite: boolean
+          member_id: string
+          rating: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          food_id: string
+          house_id: string
+          id?: string
+          is_disliked?: boolean
+          is_house_favorite?: boolean
+          member_id: string
+          rating?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          food_id?: string
+          house_id?: string
+          id?: string
+          is_disliked?: boolean
+          is_house_favorite?: boolean
+          member_id?: string
+          rating?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_preferences_food_id_fkey"
+            columns: ["food_id"]
+            isOneToOne: false
+            referencedRelation: "foods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_preferences_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_preferences_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      foods: {
+        Row: {
+          canonical_name: string
+          created_at: string
+          house_id: string
+          id: string
+          name: string
+          source: Database["public"]["Enums"]["food_source"]
+          updated_at: string
+        }
+        Insert: {
+          canonical_name: string
+          created_at?: string
+          house_id: string
+          id?: string
+          name: string
+          source?: Database["public"]["Enums"]["food_source"]
+          updated_at?: string
+        }
+        Update: {
+          canonical_name?: string
+          created_at?: string
+          house_id?: string
+          id?: string
+          name?: string
+          source?: Database["public"]["Enums"]["food_source"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "foods_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
             referencedColumns: ["id"]
           },
         ]
@@ -1672,6 +1850,158 @@ export type Database = {
           },
         ]
       }
+      meal_items: {
+        Row: {
+          food_id: string | null
+          id: string
+          meal_id: string
+          name: string
+          notes: string | null
+          quantity: string | null
+        }
+        Insert: {
+          food_id?: string | null
+          id?: string
+          meal_id: string
+          name: string
+          notes?: string | null
+          quantity?: string | null
+        }
+        Update: {
+          food_id?: string | null
+          id?: string
+          meal_id?: string
+          name?: string
+          notes?: string | null
+          quantity?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_items_food_id_fkey"
+            columns: ["food_id"]
+            isOneToOne: false
+            referencedRelation: "foods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_items_meal_id_fkey"
+            columns: ["meal_id"]
+            isOneToOne: false
+            referencedRelation: "meals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meal_participants: {
+        Row: {
+          meal_id: string
+          member_id: string
+          share_paise: number
+        }
+        Insert: {
+          meal_id: string
+          member_id: string
+          share_paise?: number
+        }
+        Update: {
+          meal_id?: string
+          member_id?: string
+          share_paise?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_participants_meal_id_fkey"
+            columns: ["meal_id"]
+            isOneToOne: false
+            referencedRelation: "meals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_participants_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meals: {
+        Row: {
+          confirmed_at: string | null
+          cost_paise: number
+          created_at: string
+          created_by_member_id: string
+          expense_id: string | null
+          food_id: string | null
+          house_id: string
+          id: string
+          is_planned: boolean
+          meal_date: string
+          name: string
+          source: Database["public"]["Enums"]["food_source"]
+          updated_at: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          cost_paise?: number
+          created_at?: string
+          created_by_member_id: string
+          expense_id?: string | null
+          food_id?: string | null
+          house_id: string
+          id?: string
+          is_planned?: boolean
+          meal_date: string
+          name: string
+          source?: Database["public"]["Enums"]["food_source"]
+          updated_at?: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          cost_paise?: number
+          created_at?: string
+          created_by_member_id?: string
+          expense_id?: string | null
+          food_id?: string | null
+          house_id?: string
+          id?: string
+          is_planned?: boolean
+          meal_date?: string
+          name?: string
+          source?: Database["public"]["Enums"]["food_source"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meals_created_by_member_id_fkey"
+            columns: ["created_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meals_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meals_food_id_fkey"
+            columns: ["food_id"]
+            isOneToOne: false
+            referencedRelation: "foods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meals_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_availability: {
         Row: {
           day_of_week: number
@@ -1713,6 +2043,61 @@ export type Database = {
           },
           {
             foreignKeyName: "member_availability_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_expected_contributions: {
+        Row: {
+          amount_paise: number
+          created_at: string
+          decision_id: string
+          effective_from: string
+          effective_to: string | null
+          house_id: string
+          id: string
+          member_id: string
+        }
+        Insert: {
+          amount_paise: number
+          created_at?: string
+          decision_id: string
+          effective_from: string
+          effective_to?: string | null
+          house_id: string
+          id?: string
+          member_id: string
+        }
+        Update: {
+          amount_paise?: number
+          created_at?: string
+          decision_id?: string
+          effective_from?: string
+          effective_to?: string | null
+          house_id?: string
+          id?: string
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_expected_contributions_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_expected_contributions_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_expected_contributions_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "house_members"
@@ -1780,6 +2165,57 @@ export type Database = {
             columns: ["period_id"]
             isOneToOne: false
             referencedRelation: "monthly_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_restrictions: {
+        Row: {
+          canonical_item: string | null
+          created_at: string
+          house_id: string
+          id: string
+          item_name: string
+          member_id: string
+          note: string | null
+          severity: Database["public"]["Enums"]["restriction_severity"]
+          updated_at: string
+        }
+        Insert: {
+          canonical_item?: string | null
+          created_at?: string
+          house_id: string
+          id?: string
+          item_name: string
+          member_id: string
+          note?: string | null
+          severity: Database["public"]["Enums"]["restriction_severity"]
+          updated_at?: string
+        }
+        Update: {
+          canonical_item?: string | null
+          created_at?: string
+          house_id?: string
+          id?: string
+          item_name?: string
+          member_id?: string
+          note?: string | null
+          severity?: Database["public"]["Enums"]["restriction_severity"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_restrictions_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_restrictions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "house_members"
             referencedColumns: ["id"]
           },
         ]
@@ -2187,6 +2623,136 @@ export type Database = {
             columns: ["paid_by_member_id"]
             isOneToOne: false
             referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reserve_movements: {
+        Row: {
+          amount_paise: number
+          created_at: string
+          decision_id: string | null
+          expense_id: string | null
+          house_id: string
+          id: string
+          kind: string
+          member_id: string | null
+          note: string | null
+          period_id: string | null
+          reserve_id: string
+        }
+        Insert: {
+          amount_paise: number
+          created_at?: string
+          decision_id?: string | null
+          expense_id?: string | null
+          house_id: string
+          id?: string
+          kind: string
+          member_id?: string | null
+          note?: string | null
+          period_id?: string | null
+          reserve_id: string
+        }
+        Update: {
+          amount_paise?: number
+          created_at?: string
+          decision_id?: string | null
+          expense_id?: string | null
+          house_id?: string
+          id?: string
+          kind?: string
+          member_id?: string | null
+          note?: string | null
+          period_id?: string | null
+          reserve_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reserve_movements_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reserve_movements_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reserve_movements_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reserve_movements_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reserve_movements_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reserve_movements_reserve_id_fkey"
+            columns: ["reserve_id"]
+            isOneToOne: false
+            referencedRelation: "reserves"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reserves: {
+        Row: {
+          active: boolean
+          balance_paise: number
+          created_at: string
+          decision_id: string
+          house_id: string
+          id: string
+          name: string
+        }
+        Insert: {
+          active?: boolean
+          balance_paise?: number
+          created_at?: string
+          decision_id: string
+          house_id: string
+          id?: string
+          name: string
+        }
+        Update: {
+          active?: boolean
+          balance_paise?: number
+          created_at?: string
+          decision_id?: string
+          house_id?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reserves_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reserves_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
             referencedColumns: ["id"]
           },
         ]
@@ -2801,6 +3367,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      canonical_food_text: { Args: { p_text: string }; Returns: string }
       carry_forward_expense: {
         Args: {
           p_amount_paise: number
@@ -2816,7 +3383,11 @@ export type Database = {
       }
       check_budget_thresholds: { Args: never; Returns: number }
       chore_quorum_for: {
-        Args: { p_assignee_member_id: string; p_house_id: string }
+        Args: {
+          p_assignee_member_id: string
+          p_house_id: string
+          p_shared_with?: string[]
+        }
         Returns: {
           auto_confirm: boolean
           lead_required: boolean
@@ -2838,6 +3409,13 @@ export type Database = {
         Returns: Database["public"]["Enums"]["period_status"]
       }
       complete_pending_removals: { Args: never; Returns: number }
+      compute_meal_shares: {
+        Args: { p_meal_id: string }
+        Returns: {
+          member_id: string
+          share_paise: number
+        }[]
+      }
       compute_period_balances: {
         Args: { p_penalty_rate_paise?: number; p_period_id: string }
         Returns: Json
@@ -2934,6 +3512,20 @@ export type Database = {
           invite_token: string
         }[]
       }
+      create_meal: {
+        Args: {
+          p_cost_paise: number
+          p_expense_id?: string
+          p_food_id?: string
+          p_house_id: string
+          p_is_planned?: boolean
+          p_meal_date: string
+          p_name: string
+          p_participant_member_ids: string[]
+          p_source: Database["public"]["Enums"]["food_source"]
+        }
+        Returns: string
+      }
       current_member: {
         Args: { p_house_id?: string }
         Returns: {
@@ -3003,10 +3595,20 @@ export type Database = {
         Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
         Returns: Json
       }
-      effect_balance_adjustment: {
-        Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
-        Returns: Json
-      }
+      effect_balance_adjustment:
+        | {
+            Args: {
+              p_decision: Database["public"]["Tables"]["decisions"]["Row"]
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_decision: Database["public"]["Tables"]["decisions"]["Row"]
+              p_input: Json
+            }
+            Returns: Json
+          }
       effect_change_confirmation_policy: {
         Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
         Returns: Json
@@ -3023,7 +3625,21 @@ export type Database = {
         Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
         Returns: Json
       }
-      effect_close_settlement: {
+      effect_close_settlement:
+        | {
+            Args: {
+              p_decision: Database["public"]["Tables"]["decisions"]["Row"]
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_decision: Database["public"]["Tables"]["decisions"]["Row"]
+              p_input: Json
+            }
+            Returns: Json
+          }
+      effect_create_reserve: {
         Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
         Returns: Json
       }
@@ -3035,7 +3651,25 @@ export type Database = {
         Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
         Returns: Json
       }
-      effect_reopen_settlement: {
+      effect_reopen_settlement:
+        | {
+            Args: {
+              p_decision: Database["public"]["Tables"]["decisions"]["Row"]
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_decision: Database["public"]["Tables"]["decisions"]["Row"]
+              p_input: Json
+            }
+            Returns: Json
+          }
+      effect_reserve_draw: {
+        Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
+        Returns: Json
+      }
+      effect_set_expected_contribution: {
         Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
         Returns: Json
       }
@@ -3082,6 +3716,12 @@ export type Database = {
       }
       escalate_missed_chores: { Args: never; Returns: number }
       expire_decisions: { Args: never; Returns: number }
+      foods_safe_for: {
+        Args: { p_house_id: string; p_member_ids: string[] }
+        Returns: {
+          food_id: string
+        }[]
+      }
       generate_invite_code: { Args: never; Returns: string }
       generate_invite_token: { Args: never; Returns: string }
       has_membership: { Args: { p_house_id: string }; Returns: boolean }
@@ -3116,6 +3756,15 @@ export type Database = {
         Args: { p_paid: boolean; p_settlement_id: string }
         Returns: Database["public"]["Enums"]["settlement_status"]
       }
+      meal_restriction_conflicts: {
+        Args: { p_meal_id: string }
+        Returns: {
+          item_name: string
+          member_id: string
+          restricted_item: string
+          severity: Database["public"]["Enums"]["restriction_severity"]
+        }[]
+      }
       member_display_name: { Args: { p_member_id: string }; Returns: string }
       member_is_financially_clear: {
         Args: { p_member_id: string }
@@ -3127,6 +3776,7 @@ export type Database = {
         Returns: string
       }
       notify_schedule_published: { Args: { p_run_id: string }; Returns: number }
+      owns_member_record: { Args: { p_member_id: string }; Returns: boolean }
       period_close_readiness: {
         Args: { p_period_id: string }
         Returns: {
@@ -3276,7 +3926,6 @@ export type Database = {
           p_quiet_hours_end?: string
           p_quiet_hours_off?: boolean
           p_quiet_hours_start?: string
-          p_telegram_enabled?: boolean
           p_weekly_digest?: boolean
         }
         Returns: {
@@ -3396,6 +4045,7 @@ export type Database = {
       effort_mode: "points" | "rota"
       exception_type: "away" | "home_all_day" | "custom_hours"
       expense_status: "pending_approval" | "approved" | "rejected" | "void"
+      food_source: "home_cooked" | "restaurant" | "delivery" | "packaged"
       home_type: "shared" | "family"
       llm_credential_status: "unverified" | "active" | "failing" | "disabled"
       llm_purpose:
@@ -3414,6 +4064,7 @@ export type Database = {
       residency_type: "full_time" | "weekday_only" | "weekend_only"
       response_capacity: "approver" | "acknowledger"
       response_kind: "approve" | "reject" | "acknowledge"
+      restriction_severity: "allergy" | "intolerance" | "diet"
       rule_parse_source: "manual" | "ai"
       rule_status: "draft" | "proposed" | "active" | "disabled" | "superseded"
       settlement_status: "pending" | "marked_paid" | "confirmed"
@@ -3608,6 +4259,7 @@ export const Constants = {
       effort_mode: ["points", "rota"],
       exception_type: ["away", "home_all_day", "custom_hours"],
       expense_status: ["pending_approval", "approved", "rejected", "void"],
+      food_source: ["home_cooked", "restaurant", "delivery", "packaged"],
       home_type: ["shared", "family"],
       llm_credential_status: ["unverified", "active", "failing", "disabled"],
       llm_purpose: [
@@ -3627,6 +4279,7 @@ export const Constants = {
       residency_type: ["full_time", "weekday_only", "weekend_only"],
       response_capacity: ["approver", "acknowledger"],
       response_kind: ["approve", "reject", "acknowledge"],
+      restriction_severity: ["allergy", "intolerance", "diet"],
       rule_parse_source: ["manual", "ai"],
       rule_status: ["draft", "proposed", "active", "disabled", "superseded"],
       settlement_status: ["pending", "marked_paid", "confirmed"],

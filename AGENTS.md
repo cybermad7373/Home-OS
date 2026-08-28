@@ -118,12 +118,13 @@ progress: engineering phases 1–8 are complete and phase 9 (intelligence/LLM) i
 built but not yet applied to an environment — migrations 045 and 046 are unpushed
 and the LLM master key is unset. Phases 10–15 are the version-2.0 additions —
 membership and Homes, governance, rules, food, Today/Calendar/navigation, and
-insights. Phase 10 is built and phase 11 is in progress, both against unpushed
-migrations (047–056); phases 12–15 are not started. **The next piece of work is
-not a feature:** stand up local Supabase, apply 045–056, run the integration
-suites that currently skip themselves, regenerate the types, and prune
-`lib/types/schema-pending.ts` (D-59). `PROGRESS.md` is the
-authority on what is built and what has actually been applied to a database. Product phase 2 is native Android/iOS
+insights. Phase 10 is built and applied locally (migrations 047–050). Phase 11
+is in progress with migrations 051–060 applied locally; Track A working on A1
+(auto-confirm regression) and A2 (governance bugs). Phase 12 (Rules) is built
+and committed (migrations 065–070). Phases 13–15 not started. **Local Supabase
+is running; integration suites no longer skip; `npm run gen:types` fixed to read
+local stack.** `PROGRESS.md` is the authority on what is built and what has
+actually been applied to a database. Product phase 2 is native Android/iOS
 (engineering phase 17) and is not started.
 
 Before touching AI code, read `docs/10-LLM-SPEC.md` (now at version 3.0, six call

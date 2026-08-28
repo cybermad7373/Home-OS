@@ -2,7 +2,7 @@
 
 **Product:** HouseOS
 **Version:** 2.0
-**Date:** 2026-08-26
+**Date:** 2026-08-28
 
 Every rule the system enforces, every field it validates, every edge case it must survive, and every error it can return. Where a rule is enforced in more than one place, the enforcement points are listed. This document is the answer to "what should happen when…".
 
@@ -36,6 +36,12 @@ Rules are numbered `BR-nnn` and referenced from tests.
 | BR-168 | A pending removal completes automatically when the member becomes clear — on settlement confirmation, and again by a daily job. Nobody has to remember to come back to it. | Trigger + cron |
 | BR-169 | A person may belong to any number of Homes. Their role in one has no effect in another. | Schema — role is on the membership |
 | BR-170 | The selected Home is held server-side. A request never names a Home in its body. | API |
+| BR-171 | An invite link carries an expiry. The default is **14 days** from issue, and a Home may shorten it. An expired link behaves exactly as a revoked one — the same message, revealing nothing about whether the Home exists (E-66). | Schema + API |
+| BR-172 | The token is stored as a **hash**, never in plaintext. A database read does not yield a working invite link. The plaintext is shown once, at the moment it is generated, and is not recoverable afterwards. | Schema + API |
+| BR-173 | Token comparison is constant-time against the hash, and a failed lookup costs the same as a successful one. Timing must not distinguish "no such link" from "wrong link". | API |
+| BR-174 | Two people opening the same live link concurrently both succeed. A link is an address, not a seat: it authorises **raising a request**, and every request is accepted individually by the Home. There is nothing for them to race for. | API |
+| BR-175 | The same person submitting a request twice concurrently produces one request, not two. The partial unique index of BR-164 is the arbiter, and the second submission is answered with the first request's state rather than an error. | Partial unique index + API |
+| BR-176 | Rotation is not revocation-by-overwrite: the previous token row is retained, marked revoked with a timestamp, and continues to answer as expired. Replay of an old token is therefore refused by a positive record rather than by absence, and the refusal is auditable. | Schema + API |
 | BR-016 | **A new Home is usable before it is fully configured.** Home creation seeds a workload a real Home can meet in its first week (section 5), and no screen requires a complete chore catalogue, a full member list or a rule set before the Home can record anything. The Admin is shown the seeded weekly total and the per-member target it implies, and told to reduce it if it looks wrong. Carries HM-20. | Seeder + setup flow |
 
 ### 1.2 Rooms
@@ -260,6 +266,15 @@ Rules are numbered `BR-nnn` and referenced from tests.
 | BR-217 | **A planned meal is an intention, not a record.** Placing a suggestion or a library meal on a future date creates no cost, no expense, no participants and no preference signal. It appears on the Calendar and nowhere in Insights, food history or the recommender's inputs. Carries FD-20. | API + recommender input filter |
 | BR-218 | A planned meal becomes a real meal only when a member confirms it as eaten, at which point the ordinary meal rules (BR-200 onward) apply in full. An unconfirmed planned meal in the past is dropped from the Calendar and never becomes history. | API + cron |
 
+| BR-219 | **A restriction is not a preference.** Allergy, intolerance and an absolutely-held diet are one concept with a severity, stored separately from ratings, and they remove a candidate from the recommendation set before scoring rather than weighting it within the score. | Recommender + schema |
+| BR-220 | No combination of score terms surfaces a restricted food for the person it is restricted for. There is no threshold, no budget pressure and no cold-start path that relaxes the filter. | Recommender — property test |
+| BR-221 | Recording a meal that contains an item at `allergy` severity for one of its **participants** is refused with `FOOD_RESTRICTION_VIOLATION`, naming the member and the item. It saves only once that member is removed from the participants. | Deferred constraint trigger |
+| BR-222 | `intolerance` and `diet` severities warn on the meal form and save on explicit confirmation. They never block a record of something that actually happened. | API + UI |
+| BR-223 | A food whose composition was never recorded cannot be proven safe. It is excluded for anyone holding an `allergy`-severity restriction and marked "composition unknown" for everyone else. | Recommender |
+| BR-224 | If the restriction filter empties the candidate set, both halves of the recommendation return nothing with an honest message. The filter is never widened to fill the two slots, and the AI half is not called. | Recommender |
+| BR-225 | The AI half receives the union of the participants' restricted items as an exclusion list, and **every returned idea is re-checked against that list on the way back**. A prompt is a request; the filter on our side is the guarantee. | Prompt + validator |
+| BR-226 | A restriction is health information about one person. It is readable by that person and by a dependent's guardian, and by no one else — not a lead, not the Home. It appears in no digest, export, Insights response or Home-wide notification. | RLS + redaction contract |
+
 ### 1.13 Shopping list
 
 | ID | Rule | Enforced at |
@@ -333,6 +348,23 @@ they are not features themselves.
 | BR-291 | There is no premium tier and no advertising surface in the product. No feature is gated on payment and no screen promotes one. Carries CM-2. | Architecture — the absence of a billing path, and a test asserting that absence |
 | BR-292 | **Export is permanent.** CSV of every Insights view, a full-history export of the Home's records, and the PDF settlement statement are always available to every Active member for their own and the Home's records. Removing, metering or tiering an export path is a breaking change requiring the same review as removing a requirement. Carries CM-3, IN-10, NFR-19. | API + gate on the export routes |
 | BR-293 | **A record is reported as saved only after the server confirms the write.** A failed, timed-out or offline write surfaces the failure, preserves the entered values and stays retryable. Nothing is silently discarded and nothing is silently queued. Carries CM-4, NFR-20, E-25. | Client mutation contract + test |
+
+### 1.20 Retention, erasure and the shared record
+
+A Home's record is jointly authored. One member's departure or erasure request
+cannot silently rewrite the arithmetic everybody else already settled against,
+so erasure removes the **person**, not the Home's history of what was paid, owed
+and done.
+
+| ID | Rule | Enforced at |
+|----|------|-------------|
+| BR-294 | **Deactivating is not deleting.** Leaving a Home sets `left_date` and retains every row (BR-004). Nothing in the product deletes a Home's financial history as a side effect of a membership change. | API |
+| BR-295 | A member may request **erasure of their account**. It succeeds only when they are financially clear in every Home (BR-167) and hold no live decision response that a Critical decision is still counting. Otherwise it is refused with `ERASURE_BLOCKED` naming the Home and the blocker. | API |
+| BR-296 | Erasure removes the `users` row and every authentication credential, device, push subscription, notification, avatar, receipt image and rating they authored, and detaches their name. It **retains** the membership row, its splits, settlements, assignments and decision responses, with `display_name` replaced by a stable pseudonym — "Former member 3" — and `user_id` set null. Money that was settled stays settled. | API + cascade design |
+| BR-297 | Erasure is irreversible and requires an explicit typed confirmation. It is never a side effect of a removal decision, and a removal decision never triggers it. | API + UI |
+| BR-298 | **A Home is erased only when its last member leaves it.** The last member's departure deletes the Home and everything scoped to it, after a 30-day grace window in which any former member may restore it. Nothing about a Home outlives its last member past that window. | Cron + API |
+| BR-299 | Retention windows for operational data: notifications 90 days, delivered push receipts 30 days, LLM request logs 30 days with prompts redacted per section 4 of [10-LLM-SPEC.md](10-LLM-SPEC.md), storage objects for the life of the record that references them. Financial records — expenses, splits, settlements, adjustments, decisions — are retained for the life of the Home and are not subject to a window. | Cron |
+| BR-300 | Every export path of BR-292 returns the requester's own data in full, so the right to a copy is satisfied by a feature that already exists rather than by a manual process. | API |
 
 ---
 
@@ -577,6 +609,22 @@ Each case states the situation, the required behaviour, and where it is handled.
 | E-82 | A guest ate a meal and is a participant | They are a head in the per-person cost. No debt is created, so a head with no paying carrier is allowed here — unlike an expense split. |
 | E-83 | A member rates a food, then changes their mind | The rating is replaced. Preferences are current opinions, not history. |
 
+### 3.9 Restrictions, invite links and erasure
+
+| # | Situation | Required behaviour |
+|---|-----------|--------------------|
+| E-84 | A food is the Home's highest-scoring suggestion and contains an item Arun is allergic to | Arun never sees it, at any score. The rest of the Home's suggestions are unchanged — the filter is per person, applied before ranking. |
+| E-85 | Everything in the library is restricted for somebody eating tonight | Both halves are empty with "Nothing in the library is safe for everyone eating tonight." The filter is not relaxed and AI is not called (BR-224). |
+| E-86 | A restaurant meal with no recorded items is a candidate, and one person has a peanut allergy | Excluded for that person, shown to everybody else marked "composition unknown". |
+| E-87 | Somebody records last night's biryani with Arun as a participant, and Arun is allergic to an item on it | Refused with `FOOD_RESTRICTION_VIOLATION` naming Arun and the item. Removing Arun from the participants saves it. The meal happened; the record of Arun eating it is what is refused. |
+| E-88 | A lead opens Insights and a member has three restrictions | Nothing about them appears. Restrictions are not aggregated, exported or digested (BR-226). |
+| E-89 | Two people open the same invite link within the same second | Both raise a request. There is no seat to race for (BR-174). |
+| E-90 | One person double-taps Request | One request. The second submission is answered with the first one's state, not an error (BR-175). |
+| E-91 | Somebody opens an invite link rotated an hour ago, or one issued fifteen days ago | Both get the identical `INVALID_INVITE` response of E-66. Nothing distinguishes revoked from expired from never-existed. |
+| E-92 | A member with ₹0 balance in one Home and ₹800 outstanding in another requests account erasure | Refused with `ERASURE_BLOCKED` naming the second Home. Erasure is all-or-nothing across Homes. |
+| E-93 | A cleared member completes erasure, and a past settlement statement is reopened | The statement still balances. Their rows remain under "Former member 3"; only the person is gone (BR-296). |
+| E-94 | The last member of a Home leaves | The Home enters a 30-day grace window, then it and everything scoped to it are deleted (BR-298). |
+
 ---
 
 ## 4. Error code catalogue
@@ -599,6 +647,7 @@ Every error the API can return, with its HTTP status and the message shown to th
 | `ALREADY_REQUESTED` | 409 | "You've already asked. They'll answer soon." |
 | `ALREADY_MEMBER` | 409 | "You're already in this home" |
 | `LEAD_REQUIRED` | 403 | "Only an admin or co-admin can do that" |
+| `ERASURE_BLOCKED` | 409 | "Settle up in {home} before deleting your account" |
 
 ### Governance
 
@@ -681,6 +730,7 @@ Every error the API can return, with its HTTP status and the message shown to th
 | `RESERVE_INSUFFICIENT` | 409 | "The reserve holds ₹{x}. That draw is for ₹{y}." |
 | `RESERVE_DRAW_NEEDS_DECISION` | 409 | "The house has to approve a draw from the reserve" |
 | `PLANNED_MEAL_NOT_EATEN` | 409 | "Confirm this was eaten before linking money to it" |
+| `FOOD_RESTRICTION_VIOLATION` | 422 | "{name} can't eat {item}. Remove them from this meal or remove the item." |
 | `RULE_NEEDS_DECISION` | 409 | "The house needs to acknowledge this before it takes effect" |
 | `ADJUSTMENT_NEEDS_BOTH` | 409 | "Both people have to agree to this" |
 | `VALIDATION_FAILED` | 422 | Field-level messages, from section 2 |

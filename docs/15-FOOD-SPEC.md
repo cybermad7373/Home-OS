@@ -2,7 +2,7 @@
 
 **Product:** HouseOS
 **Version:** 2.0
-**Date:** 2026-08-26
+**Date:** 2026-08-28
 **Depends on:** [01-BRD.md](01-BRD.md) section 6.10
 
 Food is a first-class module, not an AI feature and not an expense category. It
@@ -236,6 +236,61 @@ For the Home:    still an acceptable Home meal
 This prevents one person's preference corrupting the entire Home's suggestions,
 which is what a single blended score would do.
 
+### 5.2a Restrictions — a hard exclusion, not a preference
+
+A dislike is a weight. A **restriction** is not: it is a fact about a person that
+no score may outrank. Allergy, intolerance, and a diet someone holds
+absolutely — vegetarian, vegan, no beef, no pork, halal, jain — all behave the
+same way, so they are one concept with a severity, not four features.
+
+| | Dislike | Restriction |
+|---|---|---|
+| Stored on | `food_preferences.rating` | `member_restrictions` |
+| Effect on ranking | A term in the score, weight 0.35 | Removes the candidate from the set entirely, before scoring |
+| Can be outweighed | Yes, by cost, recency or Home preference | **No.** There is no score at which a restricted item is shown |
+| Applies to the Home meal | No — the Home may still cook it | A meal containing an item restricted for a **participant** is flagged before it is saved |
+| Reversible by the person | Yes, any time | Yes, but only by that person or, for a dependent, their guardian |
+
+Severity decides what happens when a restricted item nonetheless appears on a
+meal a person is a participant in:
+
+| Severity | Meaning | On recommendation | On a meal being recorded |
+|---|---|---|---|
+| `allergy` | Eating it is a medical event | Never surfaced, in either the library half or the AI half | Saving is **blocked** with `FOOD_RESTRICTION_VIOLATION`, naming the member and the item. It can only be saved by removing that member from the participants |
+| `intolerance` | Eating it makes them ill | Never surfaced | Warned, and saveable on explicit confirmation |
+| `diet` | They do not eat it | Never surfaced | Warned, and saveable on explicit confirmation |
+
+The rules that follow from this, in the order they are checked:
+
+1. **Restrictions filter before scoring, never after.** A candidate carrying a
+   restricted item for the person being served is removed from the candidate
+   set. It is never ranked and then hidden, because a filter applied after
+   ranking is a filter that a later refactor can drop.
+2. **A restriction is per person, and it always applies to that person.** Unlike
+   a dislike, it does not stop at the individual view: the Home's suggestions
+   are computed per person, and there is no Home-level "acceptable anyway".
+3. **Empty is a legitimate answer.** If every candidate is restricted for
+   everyone present, the recommender shows nothing and says why. It does not
+   relax the filter to fill the two slots.
+4. **Unknown composition is treated as restricted.** A restaurant or delivery
+   food whose items were never recorded cannot be proven safe, so it is excluded
+   for anyone with an `allergy`-severity restriction and marked
+   "composition unknown" for everyone else. Absence of evidence is not safety.
+5. **A restriction never appears in a Home-wide report.** It is health
+   information about one person. Insights aggregate it to nothing; the
+   recommender reads it and the meal form checks it, and nothing else does.
+
+**The limit of the matching, stated rather than assumed.** Matching is textual
+containment on a canonical form — lowercased, punctuation collapsed — in both
+directions, so "peanut" catches "peanut oil" and "peanut chutney". It knows
+nothing about synonyms: a member restricted from **peanut is not protected from
+an item somebody recorded as "groundnut"**. This is a real gap and the mitigation
+is deliberate — the restriction entry screen offers known aliases so the member
+adds both, rather than the matcher guessing at what two words mean. A matcher
+that guesses is a matcher that will one day guess wrong in the direction that
+matters. `tests/integration/food-restrictions.test.ts` asserts this limit
+explicitly, so it is a known property rather than a surprise.
+
 ### 5.3 The feedback loop
 
 ```text
@@ -278,7 +333,9 @@ Try Today
 ### 6.1 Library recommendation — deterministic, always available
 
 Candidates: active library entries eaten at least once, suitable for the current
-meal type.
+meal type, **less every entry carrying an item restricted for the person being
+served** (§5.2a). The restriction filter runs first and is not a term in the
+score; nothing below can put a restricted food back into the set.
 
 ```
 score(food, person, home, now) =
@@ -330,6 +387,12 @@ half says "Not enough history yet — record a few meals and this fills in", and
 shows the most recently eaten instead of a score. It does not fabricate a
 ranking from three data points, and it does not quietly hand the slot to AI.
 
+**Everything filtered out.** If the restriction filter empties the candidate set,
+the library half says so — "Nothing in the library is safe for everyone eating
+tonight" — and offers to record a meal instead. It never widens the filter to
+produce two suggestions, and it never falls through to the AI half, which is
+subject to the same filter.
+
 ### 6.2 AI ideas — optional, clearly marked, never authoritative
 
 Sent as structured context, and only when the Home has configured AI and enabled
@@ -362,6 +425,12 @@ estimated per-person cost and the main items.
 5. **No named restaurant, brand, address or claim of availability.** Location is
    context for cuisine, season and price range. The model does not know what is
    open near this Home and must not appear to (FD-19).
+6. **No item restricted for anyone being served.** The prompt carries the union
+   of the participants' restricted items as an exclusion list, and every returned
+   idea is checked against that list again on the way back. A model that returns
+   a restricted item has failed validation — the check is on our side of the
+   call, never delegated to the prompt, because a prompt is a request and a
+   filter is a guarantee.
 
 Failing any of these drops the AI half entirely. The screen shows the library
 half alone, which is the correct outcome and not an error.
@@ -372,6 +441,7 @@ half alone, which is the correct outcome and not an error.
 - Create or modify an expense
 - Add to, edit or merge the library
 - Rate a food, or alter a preference
+- Read, write or infer a member's restrictions beyond the exclusion list it is given
 - Replace the library half of the suggestions
 
 AI produces two lines of text next to two lines the Home earned. That
@@ -473,6 +543,13 @@ than that is how a food diary stops being kept.
 | AI containment | With AI returning a library duplicate, a disliked item, a named restaurant, or one suggestion instead of two, the AI half is dropped and the library half still renders |
 | No AI writes | Across the suite, no `meals`, `expenses` or `food_library` row has an AI-authored origin |
 | Budget context | A Home over its food budget ranks cheaper library meals above expensive ones, with all other terms equal |
+| Restriction filter | A food carrying an item restricted for the person being served is absent from the candidate set at every score, including a score high enough to top the list with the filter removed |
+| Restriction is not a weight | Raising every other term to its maximum never surfaces a restricted food; a property test over random weights and ratings asserts this |
+| Empty is allowed | With every candidate restricted for someone present, the recommender returns zero suggestions and the honest message, and does not call AI |
+| Unknown composition | A restaurant food with no recorded items is excluded for a member with an `allergy`-severity restriction |
+| Allergy blocks the write | Recording a meal containing an allergen for one of its participants is refused with `FOOD_RESTRICTION_VIOLATION`; removing that participant lets it save |
+| Restriction confidentiality | No Insights response, digest, export or Home-wide notification contains another member's restrictions |
+| Matching limit | Textual containment matches both directions and is case- and punctuation-insensitive; it does **not** match synonyms, and a test asserts that so the limit stays known |
 
 ---
 

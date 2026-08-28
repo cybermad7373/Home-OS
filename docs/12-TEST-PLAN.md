@@ -2,46 +2,57 @@
 
 **Product:** HouseOS
 **Version:** 2.0
-**Date:** 2026-08-27
+**Date:** 2026-08-28
 
 What is tested, at which level, and the specific cases that must pass before each phase ships. Test IDs are referenced from the roadmap's definition of done.
 
 ## Implementation status
 
 **This is the specification-2.0 target, not an inventory of the suite.** The
-counts in section 1 include the governance, rules, food, calendar and insights
-tests that phases 10 to 15 will add.
+counts in section 1 include the calendar, insights and remaining food tests that
+phases 13 to 15 will add.
 
-What exists on 2026-08-27, against specification 1.0:
+What exists on 2026-08-28, from an observed `npm run test` run:
 
 | | Files | State |
 |---|---|---|
-| Unit and property (`tests/unit/`) | 28 | 481 tests passing on 2026-08-27, with the integration suites skipped |
-| Integration (`tests/integration/`) | 12 | Run by `npm run test`. Until 2026-08-27 these ran against the hosted project; the target is now a local `supabase start` stack, and the hosted project is written to only by an explicitly requested `db:push` (D-59) |
-| End-to-end (`tests/e2e/`) | 1 — `foundation.spec.ts` | Run by `npm run test:e2e`; the phase-1 journey only |
+| Unit and property (`tests/unit/`) | 32 | Part of the 671 tests below |
+| Integration (`tests/integration/`) | 16 | Run against the local `supabase start` stack. The hosted project is written to only by an explicitly requested `db:push` (D-59) |
+| End-to-end (`tests/e2e/`) | 3 — `foundation`, `governance`, `rules` | 17 tests, run by `npm run test:e2e` against a running app |
 | Edge Function (`supabase/functions/_shared/`) | Deno tests | Run by `npm run test:functions` |
 
-`npm run test` reported 481 passing and 71 skipped at the last recorded run.
-The skips are whole suites that gate themselves on unapplied migrations —
-`llm-credentials` on 045, `governance` on 051 to 053, `chore-quorum` on 054,
-and `membership`'s removal cases on 056 — a state of the environment, not a
-failure. The per-phase counts in
-`PROGRESS.md` are the authority on what has actually run; this document is the
-authority on what must eventually pass.
+`npm run test` on 2026-08-28 reported **682 passing, 2 failing, 0 skipped**
+across 48 files. **The 71 skipped assertions recorded before 2026-08-27 are
+gone**: migrations 045 to 081 are applied to the local stack, so the suites that
+used to gate themselves out — `llm-credentials`, `governance`, `chore-quorum`,
+`membership`'s removal cases, `rules`, `reserve`, `governed-close` — now execute.
+Migrations 081 (food) and 082 (food restrictions) were applied on 2026-08-28 and
+`food-restrictions.test.ts` runs against them.
 
-**A skipping suite is not a passing suite.** Seventy-one of those assertions are
-the database half of phases 9, 10 and 11, and none of them has been observed to
-pass anywhere. Standing up the local stack and applying migrations 045 to 056
-is therefore the next piece of work, ahead of further features (D-59), and from
-phase 11 onward a phase is not done until its own integration suite has run
-against a database rather than gated itself out.
+The two failures are open and belong to Track A:
 
-**The largest open gap is E2E.** Section 4 calls for twenty-two journeys and
-one exists. Every journey past phase 1 is currently covered only at the unit and
-integration levels — which leaves the route handlers and the screens, the layer
-between the domain and the database, with no automated coverage of any kind.
-From phase 11 onward each phase writes one journey through its own main path as
-part of the phase (D-59), rather than leaving all twenty-two to a final pass.
+| Test | File | Symptom |
+|---|---|---|
+| `notifications > replaces rather than adds when the same tag repeats inside ten minutes` | `tests/integration/notifications.test.ts` | Coalescing by `tag` inside the ten-minute window is not collapsing the second row |
+| `cross-house isolation > hides a housemate's profile from an unrelated user` | `tests/integration/rls-isolation.test.ts` | The `users` select returns `null` rather than `[]` — the assertion cannot distinguish a blocked read from an errored one |
+
+Neither is a skip. Both are observed failures against a real database, and the
+suite is not green until they are fixed.
+
+**E2E is still the largest gap, but it is no longer a single journey.** Section 4
+calls for twenty-two; three files cover four of them:
+
+| Spec file | Journeys covered | Journeys still owed |
+|---|---|---|
+| `foundation.spec.ts` | E2E-01 (partial — setup without rooms, templates or generation), E2E-02 | The room, template and generation half of E2E-01 |
+| `governance.spec.ts` | E2E-15 | — |
+| `rules.spec.ts` | E2E-16 | — |
+| — | — | E2E-03 to E2E-14, E2E-17 to E2E-22 |
+
+Eighteen journeys remain unwritten, and the route handlers and screens they
+would cover — chores, expenses, close, settlement, food, Today, Insights — still
+have no browser-level coverage of any kind. From phase 11 onward each phase
+writes one journey through its own main path as part of the phase (D-59).
 
 ---
 
@@ -260,6 +271,21 @@ One test per hard constraint, each proving both acceptance and rejection.
 | T-FOOD-15 | Two foods with identical scores | Ordered by name, identically on every run |
 | **T-FOOD-P1** | **Property:** any total and 1–30 participants | `Σ shares == total`, exactly |
 | **T-FOOD-P2** | **Property:** any library, ratings and history | Two runs produce the same two suggestions in the same order |
+| T-FOOD-16 | An allergen recorded against a participant, **with the service-role key** | Refused with `FOOD_RESTRICTION_VIOLATION`. A trigger, not a handler check |
+| T-FOOD-17 | The same meal recorded without that participant | Saves |
+| T-FOOD-18 | The item added to a meal the person is already on | Refused from that side too |
+| T-FOOD-19 | An `intolerance` or `diet` item recorded | Saves, and is still reported as a conflict so the form can warn |
+| T-FOOD-20 | A restricted food that would otherwise top the ranking | Absent from the candidate set — asserted at a score high enough to top it with the filter removed |
+| **T-FOOD-P3** | **Property:** random weights, ratings, budget states and recency | No combination surfaces a restricted food for the person it is restricted for |
+| T-FOOD-21 | Every candidate restricted for someone present | Zero suggestions with the honest message; AI is not called |
+| T-FOOD-22 | A lead reads another member's restrictions | Zero rows |
+| T-FOOD-23 | One member writes a restriction onto another | Refused |
+| T-FOOD-24 | `"  PEA-NUT  "` entered | Stored verbatim, canonicalised to `pea nut` |
+| T-FOOD-25 | "groundnut" against a "peanut" restriction | **Not** matched — the documented limit of textual matching, asserted so it stays known |
+
+T-FOOD-16 to T-FOOD-25 ship in `tests/integration/food-restrictions.test.ts` and
+pass as of 2026-08-28. T-FOOD-P3 is owed by the recommender when it is built;
+the database half it depends on is in place.
 
 ### 2.11 Shared chore shares (`T-SHR`) — **new in 2.0**
 
@@ -494,8 +520,9 @@ The negative-space tests. Each runs against a real database.
 
 ## 4. End-to-end tests
 
-Twenty-two tests on a Pixel 5 viewport, against a seeded Home. One exists;
-the rest arrive with the phases that make them possible, one per phase.
+Twenty-two tests on a Pixel 5 viewport, against a seeded Home. Four exist
+across three spec files (see the implementation-status table above); the rest
+arrive with the phases that make them possible, one per phase.
 
 | ID | Journey | Steps |
 |----|---------|-------|

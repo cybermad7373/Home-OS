@@ -515,7 +515,7 @@ usually the better answer.
 | Every query returns zero rows for one person, and they can sign in | Their membership is `requested` or `inactive`, not `active` | Check `house_members.status`. This is the rule working, not a bug. |
 | A decision never resolves | A mandatory participant has not responded, or the Home has no Co-Admin and the requirement was computed with one | Open the decision; the participant checklist names who is outstanding. Check `governance_policy.critical_requires_coadmin`. |
 | A decision is `approved` and nothing happened | Application failed after approval | Read `decisions.apply_error`. The commonest cause is the world moving: the last Admin being the subject of a removal, or balances no longer netting. |
-| The close proposes but never closes | Acknowledgements outstanding | This is the feature. `select * from v_my_pending_decisions` shows who. |
+| The close proposes but never closes | Acknowledgements outstanding | This is the feature. `GET /api/decisions?state=pending` names who is outstanding; there is no view for it. |
 | A chore stays `done_pending` with confirmations on it | The quorum needs a lead and none has confirmed | Check `confirmations_required` and `requires_lead_confirmer` on the row. Auto-confirm will still resolve it at the window. |
 | A rule was submitted and is not in force | Its decision is still waiting | Rules activate through governance, never on submission. |
 | Food suggestions are empty | Fewer than five recorded meals, or every candidate scores negative | The cold-start message says which. Neither is an error. |
@@ -536,3 +536,140 @@ supabase db dump --db-url "$PROD_DB_URL" -f "backup-$(date +%F).sql"
 Keep four weeks. The data set is small — a year of a single house is a few tens of megabytes.
 
 **Before any destructive operation — a reopen of an old period, a bulk correction, a migration that drops a column — take a manual dump first.** A settlement history is not something a house can reconstruct from memory.
+
+---
+
+## 13. Rolling a migration back
+
+Supabase migrations are forward-only. There is no `migration down`, and writing
+one would be worse than not having it: a down-migration that drops a column
+destroys the data in it, which for this product is somebody's settled money.
+
+**The rule: roll forward, not back.** A migration that turned out wrong is
+corrected by the next migration.
+
+| Situation | What to do |
+|---|---|
+| The migration has not been applied anywhere | Edit the file. Nothing has happened yet. |
+| Applied locally only | `npm run db:reset` re-applies the whole chain from scratch. This destroys local data, which is the point of a local stack. |
+| Applied to production, additive only — a new table, a new nullable column, a new function | Write the next migration to drop what the last one added. No data existed in it. |
+| Applied to production and it changed or dropped existing data | **Stop.** Take a dump before doing anything else. Restore the affected tables from the most recent dump, into a scratch project first, and reconcile by hand. Then write the corrective migration. Do not re-run the original. |
+| Applied to production and it is merely wrong, not destructive — a bad constraint, a bad policy, a bad default | The corrective migration is ordinary work. Ship it. |
+
+Before pushing to production, always:
+
+```bash
+npm run db:reset          # the whole chain, from empty, locally
+npm run test              # including every integration suite
+npx supabase db diff --linked   # what push would actually do
+supabase db dump --db-url "$PROD_DB_URL" -f "pre-push-$(date +%F).sql"
+npm run db:push
+```
+
+`db diff --linked` is the step people skip and the one that catches a migration
+that is already applied under a different name, or a hand-edit made in the
+dashboard that the migration chain does not know about.
+
+**A migration is never applied to production as part of a verification run.**
+`npm run db:push`, a remote test run and a function deploy are separately
+requested actions (D-59).
+
+---
+
+## 14. When something breaks in production
+
+Each of these is a real failure mode with a first move that is not "look at the
+logs". Logs are step two.
+
+### A scheduled job did not run
+
+Weekly generation, the digest, auto-confirm, the food refresh — all are
+`pg_cron` calling an Edge Function.
+
+```sql
+-- Did cron fire at all?
+select jobname, status, return_message, start_time
+  from cron.job_run_details
+ order by start_time desc limit 20;
+```
+
+| What you see | Cause | Fix |
+|---|---|---|
+| No rows for that job | The schedule is not installed | Re-apply migration 013 and section 3.2 |
+| Rows with `status = 'failed'` and a connection error | `app_config` unset, so the job has no URL or key to call | Section 7, step 5. The `alter database` form fails on hosted Supabase — this is the exact failure it causes |
+| Rows succeeded but nothing changed | The function ran and returned early | Function logs: `npx supabase functions logs <name>` |
+| Everything stopped at once, days ago | The project paused after 7 idle days | Unpause, then verify the heartbeat job exists |
+
+Every job is **idempotent by design**: re-invoking it for the same period is
+safe. Recovery is to invoke it again, not to patch the data it should have
+written.
+
+### A notification was not delivered
+
+```sql
+select id, type, scheduled_for, push_sent_at, coalesced_into
+  from notifications
+ where user_id = '…' order by created_at desc limit 20;
+```
+
+| What you see | Meaning |
+|---|---|
+| Row exists, `push_sent_at` null, `scheduled_for` in the future | Quiet hours or availability deferral. Working as designed |
+| Row exists, `coalesced_into` set | Folded into another notification by volume control. Working as designed |
+| Row exists, `push_sent_at` null, `scheduled_for` past | The dispatcher did not run — treat as a failed job, above |
+| `push_sent_at` set, nothing on the device | The subscription is dead. A 410 from the push service removes it; the member re-enables notifications to create a new one |
+| Nothing for any user, from a fixed moment | VAPID mismatch, usually after a key rotation. Section 4.1 |
+
+**The in-app feed is the source of truth, and push is best-effort.** A member who
+never receives a push still sees the item. Never re-send by inserting rows by
+hand.
+
+### The money does not balance
+
+The one class of incident to escalate rather than improvise on.
+
+```sql
+-- The closed period's stored balances must sum to zero.
+select sum(final_net_paise)      as net,
+       sum(penalty_owed_paise)   as penalties_owed,
+       sum(penalty_credit_paise) as penalties_credited
+  from member_period_balances
+ where period_id = '…';
+
+-- And the payments generated from them must net to zero as well.
+select sum(amount_paise) from settlements where period_id = '…';
+```
+
+1. **Do not force the close.** The block is the invariant working.
+2. Take a dump.
+3. Find which of the three sums is off: splits against expenses, penalties
+   against credits, or variance against the reserve.
+4. Correct through a **balance adjustment**, which both parties agree to
+   (`ADJUSTMENT_NEEDS_BOTH`), never with an `update`. An adjustment is visible
+   in the record; a hand-edit is not, and a household that cannot see why a
+   figure changed stops trusting every figure.
+
+### A Home's AI stopped working
+
+Expected and non-urgent — every call site has a deterministic equivalent that is
+already what the member is seeing.
+
+```sql
+select created_at, purpose, accepted, error, validation_errors, latency_ms
+  from llm_runs where house_id = '…' order by created_at desc limit 20;
+```
+
+`error` distinguishes a transport failure from a validation one; where `error` is
+null and `accepted` is false, `validation_errors` names the check that rejected
+the response. Both map onto the failure-modes table in section 11.1 of
+[10-LLM-SPEC.md](10-LLM-SPEC.md). A 401 means the Home's key needs re-entering by
+that Home — the operator has no key to substitute and should not acquire one.
+
+### Escalation
+
+| Severity | Example | Response |
+|---|---|---|
+| **1 — money is wrong** | Balances do not net; a settled figure changed | Stop writes to that Home. Dump. Reconcile before anything else |
+| **2 — a control failed** | Cross-house data visible; a Critical decision resolved on one member's responses | Treat as a security incident: reproduce, patch, then check whether it happened elsewhere |
+| **3 — a job or notification failed** | Generation missed a week | Re-invoke. Tell the Home what they missed |
+| **4 — a feature degraded** | AI half missing; suggestions empty | Note it. The deterministic half is what the product promises |

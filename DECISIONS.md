@@ -1428,3 +1428,125 @@ distinct responders, so the only other person is excluded and there is nobody
 left to ask. That is the floor from §2.4 working as intended rather than an
 oversight, and the sheet says so — the proposal is refused before it is made,
 not after the Home has been asked to approve something that could never apply.
+
+---
+
+## D-62 — routine privileges are stated, not inherited
+
+**Track B (OpenCode).** Migration 068 fixed table grants but deliberately omitted
+routines. `supabase db reset` installs default `EXECUTE` on every routine for
+`public`, `anon`, `authenticated`, `service_role`; `supabase migration up`
+against a running stack does not. This created two opposite failures:
+- Budget alerts: `check_budget_thresholds` callable by cron but not by browser —
+  `permission denied` for authenticated callers.
+- Notifications: `enqueue_notification` callable from browser — must be trigger-only.
+
+Migration 080 fixes both by stating grants explicitly, following 068's pattern:
+- Baseline `revoke execute on all routines in schema public from public, anon, authenticated`
+- Grant back ONLY what browser clients call (grep `.rpc(` across `lib/` and `app/`)
+- Re-assert load-bearing revocations: `apply_decision` → `service_role` only;
+  `apply_decision_effect` and all `effect_*` → nobody; migration-037 service
+  functions → nobody; cron functions → `service_role` only; `enqueue_notification` → nobody
+- `alter default privileges` so future functions don't silently reopen the hole
+- New test in `rls-isolation.test.ts` asserts the posture directly
+
+This is the kind of non-obvious platform behaviour the file exists for — a
+database built by either path ends up the same, and the grants are in version
+control where a reader can disagree with them.
+
+---
+
+## D-63 — a food restriction is a filter, not a weight
+
+A dislike is a term in the recommendation score, weighted 0.35 against recency,
+cost and repetition. An allergy is not a stronger dislike; it is a different kind
+of thing, and modelling it as a heavier weight is the mistake that eventually
+serves somebody a peanut because the budget term was large enough that week.
+
+Restrictions therefore live in their own table (`member_restrictions`, migration
+082) with a severity — `allergy`, `intolerance`, `diet` — and they **remove
+candidates from the set before scoring**, never after. The filter-then-rank order
+is load-bearing: a filter applied after ranking is one a later refactor can drop
+without any test noticing, because the output looks the same until the day it
+does not.
+
+Three consequences worth stating, because each was a choice:
+
+- **Allergy blocks the write, in the database.** Recording a meal with an
+  allergen for one of its participants raises `FOOD_RESTRICTION_VIOLATION` from a
+  deferred constraint trigger, not from a route handler. A service-role key
+  bypasses RLS; it does not bypass this. Intolerance and diet warn instead —
+  they are not medical events, and a record of something that actually happened
+  should not be refusable.
+- **An empty answer is a correct answer.** If every candidate is restricted for
+  somebody eating tonight, both halves render nothing with an honest message.
+  The filter is never widened to fill the two slots, and AI is not called as a
+  way around it.
+- **The AI half is filtered on our side.** The prompt carries the union of
+  restricted items and every returned idea is re-checked against it on the way
+  back. A prompt is a request; the check is the guarantee.
+
+Restrictions are health information about one person, so RLS is narrower than the
+Home: the person and, for a dependent, their guardian. The recommender reads them
+through a security-definer function that returns safe food ids and never the
+restrictions themselves, and they appear in no digest, export or Insights
+response (BR-226).
+
+---
+
+## D-64 — an invite link is an address, not a seat
+
+Two people opening the same link at the same moment both succeed, because a link
+authorises **raising a request**, never joining. There is nothing to race for,
+and that is what makes the concurrency question uninteresting — it was settled by
+D-44 removing the admin-creates-member path, and this decision only records that
+the link inherits it.
+
+What the link needed, and now has: a 14-day default expiry, storage as a hash
+rather than plaintext, constant-time comparison, and rotation that **retains the
+old token row marked revoked** rather than deleting it. Revoked, expired and
+never-existed all return the identical `INVALID_INVITE` response — a distinct
+`INVITE_EXPIRED` code was drafted and dropped, because a different code is a
+different answer and a different answer is an oracle for enumerating Homes.
+
+---
+
+## D-65 — erasure removes the person, not the arithmetic
+
+A Home's record is jointly authored. If one member's erasure deleted their
+splits, everybody else's settled month would silently stop balancing — a figure
+they agreed to, changed later, by somebody else, without them being told.
+
+So erasure removes the account and everything personal to it — credentials,
+devices, push subscriptions, notifications, avatar, receipts, ratings,
+restrictions — and retains the membership row, its splits, settlements,
+assignments and decision responses under a stable pseudonym with `user_id` set
+null. Money that was settled stays settled. The right to a copy is served by the
+export paths that already exist and are permanent under BR-292.
+
+Two guards: erasure requires being financially clear in **every** Home, so it
+cannot be used to walk away from a debt; and a removal decision never triggers
+it, so the Home cannot erase somebody by vote. A Home itself is deleted only when
+its last member leaves, after a 30-day window in which any former member can
+restore it.
+
+---
+
+## D-66 — the offline write queue's contract is written before the queue
+
+`03-ARCHITECTURE.md` said a future write queue "needs an explicit idempotency and
+conflict contract before being enabled". That sentence has been outstanding since
+version 1, which meant the queue would arrive in phase 16 and the contract would
+be reverse-engineered from whatever it did. Section 8.1 now writes it first.
+
+The load-bearing part is that it is **not last-write-wins**, which is what the
+TRD's out-of-scope list previously implied. A queued mutation is re-validated
+against current state on arrival, exactly as a live request would be, and a
+mutation the world has invalidated is rejected and surfaced to the member — never
+applied over a decision the Home made while their device was offline.
+
+The second part is that the queue is **opt-in per endpoint and refuses by
+default**. Recording something that happened is queueable; agreeing to something
+is not. A decision response replayed an hour later does not mean what the member
+meant, and the property this version exists for is that no Critical decision
+completes on stale input.

@@ -945,6 +945,10 @@ Suggest two dishes they have NOT already got in their list of usual meals.
 Prefer things that fit their region, the season, and their budget position.
 Avoid anything containing an ingredient on their dislike list.
 
+NEVER suggest anything containing an ingredient on their excluded list. Those
+are allergies and restrictions, not preferences. If you cannot suggest two
+dishes without them, return an empty list.
+
 Give a realistic estimated cost per person in rupees, as a number.
 
 Do NOT name a restaurant, a shop, a brand or a delivery service. Do NOT claim
@@ -964,6 +968,7 @@ Return only JSON matching the schema.
   "popular_meals": ["Paruppu Sadham", "Curd Rice", "Chicken Biryani"],
   "liked_items": ["chicken", "rice", "paneer"],
   "disliked_items": ["bitter gourd"],
+  "excluded_items": ["peanut", "prawn"],
   "recent_meals": [ { "name": "Chicken Biryani", "days_ago": 2 } ],
   "budget_state": "tight",
   "outside_food_frequency": "high",
@@ -974,6 +979,12 @@ Return only JSON matching the schema.
 No member names, no member ids, no amounts beyond a typical per-person figure,
 and the city rather than the address. A food payload is the least sensitive of
 the six and the redaction contract still applies to it in full.
+
+`excluded_items` is the **union** of the restricted items of the people being
+served (BR-226), flattened and unattributed: the model learns that this meal must
+avoid peanut, never which member it belongs to or at what severity. It is health
+information about a person, so the one form in which it may leave the system is
+the one that cannot be traced back to them.
 
 ### 9.3 Response schema
 
@@ -1014,6 +1025,7 @@ below is what makes that safe.
 | Exactly two ideas | One idea means the call added half of what it was for |
 | Neither name matches a library entry after normalisation | A duplicate means it suggested what the deterministic half already covers |
 | Neither contains an item on `disliked_items` | The Home told us, and ignoring it is worse than showing nothing |
+| **Neither contains an item on `excluded_items`** | The prompt asked; this check is the guarantee. Matching is the same canonical containment the recommender uses, so "peanut" catches "peanut oil". A prompt is a request and a filter is a guarantee — the model is never the last line here (BR-225) |
 | Each estimated cost is between ₹1 and ₹5,000 | A number outside that is not an estimate |
 | **No name or description matches the brand pattern** | See below |
 | No description contains "near you", "nearby", "open", "available at", "order from", "delivery" | A claim about the world this system cannot verify |
@@ -1147,6 +1159,34 @@ for review before saving — never applied silently.
 | Rate limits per provider | Free tiers limit requests per minute as well as per day. The six call sites are far below any of them, but the parse cap is enforced per member so that a shared house cannot spend the whole minute budget on one person's typing. |
 | Kill switch | Six capability switches stop call sites individually; `house_settings.llm_scheduling_enabled = false` still stops schedule calls; removing the key stops everything for that Home; unsetting `LLM_API_KEY` stops the environment fallback |
 | Daily food cache | The suggestion card reads a cached result refreshed by `refresh-food-suggestions` at 16:00. A screen view never triggers a call. This is what keeps the most-viewed AI feature off the per-request path. |
+
+### 11.1 Failure modes
+
+Every call site handles its own failures in its own section. This table is the
+consolidated view — what the router does, once, for each way a call can go wrong.
+The rule underneath all of it: **a degraded AI half is never a degraded product
+half.** The deterministic result renders regardless.
+
+| Failure | Detected by | What happens | What the member sees |
+|---|---|---|---|
+| Network error, DNS, connection reset | Adapter | One retry after 2s, then fail | The deterministic result alone |
+| Timeout | 20s hard deadline per call, enforced by the router, not the provider | No retry — a slow call retried is a slower call | The deterministic result alone |
+| HTTP 429 from the provider | Adapter | No retry. Counts as a failure toward the circuit breaker. The Home's key has hit the Home's quota; retrying spends it faster | The deterministic result alone; the admin view shows "provider rate limit" |
+| HTTP 401/403 | Adapter | Immediate stop and the key is flagged per section 3.6 | The Admin is told the key needs attention. Other members see nothing |
+| HTTP 5xx | Adapter | One retry after 2s, then fail | The deterministic result alone |
+| Truncated response — output token limit reached mid-JSON | JSON parse fails, or `finish_reason` is a length stop | Discarded whole. **A partial object is never salvaged**, because the half of a proposal that arrived is not a smaller proposal, it is an unknown one | The deterministic result alone |
+| Well-formed JSON, wrong shape | Zod schema | Discarded whole | The deterministic result alone |
+| Right shape, fails a content check (section 5.4, 6.4, 7.4, 8.4, 9.4, 10.2) | Validator | Discarded whole. Checks are all-or-nothing per call site by design — a response that failed one check has demonstrated it is not following instructions, so its other fields are not evidence of anything | The deterministic result alone |
+| Non-determinism between two calls with the same input | Not detected, and not treated as an error | Nothing. **Temperature is set per call site to what that call site is for** — 0 for meal normalisation and shopping-list generation, 0.1 for natural-language entry, 0.2 for rule parsing, 0.3 for the schedule proposal, 0.6 for the digest, 0.8 for food ideas, where novelty is the point. Where a varying answer would be visible as inconsistency, the result is **cached** rather than the temperature lowered: the food card is refreshed once a day by a job, not per view (section 11), so two members looking at the same screen see the same two ideas. A proposal is a proposal; it must be valid, not reproducible — every one of them is checked by a deterministic validator before anybody sees it | Consistent within a day |
+| Three consecutive failures | Router | Circuit opens for that Home for 1 hour | Nothing new; the deterministic half was already all they were seeing |
+| Cost drifting above the expected envelope | The per-call token counts logged in section 12, against the caps in section 11 | The daily caps are hard, enforced before the call, and per Home or per member as listed. There is no soft budget that can be overrun | A cap reached returns `RATE_LIMITED` on that call site only |
+
+Two things this table deliberately does **not** do. It does not fall back to a
+different provider — the key is the Home's and its choice of provider is theirs,
+so a silent switch would spend somebody else's quota. And it does not queue a
+failed call for later: every one of the seven call sites is either decorative or
+has a deterministic equivalent that already ran, so there is nothing to catch up
+on.
 
 ---
 

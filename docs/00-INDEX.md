@@ -62,6 +62,7 @@ distributes the load automatically according to who is actually home and when.
 | 13 | [SETUP-RUNBOOK.md](13-SETUP-RUNBOOK.md) | Zero to deployed: every command, every key, post-deploy verification, troubleshooting | Developer |
 | 14 | [GOVERNANCE-SPEC.md](14-GOVERNANCE-SPEC.md) | The Decision engine, the Approval engine, the three levels, the matrix, quorum resolution, and Rules with their versioning | Developer |
 | 15 | [FOOD-SPEC.md](15-FOOD-SPEC.md) | Meals, items, sources, costs, participants, the library, preferences, both recommendation paths, and planned meals | Developer |
+| 15 | [FOOD-SPEC.md](15-FOOD-SPEC.md) — §5.2a | Restrictions: the hard exclusions no recommendation score may outrank, and what each severity does when a meal is recorded anyway | Developer |
 | 16 | [COMPETITIVE-POSITIONING.md](16-COMPETITIVE-POSITIONING.md) | Every competitor capability and complaint in [`Competitor_Analysis.txt`](Competitor_Analysis.txt), mapped to the requirement that carries it, the commitment that answers it, or the reason we do not build it | Product owner, developer |
 
 ### Source documents
@@ -74,6 +75,18 @@ auditable.
 |------|-----------|
 | [`new_BRD.txt`](new_BRD.txt) | The version-2.0 requirements as originally written, before they were split across 01 to 15. Where it and a numbered document disagree, **the numbered document wins.** |
 | [`Competitor_Analysis.txt`](Competitor_Analysis.txt) | Raw competitor capabilities and user complaints. Mapped to requirements in [16-COMPETITIVE-POSITIONING.md](16-COMPETITIVE-POSITIONING.md). |
+
+### Documents outside this directory
+
+Four live at the repository root because they describe the repository rather
+than the product.
+
+| File | What it answers |
+|------|-----------------|
+| [`../README.md`](../README.md) | Setup, architecture and domain rules, in one page |
+| [`../DECISIONS.md`](../DECISIONS.md) | Every non-obvious decision, D-01 onward, with the reasoning. Preserve a decision unless the task explicitly changes it |
+| [`../PROGRESS.md`](../PROGRESS.md) | What is built, what has actually been applied to a database, and what has actually been observed to run. **The authority on state**, where the documents here are the authority on intent |
+| [`../SECURITY.md`](../SECURITY.md) | The threat model — assets, adversaries, and what is explicitly out of scope — plus the security architecture, the secret inventory, and disclosure |
 
 Read 00 to 07 in order the first time, then 14 and 15 before touching
 governance or food. 08 to 13 are working references you open while building the
@@ -201,4 +214,7 @@ Settled during design. Changing any one invalidates parts of several documents.
 | **Settlement** | One directed payment from one member to another that clears a period. |
 | **Meal** | A named thing that was eaten, with items, a source, costs and participants. |
 | **Food Library** | The Home's own catalogue of meals it has eaten, deduplicated and reusable. |
+| **Preference** | A standing opinion about a food or an item — like, okay, dislike. A weight in the recommendation score. |
+| **Restriction** | What a person *cannot* eat, at one of three severities. Not a preference: it removes candidates before scoring, and no score outranks it. |
+| **Erasure** | Removal of a person's account and everything personal to it, retaining their Home's arithmetic under a pseudonym. Distinct from removal, which is a decision the Home takes. |
 | **History** | The permanent activity log of everything that happened and who did it. |

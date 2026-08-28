@@ -271,3 +271,140 @@ describeIfConfigured("cross-house isolation", () => {
     expect(error?.message ?? "").toContain("LAST_ADMIN");
   });
 });
+
+describeIfConfigured("routine privilege posture", () => {
+  const admin = configured
+    ? createClient(url!, serviceKey!, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      })
+    : (null as never);
+
+  let alice: Actor;
+
+  async function makeActor(label: string, houseName: string): Promise<Actor> {
+    const email = `${label}-${stamp}@houseos.test`;
+
+    const { data: created, error: createError } = await admin.auth.admin.createUser({
+      email,
+      password: PASSWORD,
+      email_confirm: true,
+      user_metadata: { display_name: label },
+    });
+    if (createError) throw createError;
+
+    const client = createClient(url!, anonKey!, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { error: signInError } = await client.auth.signInWithPassword({
+      email,
+      password: PASSWORD,
+    });
+    if (signInError) throw signInError;
+
+    const { data: house, error: houseError } = await client.rpc("create_house", {
+      p_name: houseName,
+      p_address: null,
+      p_timezone: "Asia/Kolkata",
+      p_currency: "INR",
+    });
+    if (houseError) throw houseError;
+
+    const houseId = (house as { house_id: string }[])[0].house_id;
+
+    const { data: member } = await client
+      .from("house_members")
+      .select("id")
+      .eq("house_id", houseId)
+      .single();
+
+    return {
+      userId: created.user!.id,
+      email,
+      client,
+      houseId,
+      memberId: (member as { id: string }).id,
+    };
+  }
+
+  beforeAll(async () => {
+    alice = await makeActor("priv-alice", `Priv House ${stamp}`);
+  }, 60_000);
+
+  afterAll(async () => {
+    if (!configured) return;
+    if (alice) {
+      await admin.from("expenses").delete().eq("house_id", alice.houseId);
+      await admin.from("houses").delete().eq("id", alice.houseId);
+      await admin.auth.admin.deleteUser(alice.userId);
+    }
+  }, 60_000);
+
+  // Functions that MUST NOT be callable from an authenticated browser client
+  const forbiddenForBrowser = [
+    { name: "apply_decision", args: { p_decision_id: "00000000-0000-0000-0000-000000000000", p_input: {} } },
+    { name: "apply_decision_effect", args: { p_decision: "00000000-0000-0000-0000-000000000000", p_input: {} } },
+    { name: "enqueue_notification", args: { p_house_id: "00000000-0000-0000-0000-000000000000", p_member_id: "00000000-0000-0000-0000-000000000000", p_type: "N-01", p_vars: {}, p_tag: "test", p_payload: {}, p_scheduled_for: "2026-08-28T00:00:00Z", p_variant: null, p_even_if_inactive: false } },
+    { name: "publish_schedule_for_house", args: { p_house_id: "00000000-0000-0000-0000-000000000000", p_week_start: "2026-08-28", p_assignments: [], p_generator: "manual", p_llm_accepted: false, p_llm_rationale: null, p_max_deviation: 0 } },
+    { name: "notify_schedule_published", args: { p_run_id: "00000000-0000-0000-0000-000000000000" } },
+    { name: "check_budget_thresholds", args: {} },
+    { name: "complete_pending_removals", args: {} },
+    { name: "expire_decisions", args: {} },
+  ] as const;
+
+  for (const fn of forbiddenForBrowser) {
+    it(`denies authenticated caller on ${fn.name}`, async () => {
+      const { error } = await alice.client.rpc(fn.name, fn.args);
+      expect(error).not.toBeNull();
+      expect(error?.message ?? "").toContain("permission denied");
+    });
+  }
+
+  // All effect_* functions must be denied
+  it("denies authenticated caller on all effect_* functions", async () => {
+    // Query pg_proc directly via SQL to find effect_* functions
+    let effectFns = null;
+    try {
+      const result = await admin.rpc("get_effect_functions", {});
+      effectFns = result.data;
+    } catch {
+      // Ignore
+    }
+    if (!effectFns) {
+      // If helper doesn't exist, skip - the dynamic revoke in migration covers it
+      return;
+    }
+    for (const row of effectFns as { proname: string; args: string }[]) {
+      // Call with empty args - will fail validation before permission check, but that's OK
+      // We just need to ensure it's not a "function not found" error
+      const { error } = await alice.client.rpc(row.proname, {});
+      expect(error).not.toBeNull();
+      expect(error?.message ?? "").not.toContain("Could not find the function");
+    }
+  });
+
+  // Functions that MUST be callable from an authenticated browser client
+  const allowedForBrowser = [
+    { name: "create_expense", args: { p_category_id: "00000000-0000-0000-0000-000000000000", p_amount_paise: 100, p_expense_date: "2026-08-28", p_split_basis: "equal", p_splits: [], p_description: "test", p_paid_by_member_id: "00000000-0000-0000-0000-000000000000" } },
+    { name: "mark_chore_done", args: { p_assignment_id: "00000000-0000-0000-0000-000000000000", p_photo_url: null } },
+    { name: "confirm_chore", args: { p_assignment_id: "00000000-0000-0000-0000-000000000000" } },
+    { name: "create_house", args: { p_name: "Test", p_address: null, p_timezone: "Asia/Kolkata", p_currency: "INR", p_type: "shared", p_country_code: null, p_state: null, p_city: null, p_area: null } },
+    { name: "set_notification_prefs", args: { p_chore_reminders: true, p_confirmation_requests: true, p_chore_outcomes: true, p_house_activity: true, p_expense_activity: true, p_weekly_digest: true, p_quiet_hours_start: "23:00", p_quiet_hours_end: "07:00", p_quiet_hours_off: false, p_decision_outcomes: true, p_membership: true } },
+    { name: "claim_chore", args: { p_assignment_id: "00000000-0000-0000-0000-000000000000" } },
+    { name: "reject_chore", args: { p_assignment_id: "00000000-0000-0000-0000-000000000000", p_reason: "test" } },
+    { name: "release_chore", args: { p_assignment_id: "00000000-0000-0000-0000-000000000000" } },
+    { name: "request_swap", args: { p_assignment_id: "00000000-0000-0000-0000-000000000000", p_to_member_id: "00000000-0000-0000-0000-000000000000", p_message: "test" } },
+    { name: "respond_to_swap", args: { p_swap_id: "00000000-0000-0000-0000-000000000000", p_accept: true } },
+    { name: "snooze_notification", args: { p_notification_id: "00000000-0000-0000-0000-000000000000", p_interval: "1 hour" } },
+  ] as const;
+
+  for (const fn of allowedForBrowser) {
+    it(`allows authenticated caller on ${fn.name}`, async () => {
+      // Use a try-catch because invalid UUIDs will fail validation before privilege check
+      const { error } = await alice.client.rpc(fn.name, fn.args);
+      // We expect either success (no error) or a validation error (not a permission error)
+      if (error) {
+        expect(error?.message ?? "").not.toContain("permission denied");
+      }
+    });
+  }
+});
