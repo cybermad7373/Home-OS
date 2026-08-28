@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The Supabase CLI writes a bundled copy of the Edge Function runtime here
+    // while the local stack is up. It is gitignored, it is minified, and it is
+    // not ours — linting it produces two hundred findings about single-letter
+    // variables in somebody else's generated file and buries the real ones.
+    "supabase/.temp/**",
   ]),
 ]);
 

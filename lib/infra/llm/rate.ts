@@ -31,4 +31,41 @@ export function countParse(memberId: string, day: string): void {
 
 export function resetParseCounts(): void {
   counts.clear();
+  houseCounts.clear();
+}
+
+/**
+ * The per-Home caps — docs/05-API-SPEC.md section 15.
+ *
+ * Rule parsing is twenty per Home per day rather than per member, and food
+ * ideas will be ten. The unit differs from call site 3 on purpose: a rule is a
+ * thing the Home writes once and argues about, so a cap that scales with the
+ * number of people would make a bigger Home able to spend more of a free tier
+ * on the same six rules.
+ */
+export const RULE_PARSE_CAP_PER_DAY = 20;
+
+const houseCounts = new Map<string, { day: string; used: number }>();
+
+function key(houseId: string, purpose: string): string {
+  return `${purpose}:${houseId}`;
+}
+
+export function houseCallsUsed(houseId: string, purpose: string, day: string): number {
+  const entry = houseCounts.get(key(houseId, purpose));
+  return entry && entry.day === day ? entry.used : 0;
+}
+
+export function underHouseCap(
+  houseId: string,
+  purpose: string,
+  day: string,
+  cap: number,
+): boolean {
+  return houseCallsUsed(houseId, purpose, day) < cap;
+}
+
+export function countHouseCall(houseId: string, purpose: string, day: string): void {
+  const used = houseCallsUsed(houseId, purpose, day);
+  houseCounts.set(key(houseId, purpose), { day, used: used + 1 });
 }

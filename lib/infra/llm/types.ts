@@ -3,11 +3,17 @@
  *
  * Every model call in HouseOS goes through `LlmProvider.complete`. The call
  * sites know nothing about providers, wire formats or keys, which is what makes
- * "works with no key configured" a property of three call sites rather than of
- * every file that might want a sentence written for it.
+ * "works with no key configured" a property of the six call sites rather than
+ * of every file that might want a sentence written for it.
  */
 
-export type LlmPurpose = "schedule" | "digest" | "nl_parse";
+export type LlmPurpose =
+  | "schedule"
+  | "digest"
+  | "nl_parse"
+  | "rule_parse"
+  | "food_ideas"
+  | "food_normalise";
 
 /**
  * The subset of JSON Schema the three call sites actually use, and therefore

@@ -12,7 +12,8 @@ import {
   validateDigest,
   type DigestResponse,
 } from "@/lib/domain/llm/digest";
-import { resolveLlm } from "@/lib/infra/llm/resolve";
+// Aliased: `route` from `lib/api/handler` is the handler wrapper below.
+import { route as routeLlm } from "@/lib/infra/llm/router";
 import { houseToday } from "@/lib/utils/date";
 import { digestQuerySchema } from "@/lib/validation/ai";
 
@@ -49,7 +50,7 @@ export const GET = route(async (request: Request) => {
     });
   }
 
-  const provider = await resolveLlm(house.id);
+  const provider = await routeLlm(house.id, "weekly_summary");
   if (!provider) {
     return jsonResponse({
       generated: false,

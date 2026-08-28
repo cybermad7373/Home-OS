@@ -72,12 +72,17 @@ export type ChoreConfirmationRow = Tables["chore_confirmations"]["Row"];
 export type MemberAvailabilityRow = Tables["member_availability"]["Row"];
 export type AvailabilityExceptionRow = Tables["availability_exceptions"]["Row"];
 export type GuestRow = Tables["guests"]["Row"];
+export type AbsenceRequestRow = Tables["absence_requests"]["Row"];
 
 // --- governance -------------------------------------------------------------
 export type GovernancePolicyRow = Tables["governance_policy"]["Row"];
 export type DecisionRow = Tables["decisions"]["Row"];
 export type DecisionParticipantRow = Tables["decision_participants"]["Row"];
 export type DecisionResponseRow = Tables["decision_responses"]["Row"];
+
+// --- rules ------------------------------------------------------------------
+export type HomeRuleRow = Tables["home_rules"]["Row"];
+export type HomeRuleVersionRow = Tables["home_rule_versions"]["Row"];
 
 // --- notifications ----------------------------------------------------------
 export type NotificationRow = Tables["notifications"]["Row"];
@@ -104,6 +109,7 @@ export type ChoreSlot = Enums["chore_slot"];
 export type ChoreScope = Enums["chore_scope"];
 export type ChoreFrequency = Enums["chore_frequency"];
 export type ExceptionType = Enums["exception_type"];
+export type AbsenceStatusName = Enums["absence_status"];
 export type SwapStatus = Enums["swap_status"];
 export type ConfirmationPolicyName = Enums["confirmation_policy"];
 export type NotifyChannel = Enums["notify_channel"];
@@ -112,3 +118,5 @@ export type DecisionLevelName = Enums["decision_level"];
 export type DecisionStatusName = Enums["decision_status"];
 export type ResponseCapacityName = Enums["response_capacity"];
 export type ResponseKindName = Enums["response_kind"];
+export type RuleStatusName = Enums["rule_status"];
+export type RuleParseSourceName = Enums["rule_parse_source"];

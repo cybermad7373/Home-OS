@@ -13,7 +13,8 @@ import {
   type ParseResponse,
 } from "@/lib/domain/llm/parse";
 import { countParse, underParseCap } from "@/lib/infra/llm/rate";
-import { resolveLlm } from "@/lib/infra/llm/resolve";
+// Aliased: `route` from `lib/api/handler` is the handler wrapper below.
+import { route as routeLlm } from "@/lib/infra/llm/router";
 import { houseToday } from "@/lib/utils/date";
 import { parseTextSchema } from "@/lib/validation/ai";
 
@@ -35,7 +36,7 @@ export const POST = route(async (request: Request) => {
   const today = houseToday(house.timezone);
   if (!underParseCap(member.id, today)) throw new ApiError("RATE_LIMITED");
 
-  const provider = await resolveLlm(house.id);
+  const provider = await routeLlm(house.id, "natural_language");
   if (!provider) throw new ApiError("AI_DISABLED");
 
   const [categories, assignments] = await Promise.all([

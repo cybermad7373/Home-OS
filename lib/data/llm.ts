@@ -153,6 +153,41 @@ export async function readSealedCredential(houseId: string): Promise<StoredCrede
   };
 }
 
+/**
+ * The Home's per-call-site switches — AI-02, docs/10-LLM-SPEC.md section 3.6a.
+ *
+ * Null means "this Home has no credential row", which is not the same as "every
+ * switch is off": the environment fallback serves those Homes and has all six
+ * on. The router reads that distinction, so it is preserved here rather than
+ * collapsed into a default object.
+ *
+ * Service-role, like `readSealedCredential`, and for the same reason — this is
+ * read on the server before a call is made, never by a browser.
+ */
+export async function readCapabilities(
+  houseId: string,
+): Promise<Record<string, boolean> | null> {
+  let client: LooseClient;
+  try {
+    client = createAdminClient() as unknown as LooseClient;
+  } catch {
+    return null;
+  }
+
+  const { data, error } = await client
+    .from("house_llm_credentials")
+    .select("capabilities")
+    .eq("house_id", houseId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const capabilities = data.capabilities;
+  return capabilities && typeof capabilities === "object"
+    ? (capabilities as Record<string, boolean>)
+    : null;
+}
+
 /** Every call writes one, including failures — the logging guarantee. */
 export async function logLlmRun(houseId: string, record: LlmRunRecord): Promise<void> {
   let client: LooseClient;

@@ -116,6 +116,12 @@ export const ERROR_CATALOGUE = {
     status: 422,
     message: "You can only declare a day that has not happened yet",
   },
+  // AV-05. Two live requests over the same days would become two decisions the
+  // Home answers separately, and which could then disagree.
+  ABSENCE_OVERLAPS: {
+    status: 409,
+    message: "You have already asked about some of those days",
+  },
   GUEST_DATES_PAST: {
     status: 422,
     message: "Guest dates can't be more than a week in the past",
@@ -196,6 +202,21 @@ export const ERROR_CATALOGUE = {
     message: "You weren't asked to answer this one",
   },
   ALREADY_RESPONDED: { status: 409, message: "You've already answered this" },
+
+  // Rules — docs/14-GOVERNANCE-SPEC.md section 6, docs/01-BRD.md RL-01 to RL-10.
+  RULE_TITLE_TAKEN: {
+    status: 409,
+    message: "A rule with that name already exists — edit that one instead",
+  },
+  RULE_WEIGHT_RANGE: { status: 422, message: "A weight is between 1 and 100 points" },
+  RULE_PENALTY_RANGE: {
+    status: 422,
+    message: "A penalty above ₹10,000 needs a conversation, not a rule",
+  },
+  RULE_NOT_ACTIVE: {
+    status: 409,
+    message: "That rule isn't in force yet, so there's nothing to turn off",
+  },
 
   NOT_FOUND: { status: 404, message: "That doesn't exist, or isn't yours to see" },
   RATE_LIMITED: { status: 429, message: "Slow down a moment and try again" },

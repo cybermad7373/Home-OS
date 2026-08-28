@@ -11,7 +11,7 @@ import {
   type ScheduleProposal,
   type TranslatedAssignment,
 } from "@/lib/domain/llm/schedule";
-import { resolveLlm } from "@/lib/infra/llm/resolve";
+import { route } from "@/lib/infra/llm/router";
 
 /**
  * The schedule overlay — docs/10-LLM-SPEC.md section 5.
@@ -41,7 +41,7 @@ export async function proposeWithLlm(
   houseId: string,
   input: OverlayInput,
 ): Promise<OverlayResult | null> {
-  const provider = await resolveLlm(houseId);
+  const provider = await route(houseId, "schedule_proposals");
   if (!provider) return null;
 
   const history = await recentHistory(session, houseId, input.weekStart);

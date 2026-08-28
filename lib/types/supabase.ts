@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.15"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -39,6 +34,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      absence_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          from_date: string
+          house_id: string
+          id: string
+          member_id: string
+          reason: string | null
+          status: Database["public"]["Enums"]["absence_status"]
+          to_date: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          from_date: string
+          house_id: string
+          id?: string
+          member_id: string
+          reason?: string | null
+          status?: Database["public"]["Enums"]["absence_status"]
+          to_date: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          from_date?: string
+          house_id?: string
+          id?: string
+          member_id?: string
+          reason?: string | null
+          status?: Database["public"]["Enums"]["absence_status"]
+          to_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absence_requests_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absence_requests_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_config: {
         Row: {
           key: string
@@ -113,6 +159,8 @@ export type Database = {
           assignee_member_id: string | null
           auto_confirmed: boolean
           chore_date: string
+          confirmations_received: number
+          confirmations_required: number
           confirmed_at: string | null
           confirmed_by: string | null
           created_at: string
@@ -126,6 +174,7 @@ export type Database = {
           photo_url: string | null
           rejected_by: string | null
           rejected_reason: string | null
+          requires_lead_confirmer: boolean
           retry_count: number
           schedule_run_id: string | null
           slot: Database["public"]["Enums"]["chore_slot"]
@@ -140,6 +189,8 @@ export type Database = {
           assignee_member_id?: string | null
           auto_confirmed?: boolean
           chore_date: string
+          confirmations_received?: number
+          confirmations_required?: number
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string
@@ -153,6 +204,7 @@ export type Database = {
           photo_url?: string | null
           rejected_by?: string | null
           rejected_reason?: string | null
+          requires_lead_confirmer?: boolean
           retry_count?: number
           schedule_run_id?: string | null
           slot: Database["public"]["Enums"]["chore_slot"]
@@ -167,6 +219,8 @@ export type Database = {
           assignee_member_id?: string | null
           auto_confirmed?: boolean
           chore_date?: string
+          confirmations_received?: number
+          confirmations_required?: number
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string
@@ -180,6 +234,7 @@ export type Database = {
           photo_url?: string | null
           rejected_by?: string | null
           rejected_reason?: string | null
+          requires_lead_confirmer?: boolean
           retry_count?: number
           schedule_run_id?: string | null
           slot?: Database["public"]["Enums"]["chore_slot"]
@@ -238,6 +293,55 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "chore_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chore_confirmations: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          house_id: string
+          id: string
+          is_lead: boolean
+          member_id: string
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          house_id: string
+          id?: string
+          is_lead?: boolean
+          member_id: string
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          house_id?: string
+          id?: string
+          is_lead?: boolean
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chore_confirmations_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "chore_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chore_confirmations_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chore_confirmations_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "house_members"
             referencedColumns: ["id"]
           },
         ]
@@ -371,6 +475,191 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      decision_participants: {
+        Row: {
+          capacity: Database["public"]["Enums"]["response_capacity"]
+          created_at: string
+          decision_id: string
+          id: string
+          is_mandatory: boolean
+          member_id: string
+        }
+        Insert: {
+          capacity: Database["public"]["Enums"]["response_capacity"]
+          created_at?: string
+          decision_id: string
+          id?: string
+          is_mandatory?: boolean
+          member_id: string
+        }
+        Update: {
+          capacity?: Database["public"]["Enums"]["response_capacity"]
+          created_at?: string
+          decision_id?: string
+          id?: string
+          is_mandatory?: boolean
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decision_participants_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decision_participants_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      decision_responses: {
+        Row: {
+          capacity: Database["public"]["Enums"]["response_capacity"]
+          decision_id: string
+          id: string
+          member_id: string
+          reason: string | null
+          responded_at: string
+          response: Database["public"]["Enums"]["response_kind"]
+        }
+        Insert: {
+          capacity: Database["public"]["Enums"]["response_capacity"]
+          decision_id: string
+          id?: string
+          member_id: string
+          reason?: string | null
+          responded_at?: string
+          response: Database["public"]["Enums"]["response_kind"]
+        }
+        Update: {
+          capacity?: Database["public"]["Enums"]["response_capacity"]
+          decision_id?: string
+          id?: string
+          member_id?: string
+          reason?: string | null
+          responded_at?: string
+          response?: Database["public"]["Enums"]["response_kind"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decision_responses_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decision_responses_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      decisions: {
+        Row: {
+          applied_at: string | null
+          auto_approved: boolean
+          created_at: string
+          deadline: string | null
+          house_id: string
+          id: string
+          level: Database["public"]["Enums"]["decision_level"]
+          payload: Json
+          reason: string | null
+          requested_by: string
+          required_acks: number
+          required_approvals: number
+          resolved_at: string | null
+          result: Json | null
+          status: Database["public"]["Enums"]["decision_status"]
+          subject_id: string | null
+          subject_member_id: string | null
+          subject_type: string | null
+          supersedes_id: string | null
+          type: Database["public"]["Enums"]["decision_type"]
+        }
+        Insert: {
+          applied_at?: string | null
+          auto_approved?: boolean
+          created_at?: string
+          deadline?: string | null
+          house_id: string
+          id?: string
+          level: Database["public"]["Enums"]["decision_level"]
+          payload?: Json
+          reason?: string | null
+          requested_by: string
+          required_acks?: number
+          required_approvals?: number
+          resolved_at?: string | null
+          result?: Json | null
+          status?: Database["public"]["Enums"]["decision_status"]
+          subject_id?: string | null
+          subject_member_id?: string | null
+          subject_type?: string | null
+          supersedes_id?: string | null
+          type: Database["public"]["Enums"]["decision_type"]
+        }
+        Update: {
+          applied_at?: string | null
+          auto_approved?: boolean
+          created_at?: string
+          deadline?: string | null
+          house_id?: string
+          id?: string
+          level?: Database["public"]["Enums"]["decision_level"]
+          payload?: Json
+          reason?: string | null
+          requested_by?: string
+          required_acks?: number
+          required_approvals?: number
+          resolved_at?: string | null
+          result?: Json | null
+          status?: Database["public"]["Enums"]["decision_status"]
+          subject_id?: string | null
+          subject_member_id?: string | null
+          subject_type?: string | null
+          supersedes_id?: string | null
+          type?: Database["public"]["Enums"]["decision_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decisions_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decisions_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decisions_subject_member_id_fkey"
+            columns: ["subject_member_id"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "decisions_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
             referencedColumns: ["id"]
           },
         ]
@@ -656,6 +945,59 @@ export type Database = {
           },
         ]
       }
+      governance_policy: {
+        Row: {
+          absence_approver_roles: Database["public"]["Enums"]["member_role"][]
+          absence_deadline_hours: number
+          created_at: string
+          critical_member_rule: string
+          critical_member_value: number
+          critical_requires_coadmin: boolean
+          decision_deadline_days: number
+          expense_approvals_required: number
+          governance_requires_all: boolean
+          house_id: string
+          join_approver_roles: Database["public"]["Enums"]["member_role"][]
+          updated_at: string
+        }
+        Insert: {
+          absence_approver_roles?: Database["public"]["Enums"]["member_role"][]
+          absence_deadline_hours?: number
+          created_at?: string
+          critical_member_rule?: string
+          critical_member_value?: number
+          critical_requires_coadmin?: boolean
+          decision_deadline_days?: number
+          expense_approvals_required?: number
+          governance_requires_all?: boolean
+          house_id: string
+          join_approver_roles?: Database["public"]["Enums"]["member_role"][]
+          updated_at?: string
+        }
+        Update: {
+          absence_approver_roles?: Database["public"]["Enums"]["member_role"][]
+          absence_deadline_hours?: number
+          created_at?: string
+          critical_member_rule?: string
+          critical_member_value?: number
+          critical_requires_coadmin?: boolean
+          decision_deadline_days?: number
+          expense_approvals_required?: number
+          governance_requires_all?: boolean
+          house_id?: string
+          join_approver_roles?: Database["public"]["Enums"]["member_role"][]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "governance_policy_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: true
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guests: {
         Row: {
           counts_for_expense: boolean
@@ -707,6 +1049,234 @@ export type Database = {
           },
         ]
       }
+      home_rule_versions: {
+        Row: {
+          action: Json
+          activated_at: string | null
+          applies_to: Json
+          change_reason: string | null
+          condition: Json
+          created_at: string
+          created_by: string
+          decision_id: string | null
+          ends_on: string | null
+          house_id: string
+          id: string
+          original_text: string
+          parsed_by: Database["public"]["Enums"]["rule_parse_source"]
+          penalty_paise: number | null
+          rule_id: string
+          starts_on: string | null
+          superseded_at: string | null
+          title: string
+          version_no: number
+          weight_points: number | null
+        }
+        Insert: {
+          action?: Json
+          activated_at?: string | null
+          applies_to?: Json
+          change_reason?: string | null
+          condition?: Json
+          created_at?: string
+          created_by: string
+          decision_id?: string | null
+          ends_on?: string | null
+          house_id: string
+          id?: string
+          original_text: string
+          parsed_by?: Database["public"]["Enums"]["rule_parse_source"]
+          penalty_paise?: number | null
+          rule_id: string
+          starts_on?: string | null
+          superseded_at?: string | null
+          title: string
+          version_no: number
+          weight_points?: number | null
+        }
+        Update: {
+          action?: Json
+          activated_at?: string | null
+          applies_to?: Json
+          change_reason?: string | null
+          condition?: Json
+          created_at?: string
+          created_by?: string
+          decision_id?: string | null
+          ends_on?: string | null
+          house_id?: string
+          id?: string
+          original_text?: string
+          parsed_by?: Database["public"]["Enums"]["rule_parse_source"]
+          penalty_paise?: number | null
+          rule_id?: string
+          starts_on?: string | null
+          superseded_at?: string | null
+          title?: string
+          version_no?: number
+          weight_points?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "home_rule_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "home_rule_versions_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "home_rule_versions_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "home_rule_versions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "home_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      home_rules: {
+        Row: {
+          created_at: string
+          created_by: string
+          current_version_id: string | null
+          house_id: string
+          id: string
+          sort_order: number
+          status: Database["public"]["Enums"]["rule_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          current_version_id?: string | null
+          house_id: string
+          id?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["rule_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          current_version_id?: string | null
+          house_id?: string
+          id?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["rule_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_current_version"
+            columns: ["current_version_id"]
+            isOneToOne: false
+            referencedRelation: "home_rule_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "home_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "home_rules_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      house_llm_credentials: {
+        Row: {
+          base_url: string | null
+          capabilities: Json
+          created_at: string
+          created_by: string
+          house_id: string
+          key_ciphertext: string
+          key_iv: string
+          key_last4: string
+          key_tag: string
+          key_version: number
+          last_error: string | null
+          last_verified_at: string | null
+          model: string
+          provider: string
+          status: Database["public"]["Enums"]["llm_credential_status"]
+          updated_at: string
+        }
+        Insert: {
+          base_url?: string | null
+          capabilities?: Json
+          created_at?: string
+          created_by: string
+          house_id: string
+          key_ciphertext: string
+          key_iv: string
+          key_last4: string
+          key_tag: string
+          key_version?: number
+          last_error?: string | null
+          last_verified_at?: string | null
+          model: string
+          provider: string
+          status?: Database["public"]["Enums"]["llm_credential_status"]
+          updated_at?: string
+        }
+        Update: {
+          base_url?: string | null
+          capabilities?: Json
+          created_at?: string
+          created_by?: string
+          house_id?: string
+          key_ciphertext?: string
+          key_iv?: string
+          key_last4?: string
+          key_tag?: string
+          key_version?: number
+          last_error?: string | null
+          last_verified_at?: string | null
+          model?: string
+          provider?: string
+          status?: Database["public"]["Enums"]["llm_credential_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "house_llm_credentials_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "house_llm_credentials_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: true
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       house_members: {
         Row: {
           can_cook: boolean
@@ -719,8 +1289,10 @@ export type Database = {
           joined_date: string
           left_date: string | null
           member_kind: Database["public"]["Enums"]["member_kind"]
+          pending_settlement: boolean
+          removal_decision_id: string | null
           residency: Database["public"]["Enums"]["residency_type"]
-          role: Database["public"]["Enums"]["member_role"]
+          role: Database["public"]["Enums"]["member_role"] | null
           shares_cost: boolean
           status: Database["public"]["Enums"]["member_status"]
           updated_at: string
@@ -737,8 +1309,10 @@ export type Database = {
           joined_date?: string
           left_date?: string | null
           member_kind?: Database["public"]["Enums"]["member_kind"]
+          pending_settlement?: boolean
+          removal_decision_id?: string | null
           residency?: Database["public"]["Enums"]["residency_type"]
-          role?: Database["public"]["Enums"]["member_role"]
+          role?: Database["public"]["Enums"]["member_role"] | null
           shares_cost?: boolean
           status?: Database["public"]["Enums"]["member_status"]
           updated_at?: string
@@ -755,8 +1329,10 @@ export type Database = {
           joined_date?: string
           left_date?: string | null
           member_kind?: Database["public"]["Enums"]["member_kind"]
+          pending_settlement?: boolean
+          removal_decision_id?: string | null
           residency?: Database["public"]["Enums"]["residency_type"]
-          role?: Database["public"]["Enums"]["member_role"]
+          role?: Database["public"]["Enums"]["member_role"] | null
           shares_cost?: boolean
           status?: Database["public"]["Enums"]["member_status"]
           updated_at?: string
@@ -778,6 +1354,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "house_members_removal_decision_fkey"
+            columns: ["removal_decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "house_members_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -790,6 +1373,7 @@ export type Database = {
         Row: {
           auto_confirm_hours: number
           carry_cap_percent: number
+          confirmation_policy: Database["public"]["Enums"]["confirmation_policy"]
           daily_budget_paise: number | null
           effort_mode: Database["public"]["Enums"]["effort_mode"]
           expense_approval_threshold_paise: number
@@ -805,6 +1389,7 @@ export type Database = {
         Insert: {
           auto_confirm_hours?: number
           carry_cap_percent?: number
+          confirmation_policy?: Database["public"]["Enums"]["confirmation_policy"]
           daily_budget_paise?: number | null
           effort_mode?: Database["public"]["Enums"]["effort_mode"]
           expense_approval_threshold_paise?: number
@@ -820,6 +1405,7 @@ export type Database = {
         Update: {
           auto_confirm_hours?: number
           carry_cap_percent?: number
+          confirmation_policy?: Database["public"]["Enums"]["confirmation_policy"]
           daily_budget_paise?: number | null
           effort_mode?: Database["public"]["Enums"]["effort_mode"]
           expense_approval_threshold_paise?: number
@@ -845,37 +1431,49 @@ export type Database = {
       houses: {
         Row: {
           address: string | null
+          area: string | null
+          city: string | null
+          country_code: string | null
           created_at: string
           created_by: string
           currency: string
-          household_type: Database["public"]["Enums"]["household_type"]
+          home_type: Database["public"]["Enums"]["home_type"]
           id: string
           invite_code: string
           name: string
+          state: string | null
           timezone: string
           updated_at: string
         }
         Insert: {
           address?: string | null
+          area?: string | null
+          city?: string | null
+          country_code?: string | null
           created_at?: string
           created_by: string
           currency?: string
-          household_type?: Database["public"]["Enums"]["household_type"]
+          home_type?: Database["public"]["Enums"]["home_type"]
           id?: string
           invite_code: string
           name: string
+          state?: string | null
           timezone?: string
           updated_at?: string
         }
         Update: {
           address?: string | null
+          area?: string | null
+          city?: string | null
+          country_code?: string | null
           created_at?: string
           created_by?: string
           currency?: string
-          household_type?: Database["public"]["Enums"]["household_type"]
+          home_type?: Database["public"]["Enums"]["home_type"]
           id?: string
           invite_code?: string
           name?: string
+          state?: string | null
           timezone?: string
           updated_at?: string
         }
@@ -885,6 +1483,188 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invitations: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          house_id: string
+          id: string
+          revoked_at: string | null
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          house_id: string
+          id?: string
+          revoked_at?: string | null
+          token: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          house_id?: string
+          id?: string
+          revoked_at?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      join_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decline_reason: string | null
+          house_id: string
+          id: string
+          invitation_id: string | null
+          member_id: string | null
+          message: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decline_reason?: string | null
+          house_id: string
+          id?: string
+          invitation_id?: string | null
+          member_id?: string | null
+          message?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decline_reason?: string | null
+          house_id?: string
+          id?: string
+          invitation_id?: string | null
+          member_id?: string | null
+          message?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "join_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "join_requests_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "join_requests_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "invitations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "join_requests_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "join_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      llm_runs: {
+        Row: {
+          accepted: boolean
+          completion_tokens: number | null
+          created_at: string
+          error: string | null
+          house_id: string
+          id: string
+          input_payload: Json
+          latency_ms: number | null
+          model: string
+          output_payload: Json | null
+          prompt_tokens: number | null
+          provider: string
+          purpose: Database["public"]["Enums"]["llm_purpose"]
+          validation_errors: Json | null
+        }
+        Insert: {
+          accepted?: boolean
+          completion_tokens?: number | null
+          created_at?: string
+          error?: string | null
+          house_id: string
+          id?: string
+          input_payload: Json
+          latency_ms?: number | null
+          model: string
+          output_payload?: Json | null
+          prompt_tokens?: number | null
+          provider: string
+          purpose: Database["public"]["Enums"]["llm_purpose"]
+          validation_errors?: Json | null
+        }
+        Update: {
+          accepted?: boolean
+          completion_tokens?: number | null
+          created_at?: string
+          error?: string | null
+          house_id?: string
+          id?: string
+          input_payload?: Json
+          latency_ms?: number | null
+          model?: string
+          output_payload?: Json | null
+          prompt_tokens?: number | null
+          provider?: string
+          purpose?: Database["public"]["Enums"]["llm_purpose"]
+          validation_errors?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "llm_runs_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
             referencedColumns: ["id"]
           },
         ]
@@ -1066,10 +1846,13 @@ export type Database = {
           chore_outcomes: boolean
           chore_reminders: boolean
           confirmation_requests: boolean
+          decision_outcomes: boolean
+          decisions: boolean
           expense_activity: boolean
           house_activity: boolean
           house_id: string
           member_id: string
+          membership: boolean
           quiet_hours_end: string | null
           quiet_hours_start: string | null
           settlement_updates: boolean
@@ -1080,10 +1863,13 @@ export type Database = {
           chore_outcomes?: boolean
           chore_reminders?: boolean
           confirmation_requests?: boolean
+          decision_outcomes?: boolean
+          decisions?: boolean
           expense_activity?: boolean
           house_activity?: boolean
           house_id: string
           member_id: string
+          membership?: boolean
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
           settlement_updates?: boolean
@@ -1094,10 +1880,13 @@ export type Database = {
           chore_outcomes?: boolean
           chore_reminders?: boolean
           confirmation_requests?: boolean
+          decision_outcomes?: boolean
+          decisions?: boolean
           expense_activity?: boolean
           house_activity?: boolean
           house_id?: string
           member_id?: string
+          membership?: boolean
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
           settlement_updates?: boolean
@@ -1189,7 +1978,7 @@ export type Database = {
           deep_link: string | null
           house_id: string
           id: string
-          member_id: string
+          member_id: string | null
           payload: Json
           priority: number
           push_sent_at: string | null
@@ -1199,6 +1988,7 @@ export type Database = {
           tag: string | null
           title: string
           type: string
+          user_id: string | null
         }
         Insert: {
           body: string
@@ -1208,7 +1998,7 @@ export type Database = {
           deep_link?: string | null
           house_id: string
           id?: string
-          member_id: string
+          member_id?: string | null
           payload?: Json
           priority?: number
           push_sent_at?: string | null
@@ -1218,6 +2008,7 @@ export type Database = {
           tag?: string | null
           title: string
           type: string
+          user_id?: string | null
         }
         Update: {
           body?: string
@@ -1227,7 +2018,7 @@ export type Database = {
           deep_link?: string | null
           house_id?: string
           id?: string
-          member_id?: string
+          member_id?: string | null
           payload?: Json
           priority?: number
           push_sent_at?: string | null
@@ -1237,6 +2028,7 @@ export type Database = {
           tag?: string | null
           title?: string
           type?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -1258,6 +2050,13 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -1715,6 +2514,50 @@ export type Database = {
       }
     }
     Views: {
+      house_llm_config: {
+        Row: {
+          base_url: string | null
+          house_id: string | null
+          key_last4: string | null
+          last_error: string | null
+          last_verified_at: string | null
+          model: string | null
+          provider: string | null
+          status: Database["public"]["Enums"]["llm_credential_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          base_url?: string | null
+          house_id?: string | null
+          key_last4?: string | null
+          last_error?: string | null
+          last_verified_at?: string | null
+          model?: string | null
+          provider?: string | null
+          status?: Database["public"]["Enums"]["llm_credential_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          base_url?: string | null
+          house_id?: string | null
+          key_last4?: string | null
+          last_error?: string | null
+          last_verified_at?: string | null
+          model?: string | null
+          provider?: string | null
+          status?: Database["public"]["Enums"]["llm_credential_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "house_llm_credentials_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: true
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_current_occupancy: {
         Row: {
           capacity: number | null
@@ -1779,10 +2622,39 @@ export type Database = {
       }
     }
     Functions: {
+      accept_join_request: {
+        Args: { p_decided_by?: string; p_request_id: string }
+        Returns: {
+          can_cook: boolean
+          created_at: string
+          display_name: string | null
+          does_chores: boolean
+          guardian_member_id: string | null
+          house_id: string
+          id: string
+          joined_date: string
+          left_date: string | null
+          member_kind: Database["public"]["Enums"]["member_kind"]
+          pending_settlement: boolean
+          removal_decision_id: string | null
+          residency: Database["public"]["Enums"]["residency_type"]
+          role: Database["public"]["Enums"]["member_role"] | null
+          shares_cost: boolean
+          status: Database["public"]["Enums"]["member_status"]
+          updated_at: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "house_members"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       add_dependent: {
         Args: {
           p_does_chores?: boolean
-          p_guardian_id?: string
+          p_guardian_id: string
           p_house_id: string
           p_name: string
           p_residency?: Database["public"]["Enums"]["residency_type"]
@@ -1799,8 +2671,10 @@ export type Database = {
           joined_date: string
           left_date: string | null
           member_kind: Database["public"]["Enums"]["member_kind"]
+          pending_settlement: boolean
+          removal_decision_id: string | null
           residency: Database["public"]["Enums"]["residency_type"]
-          role: Database["public"]["Enums"]["member_role"]
+          role: Database["public"]["Enums"]["member_role"] | null
           shares_cost: boolean
           status: Database["public"]["Enums"]["member_status"]
           updated_at: string
@@ -1814,6 +2688,44 @@ export type Database = {
         }
       }
       app_config_value: { Args: { p_key: string }; Returns: string }
+      apply_decision: {
+        Args: { p_decision_id: string; p_input?: Json }
+        Returns: {
+          applied_at: string | null
+          auto_approved: boolean
+          created_at: string
+          deadline: string | null
+          house_id: string
+          id: string
+          level: Database["public"]["Enums"]["decision_level"]
+          payload: Json
+          reason: string | null
+          requested_by: string
+          required_acks: number
+          required_approvals: number
+          resolved_at: string | null
+          result: Json | null
+          status: Database["public"]["Enums"]["decision_status"]
+          subject_id: string | null
+          subject_member_id: string | null
+          subject_type: string | null
+          supersedes_id: string | null
+          type: Database["public"]["Enums"]["decision_type"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "decisions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      apply_decision_effect: {
+        Args: {
+          p_decision: Database["public"]["Tables"]["decisions"]["Row"]
+          p_input?: Json
+        }
+        Returns: Json
+      }
       approve_expense: {
         Args: { p_approve: boolean; p_expense_id: string; p_reason?: string }
         Returns: Database["public"]["Enums"]["expense_status"]
@@ -1822,7 +2734,67 @@ export type Database = {
         Args: { p_from_date?: string; p_member_id: string; p_room_id: string }
         Returns: string
       }
+      begin_member_removal: {
+        Args: { p_decision_id?: string; p_member_id: string }
+        Returns: {
+          can_cook: boolean
+          created_at: string
+          display_name: string | null
+          does_chores: boolean
+          guardian_member_id: string | null
+          house_id: string
+          id: string
+          joined_date: string
+          left_date: string | null
+          member_kind: Database["public"]["Enums"]["member_kind"]
+          pending_settlement: boolean
+          removal_decision_id: string | null
+          residency: Database["public"]["Enums"]["residency_type"]
+          role: Database["public"]["Enums"]["member_role"] | null
+          shares_cost: boolean
+          status: Database["public"]["Enums"]["member_status"]
+          updated_at: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "house_members"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       call_edge: { Args: { body?: Json; fn: string }; Returns: undefined }
+      cancel_decision: {
+        Args: { p_decision_id: string }
+        Returns: {
+          applied_at: string | null
+          auto_approved: boolean
+          created_at: string
+          deadline: string | null
+          house_id: string
+          id: string
+          level: Database["public"]["Enums"]["decision_level"]
+          payload: Json
+          reason: string | null
+          requested_by: string
+          required_acks: number
+          required_approvals: number
+          resolved_at: string | null
+          result: Json | null
+          status: Database["public"]["Enums"]["decision_status"]
+          subject_id: string | null
+          subject_member_id: string | null
+          subject_type: string | null
+          supersedes_id: string | null
+          type: Database["public"]["Enums"]["decision_type"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "decisions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       carry_forward_expense: {
         Args: {
           p_amount_paise: number
@@ -1837,6 +2809,14 @@ export type Database = {
         Returns: string
       }
       check_budget_thresholds: { Args: never; Returns: number }
+      chore_quorum_for: {
+        Args: { p_assignee_member_id: string; p_house_id: string }
+        Returns: {
+          auto_confirm: boolean
+          lead_required: boolean
+          required: number
+        }[]
+      }
       claim_chore: {
         Args: { p_assignment_id: string }
         Returns: Database["public"]["Enums"]["assignment_status"]
@@ -1851,6 +2831,7 @@ export type Database = {
         }
         Returns: Database["public"]["Enums"]["period_status"]
       }
+      complete_pending_removals: { Args: never; Returns: number }
       confirm_chore: {
         Args: { p_assignment_id: string }
         Returns: Database["public"]["Enums"]["assignment_status"]
@@ -1861,6 +2842,51 @@ export type Database = {
           period_locked: boolean
           settlement_status_now: Database["public"]["Enums"]["settlement_status"]
         }[]
+      }
+      create_decision: {
+        Args: {
+          p_deadline?: string
+          p_house_id: string
+          p_level: Database["public"]["Enums"]["decision_level"]
+          p_participants: Json
+          p_payload?: Json
+          p_reason?: string
+          p_required_acks?: number
+          p_required_approvals?: number
+          p_subject_id?: string
+          p_subject_member_id?: string
+          p_subject_type?: string
+          p_supersedes_id?: string
+          p_type: Database["public"]["Enums"]["decision_type"]
+        }
+        Returns: {
+          applied_at: string | null
+          auto_approved: boolean
+          created_at: string
+          deadline: string | null
+          house_id: string
+          id: string
+          level: Database["public"]["Enums"]["decision_level"]
+          payload: Json
+          reason: string | null
+          requested_by: string
+          required_acks: number
+          required_approvals: number
+          resolved_at: string | null
+          result: Json | null
+          status: Database["public"]["Enums"]["decision_status"]
+          subject_id: string | null
+          subject_member_id: string | null
+          subject_type: string | null
+          supersedes_id: string | null
+          type: Database["public"]["Enums"]["decision_type"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "decisions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       create_expense: {
         Args: {
@@ -1882,14 +2908,19 @@ export type Database = {
       create_house: {
         Args: {
           p_address?: string
+          p_area?: string
+          p_city?: string
+          p_country_code?: string
           p_currency?: string
           p_name: string
+          p_state?: string
           p_timezone?: string
-          p_type?: Database["public"]["Enums"]["household_type"]
+          p_type?: Database["public"]["Enums"]["home_type"]
         }
         Returns: {
           house_id: string
           invite_code: string
+          invite_token: string
         }[]
       }
       current_member: {
@@ -1905,8 +2936,10 @@ export type Database = {
           joined_date: string
           left_date: string | null
           member_kind: Database["public"]["Enums"]["member_kind"]
+          pending_settlement: boolean
+          removal_decision_id: string | null
           residency: Database["public"]["Enums"]["residency_type"]
-          role: Database["public"]["Enums"]["member_role"]
+          role: Database["public"]["Enums"]["member_role"] | null
           shares_cost: boolean
           status: Database["public"]["Enums"]["member_status"]
           updated_at: string
@@ -1919,11 +2952,66 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      decision_action_phrase: {
+        Args: { p_type: Database["public"]["Enums"]["decision_type"] }
+        Returns: string
+      }
+      decision_effect_authorised: { Args: never; Returns: boolean }
+      decline_join_request: {
+        Args: { p_reason: string; p_request_id: string }
+        Returns: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decline_reason: string | null
+          house_id: string
+          id: string
+          invitation_id: string | null
+          member_id: string | null
+          message: string | null
+          status: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "join_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      delete_house_llm_credential: {
+        Args: { p_house_id: string }
+        Returns: undefined
+      }
       delete_push_subscription: {
         Args: { p_endpoint: string }
         Returns: undefined
       }
       delete_room: { Args: { p_room_id: string }; Returns: undefined }
+      effect_absence_request: {
+        Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
+        Returns: Json
+      }
+      effect_change_governance: {
+        Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
+        Returns: Json
+      }
+      effect_change_home_mode: {
+        Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
+        Returns: Json
+      }
+      effect_change_rule: {
+        Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
+        Returns: Json
+      }
+      effect_join_request: {
+        Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
+        Returns: Json
+      }
+      effect_remove_member: {
+        Args: { p_decision: Database["public"]["Tables"]["decisions"]["Row"] }
+        Returns: Json
+      }
       enqueue_house_notification: {
         Args: {
           p_admins_only?: boolean
@@ -1939,6 +3027,7 @@ export type Database = {
       }
       enqueue_notification: {
         Args: {
+          p_even_if_inactive?: boolean
           p_house_id: string
           p_member_id: string
           p_payload?: Json
@@ -1950,21 +3039,38 @@ export type Database = {
         }
         Returns: string
       }
+      enqueue_user_notification: {
+        Args: {
+          p_house_id: string
+          p_payload?: Json
+          p_type: string
+          p_user_id: string
+          p_vars?: Json
+        }
+        Returns: string
+      }
       ensure_period: {
         Args: { p_house_id: string; p_period: string }
         Returns: string
       }
       escalate_missed_chores: { Args: never; Returns: number }
+      expire_decisions: { Args: never; Returns: number }
       generate_invite_code: { Args: never; Returns: string }
+      generate_invite_token: { Args: never; Returns: string }
       has_membership: { Args: { p_house_id: string }; Returns: boolean }
       is_house_admin: { Args: { p_house_id: string }; Returns: boolean }
+      is_house_lead: { Args: { p_house_id: string }; Returns: boolean }
       is_house_member: { Args: { p_house_id: string }; Returns: boolean }
-      join_house: {
-        Args: { p_invite_code: string }
+      llm_capabilities_well_formed: {
+        Args: { p_capabilities: Json }
+        Returns: boolean
+      }
+      lookup_invitation: {
+        Args: { p_token: string }
         Returns: {
-          house_id: string
+          home_type: Database["public"]["Enums"]["home_type"]
           house_name: string
-          status: Database["public"]["Enums"]["member_status"]
+          member_count: number
         }[]
       }
       mark_all_notifications_read: {
@@ -1984,6 +3090,15 @@ export type Database = {
         Returns: Database["public"]["Enums"]["settlement_status"]
       }
       member_display_name: { Args: { p_member_id: string }; Returns: string }
+      member_is_financially_clear: {
+        Args: { p_member_id: string }
+        Returns: boolean
+      }
+      next_rule_version_no: { Args: { p_rule_id: string }; Returns: number }
+      notify_apply_refused: {
+        Args: { p_decision_id: string; p_reason: string }
+        Returns: string
+      }
       notify_schedule_published: { Args: { p_run_id: string }; Returns: number }
       period_close_readiness: {
         Args: { p_period_id: string }
@@ -2017,7 +3132,6 @@ export type Database = {
         }
         Returns: string
       }
-      regenerate_invite_code: { Args: { p_house_id: string }; Returns: string }
       reject_chore: {
         Args: { p_assignment_id: string; p_reason: string }
         Returns: Database["public"]["Enums"]["assignment_status"]
@@ -2026,6 +3140,7 @@ export type Database = {
         Args: { p_assignment_id: string }
         Returns: Database["public"]["Enums"]["assignment_status"]
       }
+      remind_decision_participants: { Args: never; Returns: number }
       remind_outstanding_settlements: { Args: never; Returns: number }
       render_template: {
         Args: { p_template: string; p_vars: Json }
@@ -2039,6 +3154,14 @@ export type Database = {
         Args: { p_expense_id: string; p_splits: Json }
         Returns: undefined
       }
+      request_join: {
+        Args: { p_message?: string; p_token: string }
+        Returns: {
+          house_id: string
+          house_name: string
+          status: string
+        }[]
+      }
       request_swap: {
         Args: {
           p_assignment_id: string
@@ -2047,9 +3170,31 @@ export type Database = {
         }
         Returns: string
       }
+      resolve_decision: {
+        Args: { p_decision_id: string }
+        Returns: Database["public"]["Enums"]["decision_status"]
+      }
       respond_to_swap: {
         Args: { p_accept: boolean; p_swap_id: string }
         Returns: Database["public"]["Enums"]["swap_status"]
+      }
+      rotate_invitation: {
+        Args: { p_house_id: string }
+        Returns: {
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          house_id: string
+          id: string
+          revoked_at: string | null
+          token: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invitations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       save_push_subscription: {
         Args: {
@@ -2064,7 +3209,7 @@ export type Database = {
       seed_default_categories: {
         Args: {
           p_house_id: string
-          p_type?: Database["public"]["Enums"]["household_type"]
+          p_type?: Database["public"]["Enums"]["home_type"]
         }
         Returns: undefined
       }
@@ -2072,26 +3217,48 @@ export type Database = {
         Args: { p_house_id: string }
         Returns: undefined
       }
+      set_house_llm_credential: {
+        Args: {
+          p_base_url: string
+          p_house_id: string
+          p_key_ciphertext: string
+          p_key_iv: string
+          p_key_last4: string
+          p_key_tag: string
+          p_key_version: number
+          p_model: string
+          p_provider: string
+          p_status: Database["public"]["Enums"]["llm_credential_status"]
+          p_verified_at?: string
+        }
+        Returns: undefined
+      }
       set_notification_prefs: {
         Args: {
           p_chore_outcomes?: boolean
           p_chore_reminders?: boolean
           p_confirmation_requests?: boolean
+          p_decision_outcomes?: boolean
           p_expense_activity?: boolean
           p_house_activity?: boolean
+          p_membership?: boolean
           p_quiet_hours_end?: string
           p_quiet_hours_off?: boolean
           p_quiet_hours_start?: string
+          p_telegram_enabled?: boolean
           p_weekly_digest?: boolean
         }
         Returns: {
           chore_outcomes: boolean
           chore_reminders: boolean
           confirmation_requests: boolean
+          decision_outcomes: boolean
+          decisions: boolean
           expense_activity: boolean
           house_activity: boolean
           house_id: string
           member_id: string
+          membership: boolean
           quiet_hours_end: string | null
           quiet_hours_start: string | null
           settlement_updates: boolean
@@ -2120,8 +3287,36 @@ export type Database = {
       }
       warn_deficits: { Args: { p_threshold?: number }; Returns: number }
       week_start_of: { Args: { p_date: string }; Returns: string }
+      withdraw_join_request: {
+        Args: { p_request_id: string }
+        Returns: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decline_reason: string | null
+          house_id: string
+          id: string
+          invitation_id: string | null
+          member_id: string | null
+          message: string | null
+          status: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "join_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
+      absence_status:
+        | "waiting"
+        | "approved"
+        | "rejected"
+        | "cancelled"
+        | "lapsed"
       assignment_source: "engine" | "llm" | "admin" | "marketplace" | "swap"
       assignment_status:
         | "assigned"
@@ -2142,18 +3337,53 @@ export type Database = {
       chore_frequency: "daily" | "weekly" | "times_per_week"
       chore_scope: "house" | "room"
       chore_slot: "morning" | "evening" | "any"
+      confirmation_policy: "size_aware" | "single" | "off"
+      decision_level: "normal" | "important" | "critical"
+      decision_status:
+        | "waiting"
+        | "approved"
+        | "rejected"
+        | "lapsed"
+        | "cancelled"
+        | "applied"
+      decision_type:
+        | "close_settlement"
+        | "reopen_settlement"
+        | "remove_member"
+        | "change_rule"
+        | "change_governance"
+        | "change_home_mode"
+        | "balance_adjustment"
+        | "absence_request"
+        | "join_request"
+        | "expense_approval"
+        | "chore_confirmation"
+        | "set_expected_contribution"
+        | "create_reserve"
+        | "reserve_draw"
       effort_mode: "points" | "rota"
       exception_type: "away" | "home_all_day" | "custom_hours"
       expense_status: "pending_approval" | "approved" | "rejected" | "void"
-      household_type: "shared" | "family"
-      llm_purpose: "schedule" | "digest" | "nl_parse"
+      home_type: "shared" | "family"
+      llm_credential_status: "unverified" | "active" | "failing" | "disabled"
+      llm_purpose:
+        | "schedule"
+        | "digest"
+        | "nl_parse"
+        | "rule_parse"
+        | "food_ideas"
+        | "food_normalise"
       member_kind: "adult" | "dependent"
-      member_role: "admin" | "member"
-      member_status: "pending" | "active" | "inactive"
+      member_role: "admin" | "co_admin" | "member"
+      member_status: "requested" | "active" | "inactive"
       money_mode: "split" | "pot"
       notify_channel: "push" | "in_app"
       period_status: "open" | "closing" | "closed" | "reopened"
       residency_type: "full_time" | "weekday_only" | "weekend_only"
+      response_capacity: "approver" | "acknowledger"
+      response_kind: "approve" | "reject" | "acknowledge"
+      rule_parse_source: "manual" | "ai"
+      rule_status: "draft" | "proposed" | "active" | "disabled" | "superseded"
       settlement_status: "pending" | "marked_paid" | "confirmed"
       split_basis: "equal" | "room_rent" | "custom" | "payer"
       swap_status: "pending" | "accepted" | "declined" | "expired"
@@ -2287,6 +3517,13 @@ export const Constants = {
   },
   public: {
     Enums: {
+      absence_status: [
+        "waiting",
+        "approved",
+        "rejected",
+        "cancelled",
+        "lapsed",
+      ],
       assignment_source: ["engine", "llm", "admin", "marketplace", "swap"],
       assignment_status: [
         "assigned",
@@ -2309,21 +3546,60 @@ export const Constants = {
       chore_frequency: ["daily", "weekly", "times_per_week"],
       chore_scope: ["house", "room"],
       chore_slot: ["morning", "evening", "any"],
+      confirmation_policy: ["size_aware", "single", "off"],
+      decision_level: ["normal", "important", "critical"],
+      decision_status: [
+        "waiting",
+        "approved",
+        "rejected",
+        "lapsed",
+        "cancelled",
+        "applied",
+      ],
+      decision_type: [
+        "close_settlement",
+        "reopen_settlement",
+        "remove_member",
+        "change_rule",
+        "change_governance",
+        "change_home_mode",
+        "balance_adjustment",
+        "absence_request",
+        "join_request",
+        "expense_approval",
+        "chore_confirmation",
+        "set_expected_contribution",
+        "create_reserve",
+        "reserve_draw",
+      ],
       effort_mode: ["points", "rota"],
       exception_type: ["away", "home_all_day", "custom_hours"],
       expense_status: ["pending_approval", "approved", "rejected", "void"],
-      household_type: ["shared", "family"],
-      llm_purpose: ["schedule", "digest", "nl_parse"],
+      home_type: ["shared", "family"],
+      llm_credential_status: ["unverified", "active", "failing", "disabled"],
+      llm_purpose: [
+        "schedule",
+        "digest",
+        "nl_parse",
+        "rule_parse",
+        "food_ideas",
+        "food_normalise",
+      ],
       member_kind: ["adult", "dependent"],
-      member_role: ["admin", "member"],
-      member_status: ["pending", "active", "inactive"],
+      member_role: ["admin", "co_admin", "member"],
+      member_status: ["requested", "active", "inactive"],
       money_mode: ["split", "pot"],
       notify_channel: ["push", "in_app"],
       period_status: ["open", "closing", "closed", "reopened"],
       residency_type: ["full_time", "weekday_only", "weekend_only"],
+      response_capacity: ["approver", "acknowledger"],
+      response_kind: ["approve", "reject", "acknowledge"],
+      rule_parse_source: ["manual", "ai"],
+      rule_status: ["draft", "proposed", "active", "disabled", "superseded"],
       settlement_status: ["pending", "marked_paid", "confirmed"],
       split_basis: ["equal", "room_rent", "custom", "payer"],
       swap_status: ["pending", "accepted", "declined", "expired"],
     },
   },
 } as const
+
