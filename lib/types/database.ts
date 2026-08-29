@@ -11,30 +11,17 @@
  */
 
 import type { Database as Generated } from "./supabase";
-import type {
-  PendingEnums,
-  PendingFunctions,
-  PendingTables,
-} from "./schema-pending";
 
 export type { Json } from "./supabase";
 export type { JoinRequestStatus } from "./schema-pending";
 
 /**
- * The generated schema with the migrations `gen:types` has not seen merged in.
+ * The generated schema with all migrations applied.
  *
- * `lib/types/schema-pending.ts` says which those are and when to delete it.
- * Everything in the app — the three Supabase clients included — is typed
- * against this, so a table added by a written-but-unpushed migration is a
- * compile error away from being used correctly rather than an `any`.
+ * All tables, enums, and functions from migrations 047-072 are now generated.
+ * This file re-exports the generated types for the app to use.
  */
-export type Database = Omit<Generated, "public"> & {
-  public: Omit<Generated["public"], "Tables" | "Enums" | "Functions"> & {
-    Tables: PendingTables;
-    Enums: PendingEnums;
-    Functions: PendingFunctions;
-  };
-};
+export type Database = Generated;
 
 type Tables = Database["public"]["Tables"];
 type Enums = Database["public"]["Enums"];

@@ -247,6 +247,23 @@ export const ERROR_CATALOGUE = {
     message: "That rule isn't in force yet, so there's nothing to turn off",
   },
 
+  // Food — docs/15-FOOD-SPEC.md.
+  FOOD_RESTRICTION_VIOLATION: {
+    status: 422,
+    message: "One of the participants is allergic to something in this meal",
+  },
+  MEAL_NOT_FOUND: { status: 404, message: "That meal isn't here" },
+  FOOD_NOT_FOUND: { status: 404, message: "That food isn't in the library" },
+  PLAN_NOT_FOUND: { status: 404, message: "That planned meal isn't here" },
+  PLAN_ALREADY_CONFIRMED: {
+    status: 409,
+    message: "That plan has already been confirmed as eaten",
+  },
+  RESTRICTION_NOT_YOURS: {
+    status: 403,
+    message: "You can only manage your own restrictions",
+  },
+
   NOT_FOUND: { status: 404, message: "That doesn't exist, or isn't yours to see" },
   RATE_LIMITED: { status: 429, message: "Slow down a moment and try again" },
   AI_DISABLED: { status: 501, message: "AI features aren't set up for this house" },
