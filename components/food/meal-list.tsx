@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/ui/empty-state";
+import { LinkExpenseChip } from "./link-expense-chip";
 import { formatDate } from "@/lib/utils/date";
 import { formatMoney } from "@/lib/utils/money";
 import type { MealView } from "@/lib/data/food";
@@ -35,11 +36,14 @@ export function MealList({ meals, currency }: { meals: MealView[]; currency: str
                   : ""}
               </p>
             </div>
-            {meal.totalCostPaise > 0 ? (
-              <span className="text-[15px] text-text">
-                {formatMoney(meal.totalCostPaise, { currency })}
-              </span>
-            ) : null}
+            <div className="flex items-center gap-2">
+              {meal.totalCostPaise > 0 ? (
+                <span className="text-[15px] text-text">
+                  {formatMoney(meal.totalCostPaise, { currency })}
+                </span>
+              ) : null}
+              <LinkExpenseChip mealId={meal.id} expenseId={meal.expenseId} currency={currency} />
+            </div>
           </div>
         </li>
       ))}

@@ -176,3 +176,24 @@ test("the house lead merges two library duplicates", async ({ page }) => {
   await expect(page.getByText(BARE_MEAL_NAME)).not.toBeVisible();
   await expect(page.getByText(COSTED_MEAL_NAME)).toBeVisible();
 });
+
+test("a meal links to an expense from the meal side, and unlinks", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/expenses?add=1");
+
+  await page.locator("button[aria-pressed]").first().click();
+  for (const digit of ["2", "0", "0"]) {
+    await page.getByRole("button", { name: digit, exact: true }).click();
+  }
+  await page.getByRole("button", { name: /^Save/ }).click();
+  await expect(page.getByText(/added\.$/)).toBeVisible();
+
+  await page.goto("/food/history");
+  await page.getByRole("button", { name: "Link to an expense" }).first().click();
+  await page.getByLabel("Choose an expense").selectOption({ index: 1 });
+  await page.getByRole("button", { name: "Link", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Unlink expense" }).first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Unlink expense" }).first().click();
+  await expect(page.getByRole("button", { name: "Link to an expense" }).first()).toBeVisible();
+});

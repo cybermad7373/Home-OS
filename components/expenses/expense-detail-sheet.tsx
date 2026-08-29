@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, Select } from "@/components/ui/input";
 import { BottomSheet } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
@@ -23,6 +23,7 @@ interface ExpenseDetail {
   rejectionReason: string | null;
   createdAt: string;
   approvedAt: string | null;
+  mealId: string | null;
   category: { id: string; name: string; icon: string | null };
   paidBy: { memberId: string; displayName: string };
   approvedBy: { memberId: string; displayName: string } | null;
@@ -66,6 +67,12 @@ export function ExpenseDetailSheet({
   const [error, setError] = useState<string | null>(null);
   const [voiding, setVoiding] = useState(false);
   const [reason, setReason] = useState("");
+  const [mealId, setMealId] = useState<string | null>(null);
+  const [linkedMealName, setLinkedMealName] = useState<string | null>(null);
+  const [linking, setLinking] = useState(false);
+  const [pickingMeal, setPickingMeal] = useState(false);
+  const [meals, setMeals] = useState<{ id: string; name: string }[] | null>(null);
+  const [pickedMealId, setPickedMealId] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +85,15 @@ export function ExpenseDetailSheet({
       }
       const detail: ExpenseDetail = await response.json();
       setExpense(detail);
+      setMealId(detail.mealId);
+
+      if (detail.mealId) {
+        const mealResponse = await fetch(`/api/food/meals/${detail.mealId}`);
+        if (!cancelled && mealResponse.ok) {
+          const { meal } = await mealResponse.json();
+          setLinkedMealName(meal.name);
+        }
+      }
 
       if (detail.receiptUrl) {
         const signed = await fetch(
@@ -90,6 +106,48 @@ export function ExpenseDetailSheet({
       cancelled = true;
     };
   }, [expenseId]);
+
+  function openMealPicker() {
+    setPickingMeal(true);
+    if (meals === null) {
+      fetch("/api/food/meals?limit=15")
+        .then((r) => r.json())
+        .then((body) => setMeals(body.meals ?? []));
+    }
+  }
+
+  async function linkMeal() {
+    if (!pickedMealId) return;
+    setLinking(true);
+    const response = await fetch(`/api/food/meals/${pickedMealId}/link-expense`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ expenseId }),
+    });
+    setLinking(false);
+    if (!response.ok) {
+      toast("That did not save", "danger");
+      return;
+    }
+    setLinkedMealName(meals?.find((m) => m.id === pickedMealId)?.name ?? null);
+    setMealId(pickedMealId);
+    setPickingMeal(false);
+    router.refresh();
+  }
+
+  async function unlinkMeal() {
+    if (!mealId) return;
+    setLinking(true);
+    const response = await fetch(`/api/food/meals/${mealId}/link-expense`, { method: "DELETE" });
+    setLinking(false);
+    if (!response.ok) {
+      toast("That did not save", "danger");
+      return;
+    }
+    setLinkedMealName(null);
+    setMealId(null);
+    router.refresh();
+  }
 
   async function act(path: string, body: unknown, success: string) {
     setBusy(true);
@@ -180,6 +238,42 @@ export function ExpenseDetailSheet({
           Open the receipt
         </a>
       ) : null}
+
+      <div className="mb-4">
+        {linkedMealName ? (
+          <div className="flex items-center justify-between">
+            <p className="caption-text text-text-muted">Linked to {linkedMealName}</p>
+            <Button size="sm" variant="ghost" loading={linking} onClick={unlinkMeal}>
+              Unlink
+            </Button>
+          </div>
+        ) : pickingMeal ? (
+          <div className="flex items-center gap-2">
+            <Select
+              aria-label="Link to a meal"
+              value={pickedMealId}
+              onChange={(event) => setPickedMealId(event.target.value)}
+            >
+              <option value="">Choose a meal</option>
+              {(meals ?? []).map((meal) => (
+                <option key={meal.id} value={meal.id}>
+                  {meal.name}
+                </option>
+              ))}
+            </Select>
+            <Button size="sm" loading={linking} disabled={!pickedMealId} onClick={linkMeal}>
+              Link
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setPickingMeal(false)}>
+              Cancel
+            </Button>
+          </div>
+        ) : (
+          <button type="button" onClick={openMealPicker} className="caption-text text-primary">
+            Link to a meal
+          </button>
+        )}
+      </div>
 
       <h3 className="heading-text mb-2">The split</h3>
       <ul className="mb-4 divide-y divide-border rounded-[10px] border border-border">

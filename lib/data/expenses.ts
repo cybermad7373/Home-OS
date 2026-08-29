@@ -37,6 +37,8 @@ export interface ExpenseView {
   rejectionReason: string | null;
   createdAt: string;
   approvedAt: string | null;
+  /** The meal it feeds, if any — optional, either direction, never required (FD-07). */
+  mealId: string | null;
   category: { id: string; name: string; icon: string | null };
   paidBy: { memberId: string; displayName: string; avatarUrl: string | null };
   approvedBy: { memberId: string; displayName: string } | null;
@@ -98,6 +100,7 @@ function toExpenseView(row: RawExpense, myMemberId: string): ExpenseView {
     rejectionReason: row.rejection_reason,
     createdAt: row.created_at,
     approvedAt: row.approved_at,
+    mealId: row.meal_id,
     category: row.expense_categories ?? { id: row.category_id, name: "Other", icon: null },
     paidBy: {
       memberId: row.paid_by_member_id,

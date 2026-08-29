@@ -80,9 +80,18 @@ export function AddExpenseSheet({
   const [description, setDescription] = useState("");
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [expanded, setExpanded] = useState<"none" | "date" | "payer" | "split">("none");
+  const [expanded, setExpanded] = useState<"none" | "date" | "payer" | "split" | "meal">("none");
+  const [mealId, setMealId] = useState("");
+  const [meals, setMeals] = useState<{ id: string; name: string }[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (expanded !== "meal" || meals !== null) return;
+    fetch("/api/food/meals?limit=15")
+      .then((r) => r.json())
+      .then((body) => setMeals(body.meals ?? []));
+  }, [expanded, meals]);
 
   // A proposal fills the form once, when the sheet opens with one. Everything
   // after that is the user's typing and is never overwritten. Adjusting state
@@ -137,6 +146,14 @@ export function AddExpenseSheet({
       return;
     }
 
+    if (mealId) {
+      await fetch(`/api/food/meals/${mealId}/link-expense`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expenseId: body.id }),
+      });
+    }
+
     const share = preview
       ? ` Your share: ${formatMoney(preview.your_share_paise, { currency })}.`
       : "";
@@ -160,6 +177,8 @@ export function AddExpenseSheet({
     setPaidBy(me.id);
     setSplitBasis(defaultBasis);
     setExpanded("none");
+    setMealId("");
+    setMeals(null);
     setError(null);
   }
 
@@ -262,6 +281,13 @@ export function AddExpenseSheet({
                 ? "Split by room"
                 : "Custom split"}
         </Chip>
+        <span className="text-text-subtle">·</span>
+        <Chip
+          active={expanded === "meal"}
+          onClick={() => setExpanded(expanded === "meal" ? "none" : "meal")}
+        >
+          {mealId ? (meals?.find((m) => m.id === mealId)?.name ?? "Linked to a meal") : "Link to a meal"}
+        </Chip>
       </div>
 
       {expanded === "date" ? (
@@ -314,6 +340,19 @@ export function AddExpenseSheet({
               ? "Recorded against whoever paid, and counted in the budget. It creates no debt."
               : "By room divides each room's rent among its occupants. An empty room's rent is a house cost, split by everybody."}
           </p>
+        </Field>
+      ) : null}
+
+      {expanded === "meal" ? (
+        <Field label="Link to a meal" htmlFor="meal_link" hint="optional, never required">
+          <Select id="meal_link" value={mealId} onChange={(event) => setMealId(event.target.value)}>
+            <option value="">Not linked</option>
+            {(meals ?? []).map((meal) => (
+              <option key={meal.id} value={meal.id}>
+                {meal.name}
+              </option>
+            ))}
+          </Select>
         </Field>
       ) : null}
 
