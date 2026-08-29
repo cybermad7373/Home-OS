@@ -8,7 +8,7 @@ export default function NotFound() {
       <p className="caption-text text-text-muted">
         It may have moved, or you may not be in the house that owns it.
       </p>
-      <Link href="/dashboard" className={buttonVariants({ className: "mt-2" })}>
+      <Link href="/home" className={buttonVariants({ className: "mt-2" })}>
         Back to home
       </Link>
     </main>

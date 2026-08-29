@@ -8,7 +8,7 @@ import { createClient } from "@/lib/infra/supabase/server";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const next = searchParams.get("next") ?? "/home";
 
   if (!code) {
     return NextResponse.redirect(`${origin}/signin?error=missing_code`);

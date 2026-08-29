@@ -39,7 +39,7 @@ async function signIn(page: import("@playwright/test").Page) {
   await page.getByLabel("Username or email").fill(cook.username);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await page.waitForURL("**/dashboard");
+  await page.waitForURL("**/home");
 }
 
 test("a cook creates a home", async ({ page }) => {
@@ -68,7 +68,7 @@ test("a cook creates a home", async ({ page }) => {
   await page.waitForURL("**/onboarding/notify");
   await page.getByRole("button", { name: "Skip for now" }).click();
 
-  await page.waitForURL("**/dashboard");
+  await page.waitForURL("**/home");
 });
 
 test("a meal with only a name and a date is a valid meal", async ({ page }) => {

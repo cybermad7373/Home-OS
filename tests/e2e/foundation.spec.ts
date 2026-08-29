@@ -96,7 +96,7 @@ test("an admin creates a home", async ({ page }) => {
   await page.waitForURL("**/onboarding/notify");
   await page.getByRole("button", { name: "Skip for now" }).click();
 
-  await page.waitForURL("**/dashboard");
+  await page.waitForURL("**/home");
   await expect(page.getByRole("heading", { name: `Anna Nagar ${stamp}` })).toBeVisible();
 
   // The link is what a person is sent. It exists from the moment the Home does.
@@ -124,7 +124,7 @@ test("a joiner asks, waits, and sees nothing of the home", async ({ page }) => {
 test("a lead lets them in and they appear in the home", async ({ page }) => {
   // Signing in by username, which is the point of the username at all.
   await signIn(page, admin.username);
-  await page.waitForURL("**/dashboard");
+  await page.waitForURL("**/home");
 
   await page.goto("/house/members");
   await expect(page.getByText("Waiting to be let in (1)")).toBeVisible();
@@ -137,10 +137,10 @@ test("a lead lets them in and they appear in the home", async ({ page }) => {
 test("every screen works at 360 px", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 780 });
   await signIn(page, admin.email); // the same account, reached by email this time
-  await page.waitForURL("**/dashboard");
+  await page.waitForURL("**/home");
 
   for (const path of [
-    "/dashboard",
+    "/home",
     "/homes",
     "/house/members",
     "/house/rooms",

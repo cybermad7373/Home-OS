@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "HouseOS",
     description:
       "Shared-house management: chores that are visible and fairly distributed, money that is tracked and settled.",
-    start_url: "/dashboard",
+    start_url: "/home",
     display: "standalone",
     background_color: "#0C0A09",
     theme_color: "#0F766E",

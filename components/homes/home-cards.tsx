@@ -26,7 +26,7 @@ export function HomeCards({
     });
     if (!response.ok) return;
     startTransition(() => {
-      router.push("/dashboard");
+      router.push("/home");
       router.refresh();
     });
   }

@@ -26,7 +26,7 @@ const PROMISES = [
 
 export function EnableNotificationsPrompt({
   vapidPublicKey,
-  nextHref = "/dashboard",
+  nextHref = "/home",
 }: {
   vapidPublicKey: string | null;
   nextHref?: string;

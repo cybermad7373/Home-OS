@@ -33,7 +33,7 @@ interface Tab {
  */
 function tabs(pendingApprovals: number): Tab[] {
   return [
-    { href: "/dashboard", label: "Home", icon: Home },
+    { href: "/home", label: "Home", icon: Home },
     { href: "/chores", label: "Chores", icon: CheckSquare },
     { href: "/expenses", label: "Money", icon: IndianRupee },
     ...(pendingApprovals > 0
@@ -162,7 +162,7 @@ function sidebarLinks({
   isRota: boolean;
 }): NavLink[] {
   return [
-    { href: "/dashboard", label: "Home" },
+    { href: "/home", label: "Home" },
     { href: "/notifications", label: "Notifications" },
     { href: "/food", label: "Food" },
     { href: "/chores", label: "Chores" },

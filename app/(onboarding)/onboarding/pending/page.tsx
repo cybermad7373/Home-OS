@@ -19,7 +19,7 @@ export default async function PendingPage() {
   const requests = await listOwnJoinRequests(session);
 
   if (memberships.some((membership) => membership.member.status === "active")) {
-    redirect("/dashboard");
+    redirect("/home");
   }
 
   const membership = await getMembership(session);

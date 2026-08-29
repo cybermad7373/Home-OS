@@ -48,7 +48,7 @@ async function signIn(page: import("@playwright/test").Page) {
   await page.getByLabel("Username or email").fill(admin.username);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await page.waitForURL("**/dashboard");
+  await page.waitForURL("**/home");
 }
 
 test("an admin creates a home", async ({ page }) => {
@@ -80,7 +80,7 @@ test("an admin creates a home", async ({ page }) => {
   await page.waitForURL("**/onboarding/notify");
   await page.getByRole("button", { name: "Skip for now" }).click();
 
-  await page.waitForURL("**/dashboard");
+  await page.waitForURL("**/home");
 });
 
 test("the rules screen is reachable from More, and starts empty", async ({ page }) => {
