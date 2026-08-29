@@ -25,6 +25,11 @@ interface MoreLink {
 function links({ isPot, isRota }: { isPot: boolean; isRota: boolean }): MoreLink[] {
   return [
     {
+      href: "/more/calendar",
+      label: "Calendar",
+      body: "Chores, money, food and decisions on one timeline — day, week or month",
+    },
+    {
       href: "/notifications",
       label: "Notifications",
       body: "Everything the house has told you, and what it may interrupt you for",
