@@ -9,14 +9,17 @@ import {
   type RecommendContext,
   type RankResult,
 } from "@/lib/domain/food/recommend";
+import { buildShoppingDrafts, type PlanForShopping } from "@/lib/domain/food/shopping";
 import { houseToday } from "@/lib/utils/date";
 import type { Session } from "./house";
 import type {
   CreateMealInput,
   CreateMealPlanInput,
   CreateRestrictionInput,
+  CreateShoppingItemInput,
   ConfirmMealPlanInput,
   UpdateFoodPreferenceInput,
+  UpdateShoppingItemInput,
 } from "@/lib/validation/food";
 import type { Database } from "@/lib/types/database";
 
@@ -616,6 +619,160 @@ export async function confirmMealPlan(
 export async function deleteMealPlan(session: Session, planId: string): Promise<void> {
   const { error } = await session.supabase.from("meal_plans").delete().eq("id", planId);
   if (error) throw apiErrorFromPostgres(error);
+}
+
+// ---------------------------------------------------------------------------
+// Shopping list (section 13) — derives from meal plans, never a standalone
+// module. shopping_items.meal_id points at an eaten meal, so a generated
+// item — sourced from an unconfirmed plan — carries no meal link.
+// ---------------------------------------------------------------------------
+
+export interface ShoppingItemView {
+  id: string;
+  name: string;
+  quantity: string | null;
+  unit: string | null;
+  estimatedPricePaise: number | null;
+  mealId: string | null;
+  checkedOff: boolean;
+  createdBy: string;
+}
+
+type ShoppingItemRow = Tables["shopping_items"]["Row"];
+
+function toShoppingItemView(row: ShoppingItemRow): ShoppingItemView {
+  return {
+    id: row.id,
+    name: row.name,
+    quantity: row.quantity,
+    unit: row.unit,
+    estimatedPricePaise: row.estimated_price_paise,
+    mealId: row.meal_id,
+    checkedOff: row.checked_off,
+    createdBy: row.created_by,
+  };
+}
+
+export async function listShoppingItems(
+  session: Session,
+  houseId: string,
+): Promise<ShoppingItemView[]> {
+  const { data, error } = await session.supabase
+    .from("shopping_items")
+    .select("*")
+    .eq("house_id", houseId)
+    .order("created_at", { ascending: true });
+  if (error) throw apiErrorFromPostgres(error);
+  return (data ?? []).map(toShoppingItemView);
+}
+
+export async function createShoppingItem(
+  session: Session,
+  houseId: string,
+  memberId: string,
+  input: CreateShoppingItemInput,
+): Promise<string> {
+  const { data, error } = await session.supabase
+    .from("shopping_items")
+    .insert({
+      house_id: houseId,
+      name: input.name,
+      quantity: input.quantity ?? null,
+      unit: input.unit ?? null,
+      estimated_price_paise: input.estimatedPricePaise ?? null,
+      meal_id: input.mealId ?? null,
+      created_by: memberId,
+    })
+    .select("id")
+    .single();
+  if (error) throw apiErrorFromPostgres(error);
+  return (data as { id: string }).id;
+}
+
+export async function updateShoppingItem(
+  session: Session,
+  memberId: string,
+  itemId: string,
+  input: UpdateShoppingItemInput,
+): Promise<void> {
+  const patch: Tables["shopping_items"]["Update"] = {};
+  if (input.name !== undefined) patch.name = input.name;
+  if (input.quantity !== undefined) patch.quantity = input.quantity;
+  if (input.unit !== undefined) patch.unit = input.unit;
+  if (input.estimatedPricePaise !== undefined) patch.estimated_price_paise = input.estimatedPricePaise;
+  if (input.checkedOff !== undefined) {
+    patch.checked_off = input.checkedOff;
+    patch.checked_off_by = input.checkedOff ? memberId : null;
+    patch.checked_off_at = input.checkedOff ? new Date().toISOString() : null;
+  }
+
+  const { error } = await session.supabase.from("shopping_items").update(patch).eq("id", itemId);
+  if (error) throw apiErrorFromPostgres(error);
+}
+
+export async function deleteShoppingItem(session: Session, itemId: string): Promise<void> {
+  const { error } = await session.supabase.from("shopping_items").delete().eq("id", itemId);
+  if (error) throw apiErrorFromPostgres(error);
+}
+
+/**
+ * The "Generate from meals" action (S-53). Reads the next 7 days of
+ * unconfirmed plans, their linked library food's `default_items`, and the
+ * house's current list, then inserts whatever `buildShoppingDrafts` decides
+ * is new. Returns how many items were added.
+ */
+export async function generateShoppingItems(
+  session: Session,
+  houseId: string,
+  memberId: string,
+): Promise<number> {
+  const from = houseToday();
+  const to = new Date(Date.parse(`${from}T00:00:00Z`) + 7 * 86_400_000).toISOString().slice(0, 10);
+
+  const { data: plans, error: plansError } = await session.supabase
+    .from("meal_plans")
+    .select("food_id")
+    .eq("house_id", houseId)
+    .is("confirmed_meal_id", null)
+    .not("food_id", "is", null)
+    .gte("planned_date", from)
+    .lte("planned_date", to);
+  if (plansError) throw apiErrorFromPostgres(plansError);
+
+  const foodIds = [...new Set((plans ?? []).map((p) => p.food_id).filter((id): id is string => id !== null))];
+  if (foodIds.length === 0) return 0;
+
+  const { data: foods, error: foodsError } = await session.supabase
+    .from("foods")
+    .select("id, default_items")
+    .in("id", foodIds);
+  if (foodsError) throw apiErrorFromPostgres(foodsError);
+
+  const itemsByFoodId = new Map((foods ?? []).map((f) => [f.id, f.default_items]));
+  const plansForShopping: PlanForShopping[] = (plans ?? []).map((p) => ({
+    foodId: p.food_id,
+    defaultItems: p.food_id ? (itemsByFoodId.get(p.food_id) ?? []) : [],
+  }));
+
+  const { data: existing, error: existingError } = await session.supabase
+    .from("shopping_items")
+    .select("name")
+    .eq("house_id", houseId);
+  if (existingError) throw apiErrorFromPostgres(existingError);
+
+  const drafts = buildShoppingDrafts(plansForShopping, (existing ?? []).map((e) => e.name));
+  if (drafts.length === 0) return 0;
+
+  const { error: insertError } = await session.supabase.from("shopping_items").insert(
+    drafts.map((name) => ({
+      house_id: houseId,
+      name,
+      created_by: memberId,
+    })),
+  );
+  if (insertError) throw apiErrorFromPostgres(insertError);
+
+  return drafts.length;
 }
 
 // ---------------------------------------------------------------------------

@@ -112,3 +112,24 @@ export const linkMealExpenseSchema = z.object({
 });
 
 export type LinkMealExpenseInput = z.infer<typeof linkMealExpenseSchema>;
+
+/** Section 13: only name is required, everything else is optional. */
+export const createShoppingItemSchema = z.object({
+  name: z.string().trim().min(1, "Name it").max(120),
+  quantity: z.string().trim().max(60).optional(),
+  unit: z.string().trim().max(30).optional(),
+  estimatedPricePaise: paise.optional(),
+  mealId: z.string().uuid().optional(),
+});
+
+export type CreateShoppingItemInput = z.infer<typeof createShoppingItemSchema>;
+
+export const updateShoppingItemSchema = z.object({
+  name: z.string().trim().min(1).max(120).optional(),
+  quantity: z.string().trim().max(60).nullable().optional(),
+  unit: z.string().trim().max(30).nullable().optional(),
+  estimatedPricePaise: paise.nullable().optional(),
+  checkedOff: z.boolean().optional(),
+});
+
+export type UpdateShoppingItemInput = z.infer<typeof updateShoppingItemSchema>;

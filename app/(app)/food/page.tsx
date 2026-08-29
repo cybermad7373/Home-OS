@@ -46,6 +46,9 @@ export default async function FoodPage({
         <Link href="/food/preferences" className="caption-text text-primary">
           Preferences
         </Link>
+        <Link href="/food/shopping" className="caption-text text-primary">
+          Shopping List
+        </Link>
       </div>
 
       <h2 className="heading-text mb-2">Recent</h2>
