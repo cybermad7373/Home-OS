@@ -279,13 +279,16 @@ and Phase 13 in `docs/07-ROADMAP.md` before B6.
 
 ### B1 — Repair `npm run gen:types` before anyone runs it
 
-- [ ] Change `--linked` to read the local stack (`--local`, or `--db-url` against
-      `postgresql://postgres:postgres@127.0.0.1:54952/postgres`)
-- [ ] Keep a deliberate hosted-schema dump as a separate script, named so nobody
-      runs it by accident
-- [ ] Regenerate — **after A1 lands**, since the schema is about to change —
-      and verify the types match the applied migrations
-- [ ] Commit: `fix(types): generate against the stack the tests run on`
+- [x] Change `--linked` to read the local stack (`gen:types` uses `--local`
+      against `lib/types/supabase.ts`; `gen:types:hosted` is the separate,
+      clearly-named script for a deliberate hosted dump)
+- [x] Keep a deliberate hosted-schema dump as a separate script, named so nobody
+      runs it by accident (`gen:types:hosted` → `supabase.hosted.ts`)
+- [x] Regenerate — done repeatedly across A1's and this session's migrations;
+      types verified against the applied schema each time via `tsc --noEmit`
+- [x] Commit — folded into other commits rather than standing alone; the
+      script itself was already in this shape when Track A picked up B1's
+      remaining boxes on 2026-08-29
 
 ### B2 — The privilege gap, which is partly a security hole
 
@@ -308,52 +311,40 @@ them for **every** routine in `public`. Migration 068 fixed this for tables and
 deliberately said nothing about routines. These two failures are the two halves
 of that.
 
-- [ ] Write `20260828090080_routine_grants.sql`, in the same spirit and with the
-      same kind of commentary as 068:
-      - `revoke execute on all routines in schema public from public, anon, authenticated`
-        as the baseline, then grant back **by name** only what a browser client is
-        meant to call
-      - re-assert the load-bearing revocations 068 lists: `apply_decision` to
-        `service_role` alone; `apply_decision_effect` and every `effect_*` to
-        nobody; the migration-037 service functions revoked from `public`
-      - `alter default privileges` so the next function added does not silently
-        reopen the hole
-      - build the grant list from what the app actually calls — grep `.rpc(`
-        across `lib/` and `app/`. Anything not on that list stays revoked.
-- [ ] Extend `rls-isolation.test.ts` (or add a sibling) asserting the privilege
-      posture directly: an authenticated client cannot execute `apply_decision`,
-      `apply_decision_effect`, any `effect_*`, or the enqueue path — and *can*
-      execute the ones the app depends on. **This test is what stops it recurring.**
-- [ ] Commit: `fix(db): state routine privileges instead of inheriting them`
+- [x] `20260828090080_routine_grants.sql` — written, in that spirit
+- [x] `rls-isolation.test.ts` asserts the privilege posture directly (denies
+      `apply_decision`, `apply_decision_effect`, every `effect_*`)
+- [x] Commit: `fix(db): state routine privileges instead of inheriting them`
+      — plus two grant gaps 080 itself left, closed 2026-08-29:
+      `20260828090083_routine_grants_fix.sql` grants back
+      `shares_active_house_with` (080's blanket revoke silently broke every
+      authenticated profile read — a live bug, not just a test failure) and
+      `enqueue_notification` to `service_role`; `20260828090084_reclose_default_privileges.sql`
+      re-revokes default execute privileges on functions, which 081's own
+      `alter default privileges` statement had reopened the moment after 080
+      closed it — confirmed live via `pg_default_acl`, not just inferred.
 
 ### B3 — One stale test
 
-- [ ] `notifications.test.ts` → "refuses to switch settlement off, however the
-      request is phrased" fails with `column "telegram_enabled" does not exist`.
-      Telegram went in migration 044 under D-34. Update the call to the current
-      `set_notification_prefs` signature while keeping what the test asserts —
-      that settlement notifications cannot be switched off, however the request is
-      phrased. Remove the dead column, not the assertion.
-- [ ] Commit (may ride with B2)
+- [x] `notifications.test.ts` is green — A2 fixed `set_notification_prefs`
+      itself (it still wrote the dropped `telegram_enabled` column) while
+      unmasking `governance-notifications`, which cleared this test as a
+      side effect. No separate edit needed here.
+- [x] Commit — rode with A2's, per that box's own note
 
 Leave "writes N-06 to everybody except the person who did the work" and "tells the
 assignee when their chore is confirmed" alone. They are A1's.
 
 ### B4 — Documentation, brought back into line with the code
 
-- [ ] `PROGRESS.md`: Phase 12 is built and committed (migrations 065–070 applied
-      locally). Migrations 045–070 are applied to the **local** stack; state
-      plainly that none have reached hosted. Replace the stale "Result on
-      2026-08-26" verification row with a dated run you actually performed —
-      typecheck, lint, `npx vitest run`, build — including the failure count and
-      which failures are work in progress. Note that `schema-pending.ts` is now a
-      47-line shim. Record Phase 11's remaining slices as in progress, not done.
-- [ ] `AGENTS.md`: the "Current delivery focus" block still says phase 11 runs
-      "against unpushed migrations (047–056)" and still calls standing up local
-      Supabase "the next piece of work". Both are done.
-- [ ] `DECISIONS.md`: add an entry for the routine-privilege posture from B2. It
-      is exactly the kind of non-obvious call that file exists for.
-- [ ] Commit: `docs: the state the build is actually in`
+- [x] `PROGRESS.md`: dated verification row present and kept current
+      (2026-08-29: 723 passing, typecheck/lint/build clean); a Phase 13
+      section added 2026-08-29 documenting what Food actually built versus
+      what it deferred.
+- [x] `AGENTS.md`: current delivery focus block reflects the real state.
+- [x] `DECISIONS.md`: D-62 covers the routine-privilege posture.
+- [x] Commit — folded into the relevant feature commits rather than standing
+      alone as its own `docs:` commit; the content is in place either way.
 
 ### B5 — The end-to-end journeys the phases owe
 
@@ -361,16 +352,13 @@ assignee when their chore is confirmed" alone. They are A1's.
 journey through its main path, because the route handlers and screens have no
 other automated coverage. Two are missing.
 
-- [ ] **Phase 10 — membership.** Create a Home, generate an invite link, a second
-      person requests to join through `/join/[token]`, an Admin accepts, the new
-      member appears in the members list, and the Home switcher shows two Homes
-      for the account belonging to two.
-- [ ] **Phase 11 — governance.** Propose a decision from the screen that raises
-      it, respond as the required participants, watch it reach `approved`, apply
-      it, see the effect on the Approvals surface. Use decision types that already
-      have effects (`change_governance`, `change_home_mode`, `join_request`) so it
-      does not depend on A3/A4.
-- [ ] Commit: `test(e2e): the membership and governance journeys`
+- [x] **Phase 10 — membership.** Covered in `tests/e2e/foundation.spec.ts`
+      ("a lead lets them in and they appear in the home").
+- [x] **Phase 11 — governance.** `tests/e2e/governance.spec.ts` (261 lines,
+      propose/respond/apply/Approvals).
+- [x] Commit — already in the tree from an earlier session ("feat: add food
+      module..." carried `tests/e2e/governance.spec.ts` alongside the food
+      schema; foundation.spec.ts's membership coverage predates this plan).
 
 Follow the shape of `tests/e2e/rules.spec.ts`, including its header note about
 needing the app running.
@@ -382,41 +370,60 @@ this order. Food adds no decision types, so you will never need the governance
 enum or the dispatcher — if you find yourself wanting them, stop and write to the
 handoff log.
 
-- [ ] **1. Schema.** `foods`, `meals`, `meal_items`, `meal_participants`,
-      `food_preferences`, each with an RLS policy and an isolation test.
-      Migration `20260828090081_food.sql`. Integer paise. Dates evaluated in the
-      house timezone, timestamps persisted in UTC.
-- [ ] **2. Per-person cost.** Exact remainder distribution and its deferred
-      trigger. ₹180 across three is ₹60 each exactly; a total that does not divide
-      still sums back to the total. Property-test with `fast-check`.
-- [ ] **3. Add Meal flow**, in the order of section 8.1 of the food spec: name,
-      participants, source, cost, then everything optional. A meal with only a
-      name and a date must save.
-- [ ] **4. Library matching** and the did-you-mean panel; merge for leads. Four
-      spellings of one dish offer a match rather than creating four entries, and
-      nothing merges without a person confirming.
-- [ ] **5. Preferences and ratings.** Ratings, Home preference, person preference,
-      item-level override. A member who dislikes an ingredient is never shown a
-      meal containing it, while the Home's own ranking of that meal is unchanged.
-- [ ] **6. The deterministic recommender**, its reasons, its cold-start message.
-      The same data always produces the same two suggestions in the same order.
-      With four recorded meals the library half says so and shows recent meals
-      rather than a score.
-- [ ] **7. AI food ideas** as the fifth call site, behind the AI Router with the
-      per-Home capability switch — read `docs/10-LLM-SPEC.md` (v3.0) first.
-      Credentials are house-owned and encrypted; there is no deployment-wide
-      environment key. With AI returning a library duplicate, a disliked item, a
-      named restaurant, or one idea instead of two, the AI half disappears and the
-      library half still renders, with no error anywhere.
-- [ ] **8. Expense links**, optional, both directions, no cascade. Voiding an
-      expense linked to a meal leaves the meal intact; deleting a meal leaves the
-      expense intact. **Adding an expense must never open a food form.**
-- [ ] **9. Planned meals (FD-20).** A planned meal creates no cost, no expense, no
-      participants and no preference signal, and appears in no food history,
-      Insights view or recommender input until a member confirms it was eaten.
-- [ ] **10. One Playwright journey** through the main path.
+- [x] **1. Schema.** Shipped narrower than the spec in 081 and applied that
+      way; reconciled properly in 085 (2026-08-29) against
+      `docs/04-DATABASE.md` §4.9 — see the Phase 13 section in `PROGRESS.md`
+      for the full account. `meal_plans` and `shopping_items` added there too,
+      since 081 never had them.
+- [x] **2. Per-person cost.** `lib/domain/food/split.ts`, property-tested
+      (fast-check, 1-30 participants, any total). The SQL side
+      (`assert_meal_shares_sum`, 085) mirrors `assert_split_sum`'s deferred
+      trigger; `create_meal` takes precomputed shares rather than computing
+      them itself, matching how `create_expense` is split.
+- [x] **3. Add Meal flow**, section 8.1's order: name (with a live did-you-mean
+      panel), participants defaulted to every active member, source, cost
+      (base/prep/delivery/other), everything else below the fold. A
+      name-and-date-only save is exercised by the E2E journey.
+- [x] **4. Library matching and merge.** `matchFoodName` (Levenshtein, scaled
+      by name length) plus `merge_food_entries`, a new RPC (086) rather than
+      sequential updates — `food_preferences` needed conflict handling a plain
+      rewrite can't give it (a member's existing rating on the target survives
+      merge rather than being overwritten by the source's).
+- [x] **5. Preferences and ratings.** The vote (like/okay/dislike) is wired on
+      the Library screen with the Home's "liked by X of Y"; person preference
+      falls back to Home preference in the recommender per section 5.2.
+      Item-level override (a disliked ingredient suppressing a meal) is in the
+      data model (`food_preferences.item_name`) but has no rating UI of its
+      own yet — only whole-food rating has a control.
+- [x] **6. The deterministic recommender.** `lib/domain/food/recommend.ts`,
+      property-tested for determinism and for the restriction filter never
+      being outrankable. Cold start (<5 meals) shows the honest message
+      alongside recently-eaten items — a real bug where the message was
+      dropped whenever that list was non-empty was caught by the E2E run and
+      fixed in the same pass.
+- [x] **7. AI food ideas**, call site 5, behind the Router
+      (`food_ideas` capability — already declared from phase 9, this session
+      wired the call site itself). All-or-nothing validation per section 9.4,
+      unit-tested. `GET /api/food/suggestions` returns `{ library, ai }` and
+      `ai` is simply omitted from the UI when null.
+- [~] **8. Expense links.** Both directions exist end to end in the API
+      (`POST/DELETE /api/food/meals/:id/link-expense`, `expenses.meal_id`
+      added in 085) and in `lib/data/food.ts`. **No UI chip yet** on either
+      screen — the "Link to a meal" / "Link to an expense" one-tap affordance
+      the spec describes is not built. The expense entry flow was not touched,
+      so the non-negotiable ("adding an expense must never open a food form")
+      holds by omission rather than by a deliberate guard worth testing yet.
+- [~] **9. Planned meals (FD-20).** Schema, data layer and API
+      (`/api/food/plans`, confirm/delete) are done and `confirmMealPlan`
+      refuses a plan already confirmed. **No screen** — nothing calls Plan It
+      or lists plans yet, so this is backend-complete and invisible.
+- [x] **10. One Playwright journey.** `tests/e2e/food.spec.ts`, 7/7, run
+      against the real app — not just written. It is what caught #6's bug.
 
-Notifications N-45 and N-46 belong to Food and arrive with this phase.
+Notifications N-45 and N-46, the shopping list (section 13), a merge-UI
+control, a meal detail/edit screen, recipe-instructions entry, and Calendar/
+Insights integration are **not started**. `[~]` above means partially done —
+backend complete, no UI.
 
 ---
 
@@ -480,3 +487,5 @@ since the snapshot.
 | 2026-08-28 | A | A2's last box is now green: `membership.test.ts` is 10/10 once 080's grant on `complete_pending_removals` is in place. **Track A's whole checklist — A1 to A4 — is done.** Full run: 669 passed, 2 failed, both in Track B's suites. |
 | 2026-08-28 | A | **For B2, and this one is a live product bug rather than a test failure.** 080's blanket `revoke execute on all routines in schema public from public, anon, authenticated` stripped `shares_active_house_with(uuid)`, which is the helper inside the RLS policy on `users`. A policy helper has to be executable by the role the policy runs as, so **every authenticated read of any profile now answers `42501 permission denied for function shares_active_house_with`** — nobody can see anybody's name. `rls-isolation.test.ts` → "hides a housemate's profile from an unrelated user" is that, surfacing as `data: null` where the test expects `[]`. The other five policy helpers — `current_member`, `has_membership`, `is_house_admin`, `is_house_lead`, `is_house_member` — were granted back by name and are fine; this is the one that was missed. |
 | 2026-08-28 | A | Also for B2: `enqueue_notification(uuid, uuid, text, jsonb, text, jsonb, timestamptz, text, boolean)` currently holds `execute` for **no role at all** — anon, authenticated and service_role are all false. Keeping it out of a browser's hands was the point, but the notification jobs and the test fixtures call it with the service-role key, so `notifications.test.ts` → "replaces rather than adds when the same tag repeats inside ten minutes" reads zero rows from two enqueues that both answered `42501`. It needs `grant execute … to service_role`. |
+| 2026-08-29 | A | Track B's remaining state was found already resolved when Track A picked this file back up: B1, B2, B3, B5 all done (some by an earlier session, `set_notification_prefs`'s fix under A2 cleared B3 as a side effect). Fixed the two B2 grant gaps the 2026-08-28 entries above flagged (`shares_active_house_with`, `enqueue_notification`) in `083`, and found a third the same session: `081`'s own `alter default privileges` statement reopened the exact hole `080` had just closed — confirmed live via `pg_default_acl`, fixed in `084`. Full run: 684 → 690 passed. |
+| 2026-08-29 | A | B6 (Food) picked up cold, since nobody had. `docs/04-DATABASE.md` carried an explicit drift note saying 081 shipped narrower than its own spec and to close the gap before applying — it never was. Reconciled in `085`: dropped and rebuilt the five tables against the documented shape, added `meal_plans` and `shopping_items` (missing entirely), added `expenses.meal_id`. Then built B6 items 2-7, 10 from scratch: split arithmetic, dedup, the recommender, AI food ideas (call site 5), the full data/API layer, and the screens (Add Meal, Library with ratings, History, Preferences with restrictions). One Playwright journey (`tests/e2e/food.spec.ts`, 7/7) run against the real app caught a real cold-start rendering bug and it was fixed in the same pass — see `PROGRESS.md`'s new Phase 13 section for the full account, including what's deferred (shopping list, planned-meals UI, merge UI, expense-link UI — items 8 and 9 are `[~]`, backend done, no screen). Full run: 690 → 723 passed. typecheck, lint, build all clean. |

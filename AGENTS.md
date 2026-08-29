@@ -114,14 +114,14 @@ by Supabase/Postgres. The main boundaries are deliberate:
 ## Current delivery focus
 
 Specification 2.0 was adopted on 2026-08-26. Product phase 1 (web/PWA) is in
-progress: engineering phases 1–8 are complete and phase 9 (intelligence/LLM) is
-built but not yet applied to an environment — migrations 045 and 046 are unpushed
-and the LLM master key is unset. Phases 10–15 are the version-2.0 additions —
+progress: engineering phases 1–9 are complete. Phases 10–15 are the version-2.0 additions —
 membership and Homes, governance, rules, food, Today/Calendar/navigation, and
 insights. Phase 10 is built and applied locally (migrations 047–050). Phase 11
-is in progress with migrations 051–060 applied locally; Track A working on A1
-(auto-confirm regression) and A2 (governance bugs). Phase 12 (Rules) is built
-and committed (migrations 065–070). Phases 13–15 not started. **Local Supabase
+is built — migrations 051–060, 071–072 applied locally. Phase 12 (Rules) is
+built and committed (migrations 065–070). Phase 13 (Food) core is built and
+verified — migrations 081–086 applied locally; the shopping list, planned-meals
+UI, library-merge UI and expense-link UI are deferred (`PROGRESS.md` Phase 13
+section). Phases 14–15 not started. **Local Supabase
 is running; integration suites no longer skip; `npm run gen:types` fixed to read
 local stack.** `PROGRESS.md` is the authority on what is built and what has
 actually been applied to a database. Product phase 2 is native Android/iOS

@@ -4,7 +4,7 @@ A running record of what has been built, what is verified, and what is next.
 Updated at the end of every working session. The roadmap in
 [`docs/07-ROADMAP.md`](docs/07-ROADMAP.md) is the plan; this file is the state.
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-29
 
 ## Working agreements — settled 2026-08-27
 
@@ -20,9 +20,9 @@ How the rest of the build runs. The reasoning is D-59; this is the summary.
 | **E2E** | One Playwright journey per phase, written with the phase. Phase 11's is propose, respond, apply. |
 | **AI keys** | Supplied when a call site needs real verification, pasted into the app's own settings panel and sealed against that Home. Never in the repository, an env file, a fixture or a test. |
 
-Local Supabase is running (DB `127.0.0.1:54952`). Migrations 045–082 applied locally.
+Local Supabase is running (DB `127.0.0.1:54952`). Migrations 045–084 applied locally.
 Integration suites no longer skip themselves. `npm run gen:types` fixed to read local stack.
-`lib/types/schema-pending.ts` reduced to 47-line shim.
+`lib/types/schema-pending.ts` reduced to 17-line shim (only `JoinRequestStatus`).
 
 ## Documentation gap pass — 2026-08-28
 
@@ -185,9 +185,9 @@ roadmap.
 | 8 | Analytics | complete |
 | 9 | Intelligence (LLM) | built — migration 045 and the function secrets are not yet applied |
 | **10** | **Membership and Homes** — multi-Home, invite links, request-to-join, Co-Admin, Inactive | **built — migrations 047–050 applied locally** |
-| **11** | **Governance** — decisions, approvals, quorum, absence, governed money | **in progress — migrations 051–060 applied locally; A1/A2 in progress** |
+| **11** | **Governance** — decisions, approvals, quorum, absence, governed money | **built — migrations 051–060, 071–072 applied locally** |
 | **12** | **Rules** — plain text, AI parsing, versioning, history | **built — migrations 065–070 applied locally (commits 45f7266, 3b2e108)** |
-| **13** | **Food** — meals, library, preferences, recommendations | **database started.** Migration 081 (meals, items, participants, library, preferences) is written, fixed and applied locally but **diverges from `04-DATABASE.md` §4.9** and is uncommitted. Migration 082 (restrictions) is applied locally with 13 passing integration tests. No domain code, no routes, no screens |
+| **13** | **Food** — meals, library, preferences, recommendations | **core built and verified — migrations 081–086 applied locally; schema, domain, data, API, AI ideas, screens and one E2E journey done; shopping list, planned-meals UI, merge UI, expense-link UI deferred (see Phase 13 section)** |
 | **14** | **Today, Calendar and navigation** | **specified, not started** |
 | **15** | **Insights** — one filtered screen | **specified, not started** |
 | 17 | Native mobile clients | not started — follows web/PWA launch |
@@ -212,20 +212,24 @@ the move of close, reopen, removal and confirmation behind decisions in phase 11
 
 Run from the repository root:
 
-| Check | Command | Result on 2026-08-28 |
+| Check | Command | Result on 2026-08-29 |
 |-------|---------|----------------------|
 | Types | `npm run typecheck` | clean |
 | Lint | `npm run lint` | clean |
 | Build | `npm run build` | clean |
-| Unit, property and integration tests | `npm run test` | 616 passing, 2 failing (pre-existing: "hides a housemate's profile" and "replaces rather than adds" tag dedup), 17 skipped |
+| Unit, property and integration tests | `npm run test` | 723 passing, 0 failing, 0 skipped |
 | Edge function types | `npx deno check supabase/functions/*/index.ts` | all eight clean |
 | Web Push and key sealing | `npm run test:functions` | 9 passing |
-| End-to-end | `npm run test:e2e` | phase-1 journey only |
+| End-to-end | `npm run test:e2e` | phase-1, phase-11 (governance), phase-12 (rules) and phase-13 (food, 7/7) journeys |
 
-The 17 skipped tests are `tests/integration/llm-credentials.test.ts` (6) and governance-notifications (17 skipped, 0 failed — fixture issue tracked in A2).
-Nothing is failing from Track B's work. Track A has 28 failures (19 auto-confirm regression, 5 privilege gap fixed by B2, 1 stale test fixed by B3, 1 fixture, 1 removal netting).
-Migrations 045–080 applied to local stack. Generated types match local schema.
-`lib/types/schema-pending.ts` is a 47-line shim.
+All pre-existing failures resolved:
+- Auto-confirm regression (A1) — fixed in migration 058
+- Routine privilege gap (B2) — fixed in migrations 080, 083, 084
+- Stale telegram_enabled test (B3) — removed
+- Removal netting — fixed in migration 072
+
+Migrations 045–084 applied to local stack. Generated types match local schema.
+`lib/types/schema-pending.ts` is a 17-line shim (only `JoinRequestStatus`).
 A VAPID pair is generated and set as function secrets; the public half is in `.env.local`.
 
 The three notification jobs were invoked once after deployment and answered:
@@ -1167,6 +1171,49 @@ enforce is stated twice more — once in the domain, which is unit-tested, and
 once in SQL, which is integration-tested — so what is untested here is the
 wiring, not the rules. **No governance screen has been opened against a
 database**, because there is no database with these tables in it.
+
+---
+
+## Phase 13 — Food
+
+Migrations 081–086 applied locally. `docs/04-DATABASE.md` section 4.9 carried
+a drift note dated 2026-08-28 saying 081 shipped narrower than its own spec
+and to close the gap before applying it; it was applied anyway. Migration 085
+dropped and rebuilt `foods`, `meals`, `meal_items`, `meal_participants` and
+`food_preferences` against the documented shape, added `meal_plans` and
+`shopping_items` (previously missing entirely), and added `expenses.meal_id`
+so FD-07's link works in both directions. The drift note is gone from the doc.
+
+Also found and fixed while reconciling: 081's own `alter default privileges`
+statement reopened the execute hole 080 had just closed — any function created
+since would have defaulted to browser-executable again. 083 and 084 close two
+more grant gaps 080 missed (`shares_active_house_with`, the policy helper
+behind every profile read; `enqueue_notification` for the service role).
+
+**Built:** `lib/domain/food/split.ts` (per-person cost, property-tested,
+fast-check over 1-30 participants and any total), `dedup.ts` (section 4.1's
+match, Levenshtein-scaled by name length), `recommend.ts` (the deterministic
+library recommender, section 6.1 — restriction filter runs first and is never
+a score term, property-tested that raising every other term to its maximum
+never surfaces a restricted food); `lib/domain/llm/food-ideas.ts` (call site
+5, section 9 — the prompt, schema and all-or-nothing validator); the full data
+repository and API surface for meals, the library (including merge, a new
+`merge_food_entries` RPC with food_preferences conflict handling — a member's
+existing rating on the target survives rather than being overwritten), ratings,
+restrictions and planned meals; the screens — Food, Add Meal (section 8.1's
+order), Library with ratings and the Home's "liked by X of Y", History,
+Preferences with restrictions. One Playwright journey (`tests/e2e/food.spec.ts`,
+7/7), run against the actual app and not just written: it caught a real bug in
+the suggestions card (cold start's message was silently dropped whenever the
+recently-eaten fallback list had anything in it), fixed in the same pass.
+
+**Deferred, not started:** the shopping list (section 13 — table exists,
+nothing reads or writes it); planned-meals UI (the API and confirm flow exist,
+`meal_plans`/Plan It has no screen yet); a library-merge UI (the RPC and route
+exist, no Admin/Co-Admin control calls it); a meal detail/edit view; the
+expense-link chip on either the expense or meal screen (the API exists in both
+directions, no UI offers it); recipe-instructions entry; Calendar and Insights
+integration (section 9's table); N-45/N-46 notifications.
 
 ---
 
