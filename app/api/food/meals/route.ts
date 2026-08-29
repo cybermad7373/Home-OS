@@ -33,10 +33,10 @@ export const GET = route(async (request: Request) => {
  */
 export const POST = route(async (request: Request) => {
   const session = await requireSession();
-  const { house } = await requireActiveMembership(session);
+  const { house, member } = await requireActiveMembership(session);
   const body = await parseBody(request, createMealSchema);
 
-  const mealId = await createMeal(session, house.id, body);
+  const mealId = await createMeal(session, house.id, member.id, body);
 
   return jsonResponse({ mealId }, 201);
 });

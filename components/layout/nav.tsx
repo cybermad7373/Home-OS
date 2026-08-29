@@ -164,6 +164,7 @@ function sidebarLinks({
   return [
     { href: "/dashboard", label: "Home" },
     { href: "/notifications", label: "Notifications" },
+    { href: "/food", label: "Food" },
     { href: "/chores", label: "Chores" },
     { href: "/chores/mine", label: "My chores" },
     ...(isRota ? [] : [{ href: "/chores/standing", label: "Standing" }]),

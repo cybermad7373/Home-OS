@@ -30,6 +30,11 @@ function links({ isPot, isRota }: { isPot: boolean; isRota: boolean }): MoreLink
       body: "Everything the house has told you, and what it may interrupt you for",
     },
     {
+      href: "/food",
+      label: "Food",
+      body: "What the house ate, what it cost, and two ideas for tonight",
+    },
+    {
       href: "/money/daily",
       label: "Running cost",
       body: "What the house costs a day, and whether that is more than it means to",

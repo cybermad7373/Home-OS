@@ -168,11 +168,27 @@ function buildShares(
 export async function createMeal(
   session: Session,
   houseId: string,
+  memberId: string,
   input: CreateMealInput,
 ): Promise<string> {
   const totalPaise =
     input.baseCostPaise + input.prepCostPaise + input.deliveryCostPaise + input.otherCostPaise;
   const shares = buildShares(totalPaise, input.participants);
+
+  // Section 4: "Save to Home Food Library?" — any member's checkbox, not only
+  // a lead's. An exact match on the normalised form is reused rather than
+  // duplicated, the same rule the did-you-mean panel follows client-side; the
+  // server checks again because the client's check is a convenience, not the
+  // enforcement (the unique index on (house_id, normalised_name) is that).
+  let foodId = input.foodId;
+  if (!foodId && input.saveToLibrary) {
+    const existing = await matchFood(session, houseId, input.name);
+    foodId = existing.exact?.id ?? (await createFoodLibraryEntry(session, houseId, memberId, {
+      name: input.name,
+      defaultSource: input.source,
+      recipeInstructions: input.recipeInstructions,
+    }));
+  }
 
   const { data, error } = await session.supabase.rpc("create_meal", {
     p_house_id: houseId,
@@ -185,7 +201,7 @@ export async function createMeal(
     p_prep_cost_paise: input.prepCostPaise,
     p_delivery_cost_paise: input.deliveryCostPaise,
     p_other_cost_paise: input.otherCostPaise,
-    p_food_id: input.foodId,
+    p_food_id: foodId,
     p_expense_id: input.expenseId,
     p_items: input.items.length > 0
       ? input.items.map((item) => ({ name: item.name, quantity: item.quantity ?? null, cost_paise: item.costPaise ?? null }))
