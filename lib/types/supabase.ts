@@ -1450,6 +1450,54 @@ export type Database = {
           },
         ]
       }
+      house_announcements: {
+        Row: {
+          author_member_id: string
+          body: string
+          created_at: string
+          expires_at: string
+          house_id: string
+          id: string
+          severity: string
+          title: string
+        }
+        Insert: {
+          author_member_id: string
+          body: string
+          created_at?: string
+          expires_at: string
+          house_id: string
+          id?: string
+          severity?: string
+          title: string
+        }
+        Update: {
+          author_member_id?: string
+          body?: string
+          created_at?: string
+          expires_at?: string
+          house_id?: string
+          id?: string
+          severity?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "house_announcements_author_member_id_fkey"
+            columns: ["author_member_id"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "house_announcements_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       house_llm_credentials: {
         Row: {
           base_url: string | null
