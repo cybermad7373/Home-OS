@@ -4020,6 +4020,10 @@ export type Database = {
         Args: { p_member_id: string }
         Returns: boolean
       }
+      merge_food_entries: {
+        Args: { p_source_id: string; p_target_id: string }
+        Returns: undefined
+      }
       next_rule_version_no: { Args: { p_rule_id: string }; Returns: number }
       notify_apply_refused: {
         Args: { p_decision_id: string; p_reason: string }
