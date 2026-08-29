@@ -3,6 +3,13 @@ import "server-only";
 import { ApiError, apiErrorFromPostgres } from "@/lib/api/errors";
 import { computeMealShares, MealSplitError } from "@/lib/domain/food/split";
 import { matchFoodName, type LibraryCandidate, type MatchResult } from "@/lib/domain/food/dedup";
+import {
+  rankLibrary,
+  type RecommendCandidate,
+  type RecommendContext,
+  type RankResult,
+} from "@/lib/domain/food/recommend";
+import { houseToday } from "@/lib/utils/date";
 import type { Session } from "./house";
 import type {
   CreateMealInput,
@@ -593,4 +600,141 @@ export async function confirmMealPlan(
 export async function deleteMealPlan(session: Session, planId: string): Promise<void> {
   const { error } = await session.supabase.from("meal_plans").delete().eq("id", planId);
   if (error) throw apiErrorFromPostgres(error);
+}
+
+// ---------------------------------------------------------------------------
+// Suggestions (section 6.1) — the library half, deterministic, always available.
+// ---------------------------------------------------------------------------
+
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
+/**
+ * Section 7: reads the money module in one direction only, and only for a
+ * plain sentence and the cost term's pressure. A Home with no category named
+ * for food spending reads as comfortably inside budget rather than erroring —
+ * budget awareness is additive, never a precondition for suggestions.
+ */
+async function budgetPressureFor(session: Session, houseId: string): Promise<number> {
+  const { data: category } = await session.supabase
+    .from("expense_categories")
+    .select("id, monthly_budget_paise")
+    .eq("house_id", houseId)
+    .ilike("name", "%food%")
+    .not("monthly_budget_paise", "is", null)
+    .limit(1)
+    .maybeSingle();
+
+  if (!category?.monthly_budget_paise || category.monthly_budget_paise <= 0) return 0;
+
+  const monthStart = `${houseToday().slice(0, 7)}-01`;
+  const { data: expenses } = await session.supabase
+    .from("expenses")
+    .select("amount_paise")
+    .eq("house_id", houseId)
+    .eq("category_id", category.id)
+    .eq("status", "approved")
+    .gte("expense_date", monthStart);
+
+  const spent = (expenses ?? []).reduce((sum, e) => sum + e.amount_paise, 0);
+  return Math.max(0, Math.min(1, spent / category.monthly_budget_paise));
+}
+
+export async function getSuggestions(
+  session: Session,
+  houseId: string,
+  memberId: string,
+  mealType: string,
+  homeRegionTag: string | null,
+): Promise<RankResult> {
+  const now = houseToday();
+
+  const [{ data: foods, error: foodsError }, { data: safeRows, error: safeError }, { count: totalMeals }] =
+    await Promise.all([
+      session.supabase
+        .from("foods")
+        .select("id, name, last_eaten_on, typical_cost_paise, region_tag, meal_types")
+        .eq("house_id", houseId)
+        .eq("active", true)
+        .gt("times_eaten", 0),
+      session.supabase.rpc("foods_safe_for", { p_house_id: houseId, p_member_ids: [memberId] }),
+      session.supabase.from("meals").select("*", { count: "exact", head: true }).eq("house_id", houseId),
+    ]);
+
+  if (foodsError) throw apiErrorFromPostgres(foodsError);
+  if (safeError) throw apiErrorFromPostgres(safeError);
+
+  const candidateFoods = foods ?? [];
+  if (candidateFoods.length === 0) {
+    return { suggestions: [], message: "Nothing in the library is safe for everyone eating tonight", coldStart: (totalMeals ?? 0) < 5 };
+  }
+
+  const foodIds = candidateFoods.map((f) => f.id);
+  const safeIds = new Set((safeRows ?? []).map((r) => r.food_id));
+  const restrictedIds = new Set(foodIds.filter((id) => !safeIds.has(id)));
+
+  const thirtyDaysAgo = new Date(Date.parse(`${now}T00:00:00Z`) - 30 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const { data: recentMeals, error: recentError } = await session.supabase
+    .from("meals")
+    .select("food_id")
+    .eq("house_id", houseId)
+    .gte("meal_date", thirtyDaysAgo)
+    .in("food_id", foodIds);
+  if (recentError) throw apiErrorFromPostgres(recentError);
+
+  const recentCounts = new Map<string, number>();
+  for (const row of recentMeals ?? []) {
+    if (!row.food_id) continue;
+    recentCounts.set(row.food_id, (recentCounts.get(row.food_id) ?? 0) + 1);
+  }
+
+  const { data: prefRows, error: prefError } = await session.supabase
+    .from("food_preferences")
+    .select("food_id, member_id, rating")
+    .eq("house_id", houseId)
+    .in("food_id", foodIds);
+  if (prefError) throw apiErrorFromPostgres(prefError);
+
+  const ratingValue = (rating: "like" | "okay" | "dislike"): number =>
+    rating === "like" ? 1 : rating === "dislike" ? -1 : 0;
+
+  const preferenceFor = (foodId: string): number | null => {
+    const rows = (prefRows ?? []).filter((r) => r.food_id === foodId);
+    const mine = rows.find((r) => r.member_id === memberId);
+    if (mine) return ratingValue(mine.rating);
+    if (rows.length === 0) return null;
+    const sum = rows.reduce((acc, r) => acc + ratingValue(r.rating), 0);
+    return sum / rows.length;
+  };
+
+  const candidates: RecommendCandidate[] = candidateFoods.map((food) => ({
+    foodId: food.id,
+    name: food.name,
+    preference: preferenceFor(food.id),
+    lastEatenOn: food.last_eaten_on ?? now,
+    timesEatenLast30Days: recentCounts.get(food.id) ?? 0,
+    typicalCostPaise: food.typical_cost_paise,
+    regionTag: food.region_tag,
+    mealTypes: food.meal_types ?? [],
+  }));
+
+  const homeMedianCostPaise = median(
+    candidateFoods.map((f) => f.typical_cost_paise).filter((c): c is number => c !== null),
+  );
+
+  const context: RecommendContext = {
+    now,
+    mealType,
+    homeRegionTag,
+    homeMedianCostPaise,
+    budgetPressure: await budgetPressureFor(session, houseId),
+  };
+
+  return rankLibrary(candidates, restrictedIds, context, totalMeals ?? 0);
 }
