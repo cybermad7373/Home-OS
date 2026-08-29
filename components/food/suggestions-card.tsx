@@ -66,6 +66,12 @@ export function SuggestionsCard({ currency }: { currency: string }) {
 
       <div className="mb-3">
         <p className="label-text mb-1.5 text-text-muted">From Your Home</p>
+        {/* Cold start shows both: the honest message and the most recently
+            eaten in place of a fabricated score (section 6.1). An empty
+            candidate set shows only the message — there is nothing to list. */}
+        {data.library.message ? (
+          <p className="caption-text mb-1.5 text-text-muted">{data.library.message}</p>
+        ) : null}
         {data.library.suggestions.length > 0 ? (
           <ul className="flex flex-col gap-2">
             {data.library.suggestions.map((s) => (
@@ -80,9 +86,7 @@ export function SuggestionsCard({ currency }: { currency: string }) {
               </li>
             ))}
           </ul>
-        ) : (
-          <p className="caption-text text-text-muted">{data.library.message}</p>
-        )}
+        ) : null}
       </div>
 
       {data.ai && data.ai.length > 0 ? (
