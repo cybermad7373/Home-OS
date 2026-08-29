@@ -59,14 +59,17 @@ export function PlanItButton({
   }
 
   return (
-    <div className="flex items-center gap-1.5">
+    // Wrapping rather than shrinking: a date input squeezed below about
+    // 130 px stops showing its own value on Android, and a Plan button that
+    // slides under it cannot be tapped at all.
+    <div className="flex flex-wrap items-center justify-end gap-1.5">
       <Input
         type="date"
         aria-label={`Date to plan ${name}`}
         value={date}
         min={minDate}
         onChange={(e) => setDate(e.target.value)}
-        className="h-8 w-[130px] text-[13px]"
+        className="h-8 w-[130px] shrink-0 text-[13px]"
       />
       <Button size="sm" onClick={plan} loading={saving}>
         Plan

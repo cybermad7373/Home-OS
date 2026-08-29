@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,17 @@ export function JoinRequestForm({
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  /**
+   * The invite link is the one page in the product a stranger lands on cold,
+   * with nothing cached and nothing hydrated. A tap that arrives before
+   * hydration submits the form the way a browser does with no JavaScript: a
+   * GET to this same URL, which reloads the page and silently discards the
+   * request the person believed they had sent. Disabled until the handler
+   * exists is the honest state — pressing it earlier could never have worked.
+   */
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -69,7 +80,7 @@ export function JoinRequestForm({
         />
       </Field>
 
-      <Button type="submit" block loading={loading}>
+      <Button type="submit" block loading={loading} disabled={!ready}>
         Ask to join {houseName}
       </Button>
     </form>

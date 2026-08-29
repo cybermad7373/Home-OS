@@ -47,48 +47,7 @@ async function signUp(page: import("@playwright/test").Page, account: Account) {
   await page.getByLabel("Email").fill(account.email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
-  
-  // Wait for network to be idle after form submission
-  await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(2000);
-  
-  // Handle /onboarding/username if redirected there
-  if (page.url().includes("/onboarding/username")) {
-    console.log("At username page, filling:", account.username);
-    await page.getByLabel("Username").fill(account.username);
-    
-    // Wait for the availability check to complete
-    await page.waitForTimeout(3000);
-    
-    // The button says "Claim it" not "Continue"
-    const claimBtn = page.getByRole("button", { name: "Claim it" });
-    const isDisabled = await claimBtn.isDisabled().catch(() => true);
-    console.log("Claim button disabled:", isDisabled);
-    
-    if (!isDisabled) {
-      await claimBtn.click();
-    } else {
-      // Wait longer for availability check
-      await page.waitForTimeout(5000);
-      const stillDisabled = await claimBtn.isDisabled().catch(() => true);
-      console.log("Claim button still disabled:", stillDisabled);
-      if (stillDisabled) {
-        const pageText = await page.textContent("body").catch(() => "");
-        console.log("Username page text:", pageText?.slice(0, 1000));
-        throw new Error("Claim button is disabled - username may be taken or invalid");
-      }
-      await claimBtn.click();
-    }
-    
-    await page.waitForURL("**/onboarding/house", { timeout: 15000 });
-  } else if (page.url().includes("/signup")) {
-    const pageText = await page.textContent("body").catch(() => "");
-    console.log("Signup page text:", pageText?.slice(0, 500));
-    throw new Error("Signup failed - still on signup page");
-  }
-  
-  await page.waitForURL("**/onboarding/house", { timeout: 15000 });
-  console.log("After signup/username URL:", page.url());
+  await page.waitForURL("**/onboarding/house");
 }
 
 async function signIn(page: import("@playwright/test").Page, identifier: string) {
@@ -143,7 +102,11 @@ test("lead creates home and adds co-lead + member", async ({ page }) => {
   // Sign up co-lead and join
   await signOut(page);
   await signUp(page, coLead);
-  await page.goto(invitePath);
+  // `domcontentloaded`, not `load`: the dev server leaves an aborted RSC
+  // stream behind after the cookie clear above, and waiting for `load` waits
+  // for a stream that never closes. The button assertion below is the real
+  // readiness check either way.
+  await page.goto(invitePath, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: /Ask to join/ }).click();
   await page.waitForURL("**/onboarding/pending");
 
@@ -163,7 +126,11 @@ test("lead creates home and adds co-lead + member", async ({ page }) => {
   // Sign up member
   await signOut(page);
   await signUp(page, member);
-  await page.goto(invitePath);
+  // `domcontentloaded`, not `load`: the dev server leaves an aborted RSC
+  // stream behind after the cookie clear above, and waiting for `load` waits
+  // for a stream that never closes. The button assertion below is the real
+  // readiness check either way.
+  await page.goto(invitePath, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: /Ask to join/ }).click();
   await page.waitForURL("**/onboarding/pending");
 

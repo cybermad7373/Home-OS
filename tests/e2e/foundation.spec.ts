@@ -44,8 +44,8 @@ async function signUp(page: import("@playwright/test").Page, account: Account) {
   // Handle username onboarding if redirected there
   if (page.url().includes("/onboarding/username")) {
     await page.getByLabel("Username").fill(account.username);
-    // Wait for username availability check to complete (button becomes enabled)
-    await page.waitForTimeout(2000);
+    // The availability check enables the button; waiting on that rather than on
+    // a fixed delay is both faster and not a guess about network time.
     const claimBtn = page.getByRole("button", { name: "Claim it" });
     await expect(claimBtn).toBeEnabled({ timeout: 15000 });
     await claimBtn.click();

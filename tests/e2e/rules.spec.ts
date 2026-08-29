@@ -137,7 +137,9 @@ test("the rule is in force, with a version and a date", async ({ page }) => {
 test("the history shows the first version verbatim", async ({ page }) => {
   await signIn(page);
   await page.goto("/more/rules");
-  await page.getByRole("link", { name: "History" }).first().click();
+  // Scoped to the page body: the desktop sidebar also carries a "Meal
+  // history" link, which a loose name match reaches first.
+  await page.getByRole("main").getByRole("link", { name: "History" }).first().click();
 
   await page.waitForURL(/\/more\/rules\/[0-9a-f-]+\/history$/);
 
@@ -167,7 +169,9 @@ test("editing appends a version and leaves the first one readable", async ({ pag
   await expect(page.getByText(EDITED_TITLE)).toBeVisible();
   await expect(page.getByText(/^v2/)).toBeVisible();
 
-  await page.getByRole("link", { name: "History" }).first().click();
+  // Scoped to the page body: the desktop sidebar also carries a "Meal
+  // history" link, which a loose name match reaches first.
+  await page.getByRole("main").getByRole("link", { name: "History" }).first().click();
   await expect(page.getByText("Version 2")).toBeVisible();
   await expect(page.getByText("Version 1")).toBeVisible();
   // RL-07 — from what, to what.

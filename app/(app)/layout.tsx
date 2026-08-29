@@ -68,7 +68,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         pendingApprovals={pendingApprovals}
         standingLine={standingLine}
       />
-      <div className="flex-1">
+      {/*
+        `min-w-0` is load-bearing. This is a flex item, so its default
+        `min-width: auto` floors it at its own min-content width — and any
+        descendant with `white-space: nowrap` (every `truncate` in the app has
+        it) contributes its whole unwrapped line to that figure. Without this,
+        one long username on /house/members pushed the entire page 177 px wider
+        than a 360 px screen, and the truncation that was supposed to prevent
+        exactly that never got the chance to run.
+      */}
+      <div className="min-w-0 flex-1">
         <main className="mx-auto w-full max-w-[1120px] px-4 pb-28 pt-6 md:px-6 lg:pb-10">
           {children}
         </main>

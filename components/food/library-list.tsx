@@ -32,8 +32,8 @@ export function LibraryList({
     <ul className="flex flex-col gap-2">
       {foods.map((food) => (
         <li key={food.id} className="rounded-[14px] border border-border bg-surface p-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <p className="text-[15px] font-medium text-text">{food.name}</p>
               <p className="caption-text text-text-muted">
                 Eaten {food.timesEaten} time{food.timesEaten === 1 ? "" : "s"}
