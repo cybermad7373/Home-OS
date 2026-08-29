@@ -12,7 +12,7 @@ How the rest of the build runs. The reasoning is D-59; this is the summary.
 
 | | |
 |---|---|
-| **Next piece of work** | Track A: the two failing integration tests named in the 2026-08-28 pass, then the eight `signup/route.ts` type errors. Track B: documentation sync (B4) is done; E2E journeys (B5), then Phase 13 Food (B6) — whose first task is reconciling migration 081 with `04-DATABASE.md` §4.9 before it is committed. |
+| **Next piece of work** | Track A: the two failing integration tests named in the 2026-08-28 pass, then the eight `signup/route.ts` type errors. Track B: Phase 13 Food is now built end to end (see Phase 13 section) — next is Phase 14 (Today, Calendar, navigation) and Phase 15 (Insights), in roadmap order. |
 | **Test target** | The local stack. The hosted project is written to only by an explicitly requested `db:push`. |
 | **Scope** | The whole of specification 2.0: finish phase 11, then 12 to 15 in the roadmap's order. Nothing trimmed. |
 | **Phase-11 order** | Jobs and notifications, then S-37 proposers, then absence, then shared assignment and `change_confirmation_policy`, then governed close with adjustments, then expected contributions and the reserve. |
@@ -187,7 +187,7 @@ roadmap.
 | **10** | **Membership and Homes** — multi-Home, invite links, request-to-join, Co-Admin, Inactive | **built — migrations 047–050 applied locally** |
 | **11** | **Governance** — decisions, approvals, quorum, absence, governed money | **built — migrations 051–060, 071–072 applied locally** |
 | **12** | **Rules** — plain text, AI parsing, versioning, history | **built — migrations 065–070 applied locally (commits 45f7266, 3b2e108)** |
-| **13** | **Food** — meals, library, preferences, recommendations | **core built and verified — migrations 081–086 applied locally; schema, domain, data, API, AI ideas, screens and one E2E journey done; shopping list, planned-meals UI, merge UI, expense-link UI deferred (see Phase 13 section)** |
+| **13** | **Food** — meals, library, preferences, recommendations | **built and verified — migrations 081–086 applied locally; schema, domain, data, API, AI ideas, all screens (including shopping list, planned-meals, library merge, expense-link) and eleven E2E specs done (see Phase 13 section)** |
 | **14** | **Today, Calendar and navigation** | **specified, not started** |
 | **15** | **Insights** — one filtered screen | **specified, not started** |
 | 17 | Native mobile clients | not started — follows web/PWA launch |
@@ -1207,13 +1207,44 @@ Preferences with restrictions. One Playwright journey (`tests/e2e/food.spec.ts`,
 the suggestions card (cold start's message was silently dropped whenever the
 recently-eaten fallback list had anything in it), fixed in the same pass.
 
-**Deferred, not started:** the shopping list (section 13 — table exists,
-nothing reads or writes it); planned-meals UI (the API and confirm flow exist,
-`meal_plans`/Plan It has no screen yet); a library-merge UI (the RPC and route
-exist, no Admin/Co-Admin control calls it); a meal detail/edit view; the
-expense-link chip on either the expense or meal screen (the API exists in both
-directions, no UI offers it); recipe-instructions entry; Calendar and Insights
-integration (section 9's table); N-45/N-46 notifications.
+**The 2026-08-29 pass closed the four deferred UI pieces**, each its own
+commit, all against backends that already existed:
+
+- **The shopping list** (section 13) had a table and RLS (migration 085) and
+  nothing else. Added `lib/domain/food/shopping.ts` (pure, name-normalised
+  dedup so pressing "Generate" twice is a no-op), the data/API surface, and
+  `/food/shopping`: add, check off (any member), delete (creator or lead,
+  matching RLS), and "Generate from meals" against the next 7 days of
+  unconfirmed plans' linked-food `default_items`.
+- **Planned-meals UI** — "Plan it" on a suggestion or library entry
+  (`/api/food/plans`, already built), and a Planned section on the Food page:
+  confirm as eaten (a lighter participants/source/cost sheet than Add Meal,
+  since a plan already snapshotted name/date and confirming never offers
+  "save to library") or cancel. Calendar day-view placement (S-52) is still
+  Phase 14 — this is the Food-page half only.
+- **Library-merge UI** — a two-select "Merge duplicates" panel above the
+  Library list, gated by `isLead`, calling the existing
+  `/api/food/library/merge` route.
+- **The expense-link chip, both directions** — Meal History links/unlinks an
+  expense; the add-expense sheet and the expense detail view both got a
+  "Link to a meal" chip. `expenses.meal_id` existed in the schema since
+  migration 085 but was never read into `ExpenseView`; it now is
+  (`mealId`), which the detail view needed to know whether a link already
+  existed.
+
+`tests/e2e/food.spec.ts` grew from 7 to 11 specs (plan it, confirm as eaten,
+merge, link/unlink), all run against the real app. `tests/unit/food-shopping.test.ts`
+(the generation dedup, pure) and `tests/integration/food-shopping.test.ts` (RLS:
+shared check-off, creator-or-lead delete) are new; the other three pieces
+reused backends that already had — or, for meal plans, still lack —
+integration coverage of their own.
+
+**Still deferred, not started:** a meal detail/edit view (S-44); recipe-
+instructions entry; Calendar and Insights integration (section 9's table);
+N-45/N-46 notifications; a `meal_plans` integration-test suite (the plan
+lifecycle — create, list, confirm, already-confirmed refusal, delete — has
+no test below the new E2E steps, the same gap merge and link-expense had
+before this pass and still have).
 
 ---
 
