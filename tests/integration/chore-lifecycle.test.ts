@@ -206,6 +206,80 @@ describe("the chore lifecycle", () => {
     expect(after!.earned_points).toBe(30);
   });
 
+  it("v_template_last_done carries the last-completed figure (CH-12)", async () => {
+    const assignmentId = await makeAssignment(raviMemberId, 30);
+    await ravi.rpc("mark_chore_done", { p_assignment_id: assignmentId, p_photo_url: null });
+    const confirm = await kumar.rpc("confirm_chore", { p_assignment_id: assignmentId });
+    expect(confirm.error).toBeNull();
+
+    const { data: assignment } = await admin
+      .from("chore_assignments")
+      .select("done_at")
+      .eq("id", assignmentId)
+      .single();
+
+    // Read as an ordinary member (ravi), not the service role — the view must
+    // resolve under RLS like any other read.
+    const { data: rows, error } = await ravi
+      .from("v_template_last_done")
+      .select("template_id, last_done_at, last_done_by, last_done_by_name")
+      .eq("house_id", houseId);
+    expect(error).toBeNull();
+
+    const completed = (rows ?? []).find((row) => row.template_id === templateId);
+    expect(completed?.last_done_at).toBe(assignment!.done_at);
+    expect(completed?.last_done_by).toBe(raviMemberId);
+    expect(completed?.last_done_by_name).toBe("chore-ravi");
+
+    // A template nothing has ever touched reads null, not a creation date.
+    const untouched = (rows ?? []).find((row) => row.template_id !== templateId);
+    expect(untouched?.last_done_at).toBeNull();
+  });
+
+  it("attaches a photo or note after the tap, never before it (CE-12, S-12)", async () => {
+    const assignmentId = await makeAssignment(raviMemberId, 20);
+
+    // Marking done with nothing supplied — the tap itself is never gated.
+    const done = await ravi.rpc("mark_chore_done", { p_assignment_id: assignmentId, p_photo_url: null });
+    expect(done.error).toBeNull();
+    expect(done.data).toBe("done_pending");
+
+    // The note is added afterwards, on its own call.
+    const attach = await ravi.rpc("attach_chore_details", {
+      p_assignment_id: assignmentId,
+      p_photo_url: null,
+      p_note: "Used the blue bucket, ran out of soap",
+    });
+    expect(attach.error).toBeNull();
+
+    const { data: row } = await admin
+      .from("chore_assignments")
+      .select("note, status")
+      .eq("id", assignmentId)
+      .single();
+    expect(row!.note).toBe("Used the blue bucket, ran out of soap");
+    expect(row!.status).toBe("done_pending");
+
+    // Nobody but the assignee attaches to somebody else's chore.
+    const other = await makeAssignment(kumarMemberId, 20);
+    const forbidden = await ravi.rpc("attach_chore_details", {
+      p_assignment_id: other,
+      p_photo_url: null,
+      p_note: "not mine",
+    });
+    expect(forbidden.error?.message ?? "").toContain("NOT_ASSIGNEE");
+
+    // Once confirmed, the instance is no longer open for this.
+    const confirm = await kumar.rpc("confirm_chore", { p_assignment_id: assignmentId });
+    expect(confirm.error).toBeNull();
+    const late = await ravi.rpc("attach_chore_details", {
+      p_assignment_id: assignmentId,
+      p_photo_url: null,
+      p_note: "too late",
+    });
+    expect(late.error?.message ?? "").toContain("WRONG_STATE");
+  });
+
   it("refuses self-confirmation (SEC-04)", async () => {
     const assignmentId = await makeAssignment(raviMemberId, 20);
     await ravi.rpc("mark_chore_done", { p_assignment_id: assignmentId, p_photo_url: null });

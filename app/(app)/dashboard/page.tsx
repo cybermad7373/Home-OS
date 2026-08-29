@@ -253,7 +253,7 @@ export default async function DashboardPage() {
             <ul className="divide-y divide-border">
               {todaysChores.map((chore) => (
                 <li key={chore.id}>
-                  <ChoreCard chore={chore} myMemberId={context.me.id} />
+                  <ChoreCard chore={chore} myMemberId={context.me.id} houseId={context.house.id} />
                 </li>
               ))}
             </ul>
@@ -273,7 +273,7 @@ export default async function DashboardPage() {
             <ul className="divide-y divide-border">
               {awaitingConfirm.slice(0, 3).map((chore) => (
                 <li key={chore.id}>
-                  <ChoreCard chore={chore} myMemberId={context.me.id} />
+                  <ChoreCard chore={chore} myMemberId={context.me.id} houseId={context.house.id} />
                 </li>
               ))}
             </ul>

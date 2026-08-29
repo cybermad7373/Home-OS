@@ -102,6 +102,7 @@ export default async function DependentChoresPage() {
                       <ChoreCard
                         chore={chore}
                         myMemberId={context.me.id}
+                        houseId={context.house.id}
                         guardianFor={{
                           memberId: dependent.id,
                           displayName: dependent.displayName.split(" ")[0],
@@ -121,6 +122,7 @@ export default async function DependentChoresPage() {
                       <ChoreCard
                         chore={chore}
                         myMemberId={context.me.id}
+                        houseId={context.house.id}
                         variant="compact"
                         guardianFor={{
                           memberId: dependent.id,

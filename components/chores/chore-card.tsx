@@ -10,6 +10,9 @@ import { useToast } from "@/components/ui/toast";
 import { canConfirm } from "@/lib/domain/governance/quorum";
 import { cn } from "@/lib/utils/cn";
 import { relativeTime } from "@/lib/utils/date";
+import { compressImage } from "@/lib/utils/image";
+import { createClient } from "@/lib/infra/supabase/client";
+import { LastDoneLine } from "@/components/chores/last-done-line";
 
 export interface ChoreItem {
   id: string;
@@ -29,9 +32,14 @@ export interface ChoreItem {
     | "cancelled";
   deadline: string;
   doneAt: string | null;
+  photoUrl: string | null;
+  note: string | null;
   autoConfirmed: boolean;
   rejectedReason: string | null;
   retryCount: number;
+  /** CH-12 — the template's own last-completed figure, not this instance's. */
+  lastDoneAt: string | null;
+  lastDoneByName: string | null;
   assignee: {
     memberId: string;
     displayName: string;
@@ -100,11 +108,14 @@ const STATUS_LABEL: Record<ChoreItem["status"], { text: string; tone: "neutral" 
 export function ChoreCard({
   chore,
   myMemberId,
+  houseId,
   variant = "full",
   guardianFor,
 }: {
   chore: ChoreItem;
   myMemberId: string;
+  /** For the storage path when a photo is attached after the fact (S-12). */
+  houseId: string;
   variant?: "compact" | "full";
   /**
    * The dependent whose work the caller is responsible for, when this card is
@@ -119,6 +130,9 @@ export function ChoreCard({
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [rejecting, setRejecting] = useState(false);
+  const [attaching, setAttaching] = useState(false);
+  const [note, setNote] = useState(chore.note ?? "");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [reason, setReason] = useState("");
 
   const isMine = chore.assignee?.memberId === myMemberId;
@@ -177,6 +191,47 @@ export function ChoreCard({
     router.refresh();
   }
 
+  /**
+   * S-12 — the photo and the note are attached after the tap, on their own
+   * call, never as part of marking done. Open for as long as the instance is
+   * still `assigned` or `done_pending`.
+   */
+  async function attachDetails(fields: { photo_url?: string; note?: string }) {
+    const response = await fetch(`/api/chores/${chore.id}/attach`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      toast(payload?.error?.message ?? "That did not attach", "danger");
+      return;
+    }
+    toast("Saved.", "success");
+    router.refresh();
+  }
+
+  async function onPickPhoto(file: File) {
+    setUploadingPhoto(true);
+    try {
+      const compressed = await compressImage(file);
+      const supabase = createClient();
+      const path = `${houseId}/${crypto.randomUUID()}.${compressed.extension}`;
+      const { error } = await supabase.storage
+        .from("chore-photos")
+        .upload(path, compressed.blob, {
+          contentType: compressed.blob.type || "image/webp",
+          upsert: false,
+        });
+      if (error) throw error;
+      await attachDetails({ photo_url: path });
+    } catch {
+      toast("The photo would not upload.", "danger");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
   return (
     <div className="flex gap-3 px-4 py-3">
       <span
@@ -212,6 +267,14 @@ export function ChoreCard({
             </span>
           ) : null}
         </div>
+
+        {variant === "full" ? (
+          <LastDoneLine
+            instanceStatus={chore.status}
+            lastDoneAt={chore.lastDoneAt}
+            lastDoneByName={chore.lastDoneByName}
+          />
+        ) : null}
 
         {progress ? (
           <p className="caption-text mt-1 text-text-muted">{progress}</p>
@@ -348,6 +411,65 @@ export function ChoreCard({
               </p>
             ) : null}
           </div>
+        ) : null}
+
+        {/* S-12 — after the fact, never a gate: open for as long as the
+            instance has not moved past done_pending. */}
+        {variant === "full" &&
+        (isMine || isMyDependents) &&
+        (chore.status === "assigned" || chore.status === "done_pending") ? (
+          attaching ? (
+            <div className="mt-2 rounded-[10px] bg-surface-2 p-3">
+              <label htmlFor={`note-${chore.id}`} className="sr-only">
+                Note
+              </label>
+              <Input
+                id={`note-${chore.id}`}
+                value={note}
+                placeholder="Add a note (optional)"
+                onChange={(event) => setNote(event.target.value)}
+              />
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <label className={cn("touch-target", uploadingPhoto && "opacity-60")}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    disabled={uploadingPhoto}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) void onPickPhoto(file);
+                      event.target.value = "";
+                    }}
+                  />
+                  <span className="touch-target rounded-[10px] border border-border px-3 py-1.5 text-[13px]">
+                    {uploadingPhoto ? "Uploading…" : chore.photoUrl ? "Replace photo" : "Add photo"}
+                  </span>
+                </label>
+                <Button size="sm" variant="ghost" onClick={() => setAttaching(false)}>
+                  Close
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={note.trim() === (chore.note ?? "")}
+                  onClick={async () => {
+                    await attachDetails({ note: note.trim() });
+                    setAttaching(false);
+                  }}
+                >
+                  Save note
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="caption-text mt-1 text-primary"
+              onClick={() => setAttaching(true)}
+            >
+              {chore.photoUrl || chore.note ? "Edit photo or note" : "+ Add photo or note"}
+            </button>
+          )
         ) : null}
       </div>
 

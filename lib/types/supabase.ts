@@ -243,6 +243,7 @@ export type Database = {
           guest_id: string | null
           house_id: string
           id: string
+          note: string | null
           photo_url: string | null
           rejected_by: string | null
           rejected_reason: string | null
@@ -274,6 +275,7 @@ export type Database = {
           guest_id?: string | null
           house_id: string
           id?: string
+          note?: string | null
           photo_url?: string | null
           rejected_by?: string | null
           rejected_reason?: string | null
@@ -305,6 +307,7 @@ export type Database = {
           guest_id?: string | null
           house_id?: string
           id?: string
+          note?: string | null
           photo_url?: string | null
           rejected_by?: string | null
           rejected_reason?: string | null
@@ -369,6 +372,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "chore_templates"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chore_assignments_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_last_done"
+            referencedColumns: ["template_id"]
           },
         ]
       }
@@ -3442,6 +3452,32 @@ export type Database = {
           },
         ]
       }
+      v_template_last_done: {
+        Row: {
+          house_id: string | null
+          last_done_at: string | null
+          last_done_by: string | null
+          last_done_by_name: string | null
+          name: string | null
+          template_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chore_assignments_assignee_member_id_fkey"
+            columns: ["last_done_by"]
+            isOneToOne: false
+            referencedRelation: "house_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chore_templates_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_join_request: {
@@ -3555,6 +3591,10 @@ export type Database = {
       assign_room: {
         Args: { p_from_date?: string; p_member_id: string; p_room_id: string }
         Returns: string
+      }
+      attach_chore_details: {
+        Args: { p_assignment_id: string; p_note?: string; p_photo_url?: string }
+        Returns: Database["public"]["Enums"]["assignment_status"]
       }
       begin_member_removal: {
         Args: { p_decision_id?: string; p_member_id: string }

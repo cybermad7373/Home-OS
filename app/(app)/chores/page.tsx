@@ -106,6 +106,7 @@ export default async function ChoresPage({
           today={today}
           timezone={context.house.timezone}
           myMemberId={context.me.id}
+          houseId={context.house.id}
           weekStart={weekStart}
           previousWeek={shiftWeek(weekStart, -1)}
           nextWeek={shiftWeek(weekStart, 1)}

@@ -12,12 +12,14 @@ import { Input, Select } from "@/components/ui/input";
 import { BottomSheet } from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { buildDemand, totalPoints } from "@/lib/domain/scheduling/demand";
+import { LastDoneLine } from "@/components/chores/last-done-line";
 import type {
   ChoreCategory,
   ChoreFrequency,
   ChoreSlot,
   ChoreTemplateRow,
 } from "@/lib/types/database";
+import type { TemplateLastDone } from "@/lib/domain/chores/last-done";
 import type { RoomView } from "@/lib/types/domain";
 
 /**
@@ -53,7 +55,7 @@ export function TemplateAdmin({
   weekStart,
   isAdmin,
 }: {
-  templates: ChoreTemplateRow[];
+  templates: (ChoreTemplateRow & TemplateLastDone)[];
   rooms: RoomView[];
   memberCount: number;
   weekStart: string;
@@ -119,7 +121,7 @@ export function TemplateAdmin({
     return true;
   }
 
-  const byCategory = new Map<string, ChoreTemplateRow[]>();
+  const byCategory = new Map<string, (ChoreTemplateRow & TemplateLastDone)[]>();
   for (const template of templates) {
     const list = byCategory.get(template.category) ?? [];
     list.push(template);
@@ -190,6 +192,10 @@ export function TemplateAdmin({
                         ? `${template.times_per_week}× a week`
                         : template.frequency}
                     </p>
+                    <LastDoneLine
+                      lastDoneAt={template.last_done_at}
+                      lastDoneByName={template.last_done_by_name}
+                    />
                   </div>
                   {isAdmin ? (
                     <Button size="sm" variant="ghost" onClick={() => setEditing(template)}>

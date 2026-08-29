@@ -21,6 +21,13 @@ import type {
 } from "@/lib/domain/scheduling/types";
 import { canConfirm, type ConfirmableAssignment } from "@/lib/domain/governance/quorum";
 import { absenceDates } from "@/lib/domain/absence";
+import {
+  indexTemplateLastDone,
+  lastDoneFor,
+  mergeTemplateLastDone,
+  type TemplateLastDone,
+  type TemplateLastDoneRow,
+} from "@/lib/domain/chores/last-done";
 import { proposeWithLlm } from "./schedule-llm";
 import { getHouseAvailability, getHouseExceptions } from "./availability";
 import { listGuests } from "./guests";
@@ -57,9 +64,14 @@ export interface AssignmentView {
   status: AssignmentStatus;
   deadline: string;
   doneAt: string | null;
+  photoUrl: string | null;
+  note: string | null;
   autoConfirmed: boolean;
   rejectedReason: string | null;
   retryCount: number;
+  /** CH-12 — the template's own last-completed figure, not this instance's. */
+  lastDoneAt: string | null;
+  lastDoneByName: string | null;
   assignee: {
     memberId: string;
     displayName: string;
@@ -87,6 +99,8 @@ export interface AssignmentView {
     }[];
   };
 }
+
+const EMPTY_LAST_DONE = new Map<string, TemplateLastDone>();
 
 const ASSIGNMENT_SELECT = `
   *,
@@ -122,7 +136,11 @@ type RawAssignment = ChoreAssignmentRow & {
   }[];
 };
 
-function toAssignmentView(row: RawAssignment): AssignmentView {
+function toAssignmentView(
+  row: RawAssignment,
+  lastDoneIndex: Map<string, TemplateLastDone>,
+): AssignmentView {
+  const lastDone = lastDoneFor(row.template_id, lastDoneIndex);
   return {
     id: row.id,
     templateId: row.template_id,
@@ -135,9 +153,13 @@ function toAssignmentView(row: RawAssignment): AssignmentView {
     status: row.status,
     deadline: row.deadline,
     doneAt: row.done_at,
+    photoUrl: row.photo_url,
+    note: row.note,
     autoConfirmed: row.auto_confirmed,
     rejectedReason: row.rejected_reason,
     retryCount: row.retry_count,
+    lastDoneAt: lastDone.last_done_at,
+    lastDoneByName: lastDone.last_done_by_name,
     assignee: row.assignee
       ? {
           memberId: row.assignee.id,
@@ -183,7 +205,7 @@ export function confirmable(assignment: AssignmentView): ConfirmableAssignment {
 export async function listTemplates(
   session: Session,
   houseId: string,
-): Promise<ChoreTemplateRow[]> {
+): Promise<(ChoreTemplateRow & TemplateLastDone)[]> {
   const { data, error } = await session.supabase
     .from("chore_templates")
     .select("*")
@@ -191,7 +213,22 @@ export async function listTemplates(
     .order("category")
     .order("name");
   if (error) throw apiErrorFromPostgres(error);
-  return data ?? [];
+
+  return mergeTemplateLastDone(data ?? [], await fetchLastDone(session, houseId));
+}
+
+/**
+ * CH-12 — the last-completed figure for every template in the house, read
+ * from v_template_last_done: confirmed completions only, null for a template
+ * never done.
+ */
+async function fetchLastDone(session: Session, houseId: string): Promise<TemplateLastDoneRow[]> {
+  const { data, error } = await session.supabase
+    .from("v_template_last_done")
+    .select("template_id, last_done_at, last_done_by, last_done_by_name")
+    .eq("house_id", houseId);
+  if (error) throw apiErrorFromPostgres(error);
+  return (data ?? []) as TemplateLastDoneRow[];
 }
 
 /** The house week view, and the personal one — same query, different filter. */
@@ -213,9 +250,13 @@ export async function listAssignments(
 
   if (memberId) query = query.eq("assignee_member_id", memberId);
 
-  const { data, error } = await query;
+  const [{ data, error }, lastDoneRows] = await Promise.all([
+    query,
+    fetchLastDone(session, houseId),
+  ]);
   if (error) throw apiErrorFromPostgres(error);
-  return (data as unknown as RawAssignment[]).map(toAssignmentView);
+  const lastDoneIndex = indexTemplateLastDone(lastDoneRows);
+  return (data as unknown as RawAssignment[]).map((row) => toAssignmentView(row, lastDoneIndex));
 }
 
 /**
@@ -242,8 +283,10 @@ export async function listAwaitingConfirmation(
   // The quorum makes "awaiting me" narrower than "awaiting somebody": a chore
   // I have already signed is waiting on other people, not on me, and my
   // dependent's chore was never mine to sign.
+  // done_pending rows read "pending" regardless of the template's last-done
+  // figure (formatLastDoneLabel), so this queue has no need to fetch it.
   return (data as unknown as RawAssignment[])
-    .map(toAssignmentView)
+    .map((row) => toAssignmentView(row, EMPTY_LAST_DONE))
     .filter((assignment) => canConfirm(confirmable(assignment), myMemberId));
 }
 
@@ -259,7 +302,7 @@ export async function listOpenPool(
     .order("chore_date");
 
   if (error) throw apiErrorFromPostgres(error);
-  return (data as unknown as RawAssignment[]).map(toAssignmentView);
+  return (data as unknown as RawAssignment[]).map((row) => toAssignmentView(row, EMPTY_LAST_DONE));
 }
 
 export interface StandingView {

@@ -12,7 +12,7 @@ How the rest of the build runs. The reasoning is D-59; this is the summary.
 
 | | |
 |---|---|
-| **Next piece of work** | Track A: the two failing integration tests named in the 2026-08-28 pass, then the eight `signup/route.ts` type errors. Track B: Phase 13 Food is now built end to end (see Phase 13 section) — next is Phase 14 (Today, Calendar, navigation) and Phase 15 (Insights), in roadmap order. |
+| **Next piece of work** | Phase 14 is in progress (see its section): CH-12 and CE-12/S-12 done. Remaining, in the practical order chosen to avoid the nav linking to routes that do not exist yet: Home overview (S-51), Today (S-50) and its aggregate endpoint, Calendar (S-52) and its aggregate endpoint, then the nav/quick-add shell rewrite last, then the phase's E2E journey. |
 | **Test target** | The local stack. The hosted project is written to only by an explicitly requested `db:push`. |
 | **Scope** | The whole of specification 2.0: finish phase 11, then 12 to 15 in the roadmap's order. Nothing trimmed. |
 | **Phase-11 order** | Jobs and notifications, then S-37 proposers, then absence, then shared assignment and `change_confirmation_policy`, then governed close with adjustments, then expected contributions and the reserve. |
@@ -188,7 +188,7 @@ roadmap.
 | **11** | **Governance** — decisions, approvals, quorum, absence, governed money | **built — migrations 051–060, 071–072 applied locally** |
 | **12** | **Rules** — plain text, AI parsing, versioning, history | **built — migrations 065–070 applied locally (commits 45f7266, 3b2e108)** |
 | **13** | **Food** — meals, library, preferences, recommendations | **built and verified — migrations 081–086 applied locally; schema, domain, data, API, AI ideas, all screens (including shopping list, planned-meals, library merge, expense-link) and eleven E2E specs done (see Phase 13 section)** |
-| **14** | **Today, Calendar and navigation** | **specified, not started** |
+| **14** | **Today, Calendar and navigation** | **in progress — migrations 087–088 applied locally; CH-12 and CE-12/S-12 done (see Phase 14 section); nav shell, Home overview, Today, Calendar and the phase E2E not started** |
 | **15** | **Insights** — one filtered screen | **specified, not started** |
 | 17 | Native mobile clients | not started — follows web/PWA launch |
 
@@ -1245,6 +1245,53 @@ N-45/N-46 notifications; a `meal_plans` integration-test suite (the plan
 lifecycle — create, list, confirm, already-confirmed refusal, delete — has
 no test below the new E2E steps, the same gap merge and link-expense had
 before this pass and still have).
+
+---
+
+## Phase 14 — Today, Calendar and navigation (in progress)
+
+Started 2026-08-29. First slice: CH-12 and the rest of CE-12/S-12, both listed
+in the phase's own scope but independent of the nav rebuild — no other phase-14
+piece depends on them, and they were buildable and provable without touching
+the nav shell.
+
+**CH-12 — the last-completed figure.** `v_template_last_done`
+(migration 087, `security_invoker = true`, same pattern as `v_effort_standing`)
+reads the most recent **confirmed** completion per template — a `done_pending`
+row is pending, not done, and a rejected one never becomes the last-completed.
+`lib/domain/chores/last-done.ts` is the pure merge/format layer:
+`mergeTemplateLastDone` joins the view onto a template list,
+`formatLastDoneLabel` decides "pending" / "last done — by —" / "never
+completed", with the rule that a card whose own instance is still
+`done_pending` reads "pending" rather than an older confirmed date. `listTemplates`
+and `listAssignments` (`lib/data/chores.ts`) both carry it now; `LastDoneLine`
+(`components/chores/last-done-line.tsx`) renders it on the week view
+(`chore-card.tsx`, S-09) and the admin template list (`template-admin.tsx`,
+S-29).
+
+**CE-12 / S-12 — the photo and the note, attached after the tap, never
+before it.** The tap itself was already ungated (`markDoneSchema.photo_url`
+was already optional, `parseBody` already tolerates no body). What was
+missing was the follow-up: a `note` column (migration 088, 500-char cap) and
+`attach_chore_details(assignment_id, photo_url, note)` — a security-definer
+function mirroring `mark_chore_done`'s assignee-or-guardian check, open only
+while the instance is `assigned` or `done_pending`, `coalesce`d so a partial
+call never clobbers the other field. `POST /api/chores/:id/attach` and an
+inline "+ Add photo or note" control on `ChoreCard` call it; the photo half
+reuses the `chore-photos` storage bucket and RLS policy that have existed,
+unused, since migration 018, and the same client-side `compressImage`
+utility the receipts flow already uses.
+
+`tests/unit/chore-last-done.test.ts` (5 cases) covers the pure layer;
+`tests/integration/chore-lifecycle.test.ts` gained two cases: the view against
+a real Postgres under RLS (not the service role), and the attach function's
+three refusals (wrong assignee, wrong state, and the happy path). 741 tests
+passing, typecheck/lint/build all clean.
+
+**Not yet built:** the nav and quick-add shell, the Home overview (S-51), the
+Today screen (S-50) and its `GET /api/today`, the Calendar (S-52) and its
+aggregate endpoint, and the phase's own E2E journey — deliberately last, so it
+never links to a route that does not exist yet.
 
 ---
 

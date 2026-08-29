@@ -75,6 +75,16 @@ export const markDoneSchema = z.object({
   photo_url: z.string().max(300).optional(),
 });
 
+export const attachChoreDetailsSchema = z
+  .object({
+    photo_url: z.string().max(300).optional(),
+    note: z.string().trim().max(500).optional(),
+  })
+  .refine(
+    (value) => value.photo_url !== undefined || value.note !== undefined,
+    "Nothing to attach",
+  );
+
 export const rejectChoreSchema = z.object({
   // A rejection without a reason is just a veto, and a veto is the failure mode
   // the whole confirmation mechanism is designed to prevent.

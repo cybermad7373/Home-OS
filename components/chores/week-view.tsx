@@ -24,6 +24,7 @@ export function WeekView({
   today,
   timezone,
   myMemberId,
+  houseId,
   weekStart,
   previousWeek,
   nextWeek,
@@ -33,6 +34,7 @@ export function WeekView({
   today: string;
   timezone: string;
   myMemberId: string;
+  houseId: string;
   weekStart: string;
   previousWeek: string;
   nextWeek: string;
@@ -134,7 +136,7 @@ export function WeekView({
           <ul className="divide-y divide-border">
             {forDay.map((chore) => (
               <li key={chore.id}>
-                <ChoreCard chore={chore} myMemberId={myMemberId} />
+                <ChoreCard chore={chore} myMemberId={myMemberId} houseId={houseId} />
               </li>
             ))}
           </ul>
@@ -159,7 +161,7 @@ export function WeekView({
                 .filter((chore) => chore.status === "open")
                 .map((chore) => (
                   <li key={chore.id}>
-                    <ChoreCard chore={chore} myMemberId={myMemberId} />
+                    <ChoreCard chore={chore} myMemberId={myMemberId} houseId={houseId} />
                   </li>
                 ))}
             </ul>

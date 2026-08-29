@@ -91,7 +91,7 @@ export default async function MyChoresPage() {
             <ul className="divide-y divide-border">
               {awaiting.map((chore) => (
                 <li key={chore.id}>
-                  <ChoreCard chore={chore} myMemberId={context.me.id} />
+                  <ChoreCard chore={chore} myMemberId={context.me.id} houseId={context.house.id} />
                 </li>
               ))}
             </ul>
@@ -117,7 +117,7 @@ export default async function MyChoresPage() {
             <ul className="divide-y divide-border">
               {todays.map((chore) => (
                 <li key={chore.id}>
-                  <ChoreCard chore={chore} myMemberId={context.me.id} />
+                  <ChoreCard chore={chore} myMemberId={context.me.id} houseId={context.house.id} />
                 </li>
               ))}
             </ul>
@@ -132,7 +132,7 @@ export default async function MyChoresPage() {
             <ul className="divide-y divide-border">
               {rest.map((chore) => (
                 <li key={chore.id}>
-                  <ChoreCard chore={chore} myMemberId={context.me.id} variant="compact" />
+                  <ChoreCard chore={chore} myMemberId={context.me.id} houseId={context.house.id} variant="compact" />
                 </li>
               ))}
             </ul>
@@ -150,7 +150,7 @@ export default async function MyChoresPage() {
             <ul className="divide-y divide-border">
               {pool.map((chore) => (
                 <li key={chore.id}>
-                  <ChoreCard chore={chore} myMemberId={context.me.id} />
+                  <ChoreCard chore={chore} myMemberId={context.me.id} houseId={context.house.id} />
                 </li>
               ))}
             </ul>
