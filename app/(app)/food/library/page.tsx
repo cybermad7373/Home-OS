@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/layout/page-header";
 import { LibraryList } from "@/components/food/library-list";
+import { MergeDuplicates } from "@/components/food/merge-duplicates";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listFoodPreferences, listFoods } from "@/lib/data/food";
 import { houseToday } from "@/lib/utils/date";
@@ -36,6 +37,7 @@ export default async function FoodLibraryPage() {
   return (
     <div>
       <PageHeader title="Food Library" subtitle="Every dish the Home has recorded, so it never has to be described twice" />
+      {context.isLead ? <MergeDuplicates foods={foods} /> : null}
       <LibraryList
         foods={foods}
         currency={context.house.currency}

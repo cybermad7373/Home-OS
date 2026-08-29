@@ -161,3 +161,18 @@ test("confirming a plan as eaten creates a meal and clears it from Planned", asy
   await expect(page.getByText(`${COSTED_MEAL_NAME} confirmed as eaten.`)).toBeVisible();
   await expect(page.getByText("Nothing planned")).toBeVisible();
 });
+
+test("the house lead merges two library duplicates", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/food/library");
+
+  await page.getByRole("button", { name: "Merge duplicates" }).click();
+  await page.getByLabel("Merge this").selectOption({ label: BARE_MEAL_NAME });
+  await page.getByLabel("Into this").selectOption({ label: COSTED_MEAL_NAME });
+  await page.getByRole("button", { name: "Merge", exact: true }).click();
+
+  await expect(page.getByText("Merged. Both names stay in History.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByText(BARE_MEAL_NAME)).not.toBeVisible();
+  await expect(page.getByText(COSTED_MEAL_NAME)).toBeVisible();
+});
