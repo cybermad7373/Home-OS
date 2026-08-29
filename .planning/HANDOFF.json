@@ -1,0 +1,142 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-08-29T12:39:48.493Z",
+  "phase": "14",
+  "phase_name": "Today, Calendar and navigation",
+  "phase_dir": "(none — this repository tracks phases in PROGRESS.md, not .planning/phases/)",
+  "plan": 1,
+  "task": 6,
+  "total_tasks": 6,
+  "status": "paused",
+  "completed_tasks": [
+    {
+      "id": 1,
+      "name": "S-51 Home overview at /home; /dashboard retired to a redirect",
+      "status": "done",
+      "commit": "95be544"
+    },
+    {
+      "id": 2,
+      "name": "S-50 Today, GET /api/today, house announcements (migration 089)",
+      "status": "done",
+      "commit": "b9b6e54"
+    },
+    {
+      "id": 3,
+      "name": "S-52 Calendar day/week/month and the three aggregate endpoints",
+      "status": "done",
+      "commit": "c92d46a"
+    },
+    {
+      "id": 4,
+      "name": "Six-item nav bar, universal quick-add, desktop sidebar",
+      "status": "done",
+      "commit": "f4d30cb"
+    },
+    {
+      "id": 5,
+      "name": "Phase-14 Playwright journey (tests/e2e/today.spec.ts, 9 cases)",
+      "status": "done",
+      "commit": "89659f1"
+    },
+    {
+      "id": 6,
+      "name": "Repo-wide quality pass: 360px overflow, invite-link hydration, e2e cleanup",
+      "status": "in_progress",
+      "progress": "All fixes made and committed at a3cafa8. One follow-up edit to components/forms/join-request-form.tsx (useEffect swapped for useSyncExternalStore to satisfy the React compiler lint rule) is written, typechecks and lints clean, but is NOT yet committed. PROGRESS.md and docs/07-ROADMAP.md have NOT been updated for phase 14."
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": 7,
+      "name": "Commit the join-request-form useSyncExternalStore change",
+      "status": "not_started"
+    },
+    {
+      "id": 8,
+      "name": "Update PROGRESS.md — phase 14 section, phase-status table row, verification-state table",
+      "status": "not_started"
+    },
+    {
+      "id": 9,
+      "name": "Record the two deliberate spec deviations in DECISIONS.md (Approvals in the bar at every width; /money and /dashboard as redirects rather than renames)",
+      "status": "not_started"
+    },
+    {
+      "id": 10,
+      "name": "Re-run the full Playwright suite once the tree builds again, to confirm 70/70",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [
+    {
+      "description": "Another agent or session is concurrently writing phase-15 (Insights) code into this working tree: lib/data/insights.ts, lib/domain/insights/, app/api/insights/, app/api/settlements/[period]/, and an uncommitted edit to lib/data/settlement.ts. All of it is untracked or uncommitted and none of it is mine.",
+      "type": "external",
+      "workaround": "Verify scoped work by filtering: `npm run typecheck 2>&1 | grep -v insights` returns zero errors, and `npm run lint` reports problems only in insights files. Do not delete or edit those files."
+    },
+    {
+      "description": "app/api/settlements/[period]/ conflicts with the existing app/api/settlements/[id]/ — Next refuses to start: \"You cannot use different slug names for the same dynamic path ('id' !== 'period')\". While that file exists, `npm run dev`, `npm run build` and the whole Playwright suite cannot run.",
+      "type": "technical",
+      "workaround": "Whoever owns the phase-15 work must fold that route under the existing [id] segment or rename it. During this session it was parked in the scratchpad to get a verification run, then restored byte-for-byte."
+    },
+    {
+      "description": "Docker Desktop stopped mid-session, taking the local Supabase stack with it. Every signup returned INTERNAL / 'TypeError: fetch failed' until it was restarted.",
+      "type": "external",
+      "workaround": "Docker was restarted and Supabase came back on the same ports. If signups start failing with 'fetch failed', check `npx supabase status` before suspecting the code."
+    }
+  ],
+  "human_actions_pending": [
+    {
+      "action": "Decide who owns the phase-15 Insights work and whether this session should stay off it",
+      "context": "The instruction for this session was to build every phase except 15, and a concurrent worker is writing exactly phase 15 into the same tree. Two writers on one working tree is what broke the build.",
+      "blocking": true
+    },
+    {
+      "action": "Fix or remove app/api/settlements/[period]/",
+      "context": "It is the single reason the app will not start. Nothing else can be verified end to end until it is resolved.",
+      "blocking": true
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "Approvals enters the bottom bar with its count at every width, not only from 640px up",
+      "rationale": "docs/08-UI-UX-SPEC.md section 3.1 caps the bar at six items AND says never to drop Approvals while something is pending. The phase's own acceptance criterion — 'Approvals appears in primary navigation with its count the moment anything is pending' — settles the contradiction in favour of the pending queue.",
+      "phase": "14"
+    },
+    {
+      "decision": "The Insights nav slot points at /analytics until phase 15 ships",
+      "rationale": "Insights supersedes analytics in phase 15. Linking the slot at a route that does not exist would break the phase's own 'no screen reachable only from a URL' criterion in the other direction.",
+      "phase": "14"
+    },
+    {
+      "decision": "/money and /dashboard are redirects, not renames",
+      "rationale": "The spec's route table names /home and /money. /expenses has been the ledger since phase 2 and carries approvals, recurring, close and settle beneath it. Renaming the family would break every link a Home has already shared and every bookmark, and buys nothing a redirect does not.",
+      "phase": "14"
+    },
+    {
+      "decision": "Announcement severity is text with a check constraint, not an enum",
+      "rationale": "Matches the schema documented in docs/04-DATABASE.md section 4. Three values, and nothing in SQL branches on them.",
+      "phase": "14"
+    },
+    {
+      "decision": "announcement_expires_in_the_future holds on UPDATE as well as INSERT",
+      "rationale": "An announcement ends by expiring or by being taken down. Back-dating an expiry so it 'was never shown' is neither, and the constraint refuses it. Proved by an integration case.",
+      "phase": "14"
+    },
+    {
+      "decision": "Today's food block asks the library recommender only, never the AI half",
+      "rationale": "The AI call is a second network hop with its own latency and failure mode. Today is the screen that must not wait; the Food screen is where ideas are asked for.",
+      "phase": "14"
+    }
+  ],
+  "uncommitted_files": [
+    "components/forms/join-request-form.tsx (mine — complete, typechecks, lints clean, just needs committing)",
+    "lib/data/settlement.ts (NOT mine — concurrent phase-15 work)",
+    "app/api/insights/ (NOT mine — untracked phase-15 work)",
+    "app/api/settlements/[period]/ (NOT mine — untracked phase-15 work, and the reason the app will not start)",
+    "lib/data/insights.ts (NOT mine — untracked phase-15 work)",
+    "lib/domain/insights/ (NOT mine — untracked phase-15 work)"
+  ],
+  "next_action": "Commit components/forms/join-request-form.tsx on its own (git add that single path — do NOT use `git add -A`, it would sweep in another worker's half-written phase-15 files), then update PROGRESS.md for phase 14.",
+  "context_notes": "Phase 14 is functionally complete and every slice was verified green at the moment it was committed: 794 unit and integration tests passing across 60 files, typecheck/lint/build clean, and the phase journey 9/9 on mobile and desktop. The last full Playwright run before the tree broke was 68 passed / 1 failed / 1 flaky, and the one failure was a cascade from a flaky home-creation step in the rules journey, not a defect in phase-14 code. Three long-standing e2e failures recorded in PROGRESS.md were root-caused and fixed this session rather than worked around: the /house/members 360px overflow was the app shell's content column missing min-w-0 (a flex item's min-width:auto floored it at the min-content width of a nowrap truncate), the governance journey's 'co-lead signup timeout not yet root-caused' was the invite form submitting natively before hydration, and the food journey's Plan button was sitting underneath its own date input at 360px. What remains is documentation, not code."
+}
