@@ -619,7 +619,7 @@ function median(values: number[]): number | null {
  * for food spending reads as comfortably inside budget rather than erroring —
  * budget awareness is additive, never a precondition for suggestions.
  */
-async function budgetPressureFor(session: Session, houseId: string): Promise<number> {
+export async function budgetPressureFor(session: Session, houseId: string): Promise<number> {
   const { data: category } = await session.supabase
     .from("expense_categories")
     .select("id, monthly_budget_paise")
