@@ -91,19 +91,6 @@ async function signUp(page: import("@playwright/test").Page, account: Account) {
   console.log("After signup/username URL:", page.url());
 }
 
-async function completeOnboarding(page: import("@playwright/test").Page) {
-  await page.waitForURL("**/onboarding/ai");
-  await page.getByRole("button", { name: "Skip" }).click();
-  await page.waitForURL("**/onboarding/profile");
-  await page.getByRole("button", { name: "Yes" }).click();
-  await page.getByRole("button", { name: "Finish" }).click();
-  await page.waitForURL("**/onboarding/availability");
-  await page.getByRole("button", { name: "Save & continue" }).click();
-  await page.waitForURL("**/onboarding/notify");
-  await page.getByRole("button", { name: "Finish" }).click();
-  await page.waitForURL("**/dashboard");
-}
-
 async function signIn(page: import("@playwright/test").Page, identifier: string) {
   await page.goto("/signin");
   await page.getByLabel("Username or email").fill(identifier);
@@ -114,35 +101,19 @@ async function signIn(page: import("@playwright/test").Page, identifier: string)
 
 async function createHome(page: import("@playwright/test").Page, name: string) {
   await page.waitForLoadState("networkidle");
-  // Listen for console errors
-  page.on("console", msg => {
-    if (msg.type() === "error") {
-      console.log("Browser console error:", msg.text());
-    }
-  });
-  page.on("pageerror", error => {
-    console.log("Page error:", error.message);
-  });
-  // Debug: log page content
-  const pageText = await page.textContent("body").catch(() => "");
-  console.log("Page text at /onboarding/house:", pageText?.slice(0, 3000));
-  // Wait for the JoinOrCreate component to render - try multiple selectors
   await page.waitForSelector('h1:has-text("Get started"), button:has-text("Set up a new home")', { timeout: 30000 });
   await page.getByText("Set up a new home", { exact: true }).click();
   await page.getByLabel("Home name").fill(name);
   await page.getByRole("button", { name: "Create home" }).click();
   await page.waitForURL("**/onboarding/ai");
-  // Skip AI onboarding
   await page.getByRole("button", { name: "Skip" }).click();
   await page.waitForURL("**/onboarding/profile");
   await page.getByRole("button", { name: "Yes" }).click();
   await page.getByRole("button", { name: "Finish" }).click();
   await page.waitForURL("**/onboarding/availability");
-  // Skip availability - submit default
-  await page.getByRole("button", { name: "Save & continue" }).click();
+  await page.getByRole("button", { name: "Save and continue" }).click();
   await page.waitForURL("**/onboarding/notify");
-  // Skip notifications
-  await page.getByRole("button", { name: "Finish" }).click();
+  await page.getByRole("button", { name: "Skip for now" }).click();
   await page.waitForURL("**/dashboard");
 }
 
@@ -155,10 +126,10 @@ test("lead creates home and adds co-lead + member", async ({ page }) => {
   await signUp(page, lead);
   homeName = `Gov Home ${stamp}`;
   await createHome(page, homeName);
-  await completeOnboarding(page);
 
-  // Get the invite link
-  await page.goto("/house/members");
+  // The link is what a person is sent. It lives on admin/settings, not the
+  // members list (member-list.tsx has no invite affordance).
+  await page.goto("/admin/settings");
   const inviteLink = await page.getByText(/\/join\//).first().innerText();
   const invitePath = new URL(inviteLink).pathname;
 

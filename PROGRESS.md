@@ -220,7 +220,7 @@ Run from the repository root:
 | Unit, property and integration tests | `npm run test` | 723 passing, 0 failing, 0 skipped |
 | Edge function types | `npx deno check supabase/functions/*/index.ts` | all eight clean |
 | Web Push and key sealing | `npm run test:functions` | 9 passing |
-| End-to-end | `npm run test:e2e` | phase-1, phase-11 (governance), phase-12 (rules) and phase-13 (food, 7/7) journeys |
+| End-to-end | `npm run test:e2e` | phase-12 (rules, 7/7) and phase-13 (food, 7/7) fully green. Phase-1/10 (foundation) 3/4 — one pre-existing 360px overflow on `/house/members` not fully closed. Phase-11 (governance) has three real pre-existing bugs fixed 2026-08-29 (stale button text, a dead duplicate-onboarding helper, wrong invite-link path) but still fails on a co-lead signup timeout not yet root-caused — see `PARALLEL-PLAN.md` B5. |
 
 All pre-existing failures resolved:
 - Auto-confirm regression (A1) — fixed in migration 058

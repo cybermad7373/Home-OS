@@ -352,13 +352,35 @@ assignee when their chore is confirmed" alone. They are A1's.
 journey through its main path, because the route handlers and screens have no
 other automated coverage. Two are missing.
 
-- [x] **Phase 10 — membership.** Covered in `tests/e2e/foundation.spec.ts`
-      ("a lead lets them in and they appear in the home").
-- [x] **Phase 11 — governance.** `tests/e2e/governance.spec.ts` (261 lines,
-      propose/respond/apply/Approvals).
-- [x] Commit — already in the tree from an earlier session ("feat: add food
-      module..." carried `tests/e2e/governance.spec.ts` alongside the food
-      schema; foundation.spec.ts's membership coverage predates this plan).
+- [~] **Phase 10 — membership.** `tests/e2e/foundation.spec.ts` exists and
+      three of its four tests pass once run against the actual onboarding flow
+      (2026-08-29: fixed two real bugs — the AI-skip step wasn't awaited before
+      Profile, and a strict-mode selector matched two elements twice). The
+      fourth ("every screen works at 360 px") still fails: `/house/members`
+      overflows horizontally with two active members present. Added
+      `truncate` to the member metadata line (`components/house/member-list.tsx`),
+      which didn't fully close it — the overflow figure changed rather than
+      disappearing, so there is a second contributor not yet found. Not
+      chased further; this is Track B's box, being fixed by whoever picks it
+      up next.
+- [~] **Phase 11 — governance.** `tests/e2e/governance.spec.ts` exists.
+      2026-08-29: fixed three real bugs that meant it could not pass at all —
+      wrong button text twice (`"Save & continue"` / `"Finish"` where the
+      actual page reads `"Save and continue"` / `"Skip for now"`), a dead
+      `completeOnboarding` helper called a second time on a page already past
+      onboarding (30s timeout, `createHome` already does the whole flow), and
+      the invite link's path (`/house/members` has no invite affordance; it's
+      on `/admin/settings`). None of those were caused by anything in this
+      session's other changes — the file could never have passed. **Still
+      failing** after those fixes: the co-lead's `signUp()` call — reusing the
+      same `page` while still authenticated as the lead — times out waiting
+      for the signup form to render. Not root-caused; may be a genuine
+      multi-account-in-one-page-context issue in the test's own design, or a
+      real bug in how `/signup` behaves for an already-authenticated session.
+      Left for whoever picks this up next; the fixes so far are committed
+      regardless since they are real and independent of the remaining one.
+- [x] Commit — the three governance fixes and the two foundation fixes are
+      committed; the file existed already from an earlier session.
 
 Follow the shape of `tests/e2e/rules.spec.ts`, including its header note about
 needing the app running.
@@ -487,5 +509,6 @@ since the snapshot.
 | 2026-08-28 | A | A2's last box is now green: `membership.test.ts` is 10/10 once 080's grant on `complete_pending_removals` is in place. **Track A's whole checklist — A1 to A4 — is done.** Full run: 669 passed, 2 failed, both in Track B's suites. |
 | 2026-08-28 | A | **For B2, and this one is a live product bug rather than a test failure.** 080's blanket `revoke execute on all routines in schema public from public, anon, authenticated` stripped `shares_active_house_with(uuid)`, which is the helper inside the RLS policy on `users`. A policy helper has to be executable by the role the policy runs as, so **every authenticated read of any profile now answers `42501 permission denied for function shares_active_house_with`** — nobody can see anybody's name. `rls-isolation.test.ts` → "hides a housemate's profile from an unrelated user" is that, surfacing as `data: null` where the test expects `[]`. The other five policy helpers — `current_member`, `has_membership`, `is_house_admin`, `is_house_lead`, `is_house_member` — were granted back by name and are fine; this is the one that was missed. |
 | 2026-08-28 | A | Also for B2: `enqueue_notification(uuid, uuid, text, jsonb, text, jsonb, timestamptz, text, boolean)` currently holds `execute` for **no role at all** — anon, authenticated and service_role are all false. Keeping it out of a browser's hands was the point, but the notification jobs and the test fixtures call it with the service-role key, so `notifications.test.ts` → "replaces rather than adds when the same tag repeats inside ten minutes" reads zero rows from two enqueues that both answered `42501`. It needs `grant execute … to service_role`. |
-| 2026-08-29 | A | Track B's remaining state was found already resolved when Track A picked this file back up: B1, B2, B3, B5 all done (some by an earlier session, `set_notification_prefs`'s fix under A2 cleared B3 as a side effect). Fixed the two B2 grant gaps the 2026-08-28 entries above flagged (`shares_active_house_with`, `enqueue_notification`) in `083`, and found a third the same session: `081`'s own `alter default privileges` statement reopened the exact hole `080` had just closed — confirmed live via `pg_default_acl`, fixed in `084`. Full run: 684 → 690 passed. |
+| 2026-08-29 | A | Track B's remaining state was found already resolved when Track A picked this file back up: B1, B2, B3 all done (some by an earlier session, `set_notification_prefs`'s fix under A2 cleared B3 as a side effect). B5's files existed but were not actually passing — see the entry below, corrected after actually running them. Fixed the two B2 grant gaps the 2026-08-28 entries above flagged (`shares_active_house_with`, `enqueue_notification`) in `083`, and found a third the same session: `081`'s own `alter default privileges` statement reopened the exact hole `080` had just closed — confirmed live via `pg_default_acl`, fixed in `084`. Full run: 684 → 690 passed. |
 | 2026-08-29 | A | B6 (Food) picked up cold, since nobody had. `docs/04-DATABASE.md` carried an explicit drift note saying 081 shipped narrower than its own spec and to close the gap before applying — it never was. Reconciled in `085`: dropped and rebuilt the five tables against the documented shape, added `meal_plans` and `shopping_items` (missing entirely), added `expenses.meal_id`. Then built B6 items 2-7, 10 from scratch: split arithmetic, dedup, the recommender, AI food ideas (call site 5), the full data/API layer, and the screens (Add Meal, Library with ratings, History, Preferences with restrictions). One Playwright journey (`tests/e2e/food.spec.ts`, 7/7) run against the real app caught a real cold-start rendering bug and it was fixed in the same pass — see `PROGRESS.md`'s new Phase 13 section for the full account, including what's deferred (shopping list, planned-meals UI, merge UI, expense-link UI — items 8 and 9 are `[~]`, backend done, no screen). Full run: 690 → 723 passed. typecheck, lint, build all clean. |
+| 2026-08-29 | A | Ran the full E2E suite rather than trusting B5's checked boxes, since a claim resting on a file's existence rather than a passing run is exactly what this log warned against on 2026-08-28. `foundation.spec.ts` and `governance.spec.ts` could not pass at all — both had a stale onboarding flow (missing the AI-skip wait, wrong button text) and `governance.spec.ts` additionally had a dead `completeOnboarding` helper double-calling the onboarding flow and looked for the invite link on the wrong page. Fixed all of that (committed). Two real issues remain, neither caused by this session's other work: `foundation.spec.ts`'s 360px check finds `/house/members` still overflowing after a `truncate` fix that changed the overflow figure without closing it — a second contributor is in there somewhere; `governance.spec.ts`'s co-lead signup hangs reusing the same authenticated `page` for a second account, not root-caused. B5 corrected from `[x]` to `[~]` above — it was marked done on file-existence, not on a run. |

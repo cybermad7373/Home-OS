@@ -124,7 +124,7 @@ export function MemberList({
                       <span className="caption-text text-text-subtle"> · you</span>
                     ) : null}
                   </p>
-                  <p className="caption-text text-text-muted">
+                  <p className="caption-text truncate text-text-muted">
                     {member.username ? `@${member.username} · ` : ""}
                     {member.room?.name ?? "No room"} · {RESIDENCY_LABEL[member.residency]}
                     {member.canCook ? " · cooks" : ""}
