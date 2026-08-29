@@ -26,7 +26,7 @@ export function FoodHomeClient({
         <Plus size={16} aria-hidden /> Add Meal
       </Button>
 
-      <SuggestionsCard currency={currency} />
+      <SuggestionsCard currency={currency} today={today} />
 
       <AddMealSheet
         open={adding}

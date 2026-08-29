@@ -138,3 +138,26 @@ test("the Food screen renders Try Today's suggestions without erroring", async (
   // fabricated score (section 6.1).
   await expect(page.getByText(/not enough history yet/i)).toBeVisible();
 });
+
+test("a library food can be planned, and appears under Planned", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/food/library");
+
+  await page.getByRole("button", { name: `Plan ${COSTED_MEAL_NAME}` }).click();
+  await page.getByRole("button", { name: "Plan", exact: true }).click();
+  await expect(page.getByText(`${COSTED_MEAL_NAME} planned for`)).toBeVisible();
+
+  await page.goto("/food");
+  await expect(page.getByText("Planned for")).toBeVisible();
+});
+
+test("confirming a plan as eaten creates a meal and clears it from Planned", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/food");
+
+  await page.getByRole("button", { name: `Confirm ${COSTED_MEAL_NAME} as eaten` }).click();
+  await page.getByRole("button", { name: "Confirm as eaten" }).click();
+
+  await expect(page.getByText(`${COSTED_MEAL_NAME} confirmed as eaten.`)).toBeVisible();
+  await expect(page.getByText("Nothing planned")).toBeVisible();
+});

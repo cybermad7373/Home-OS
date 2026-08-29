@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { LibraryList } from "@/components/food/library-list";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listFoodPreferences, listFoods } from "@/lib/data/food";
+import { houseToday } from "@/lib/utils/date";
 
 export const metadata: Metadata = { title: "Food Library" };
 
@@ -35,7 +36,13 @@ export default async function FoodLibraryPage() {
   return (
     <div>
       <PageHeader title="Food Library" subtitle="Every dish the Home has recorded, so it never has to be described twice" />
-      <LibraryList foods={foods} currency={context.house.currency} myRatings={myRatings} homeLikes={homeLikes} />
+      <LibraryList
+        foods={foods}
+        currency={context.house.currency}
+        myRatings={myRatings}
+        homeLikes={homeLikes}
+        today={houseToday(context.house.timezone)}
+      />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardTitle } from "@/components/ui/card";
 import { formatMoney } from "@/lib/utils/money";
+import { PlanItButton } from "./plan-it-button";
 
 interface ScoredFood {
   foodId: string;
@@ -30,7 +31,7 @@ interface SuggestionsResponse {
  * when it comes back null — that is the correct outcome, never an error
  * (section 9.5).
  */
-export function SuggestionsCard({ currency }: { currency: string }) {
+export function SuggestionsCard({ currency, today }: { currency: string; today: string }) {
   const [data, setData] = useState<SuggestionsResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -82,7 +83,10 @@ export function SuggestionsCard({ currency }: { currency: string }) {
                     <p className="caption-text text-text-muted">{s.reasons.join(" · ")}</p>
                   ) : null}
                 </div>
-                {s.score > 0 ? <span className="label-text text-primary">{s.score}</span> : null}
+                <div className="flex items-center gap-2">
+                  {s.score > 0 ? <span className="label-text text-primary">{s.score}</span> : null}
+                  <PlanItButton name={s.name} foodId={s.foodId} minDate={today} />
+                </div>
               </li>
             ))}
           </ul>
@@ -97,9 +101,12 @@ export function SuggestionsCard({ currency }: { currency: string }) {
               <li key={idea.name} className="rounded-[10px] border border-dashed border-border px-3 py-2">
                 <div className="flex items-center justify-between">
                   <p className="text-[15px] text-text">{idea.name}</p>
-                  <span className="caption-text text-text-muted">
-                    est. {formatMoney(idea.estimatedPerPersonPaise, { currency })}/person
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="caption-text text-text-muted">
+                      est. {formatMoney(idea.estimatedPerPersonPaise, { currency })}/person
+                    </span>
+                    <PlanItButton name={idea.name} minDate={today} />
+                  </div>
                 </div>
                 <p className="caption-text text-text-muted">{idea.description}</p>
               </li>

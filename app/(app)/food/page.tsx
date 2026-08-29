@@ -3,8 +3,9 @@ import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { MealList } from "@/components/food/meal-list";
 import { FoodHomeClient } from "@/components/food/food-home-client";
+import { PlannedMeals } from "@/components/food/planned-meals";
 import { getHouseContext, requireSession } from "@/lib/data/house";
-import { listMeals } from "@/lib/data/food";
+import { listMeals, listMealPlans } from "@/lib/data/food";
 import { houseToday } from "@/lib/utils/date";
 
 export const metadata: Metadata = { title: "Food" };
@@ -24,6 +25,7 @@ export default async function FoodPage({
 
   const today = houseToday(context.house.timezone);
   const recentMeals = await listMeals(session, context.house.id, { limit: 5 });
+  const plans = await listMealPlans(session, context.house.id, { from: today });
 
   return (
     <div>
@@ -51,7 +53,10 @@ export default async function FoodPage({
         </Link>
       </div>
 
-      <h2 className="heading-text mb-2">Recent</h2>
+      <h2 className="heading-text mb-2">Planned</h2>
+      <PlannedMeals plans={plans} members={context.members} />
+
+      <h2 className="heading-text mb-2 mt-4">Recent</h2>
       <MealList meals={recentMeals} currency={context.house.currency} />
     </div>
   );

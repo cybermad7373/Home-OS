@@ -1,5 +1,6 @@
 import { EmptyState } from "@/components/ui/empty-state";
 import { RatingButtons } from "./rating-buttons";
+import { PlanItButton } from "./plan-it-button";
 import { formatDate } from "@/lib/utils/date";
 import { formatMoney } from "@/lib/utils/money";
 import type { FoodView } from "@/lib/data/food";
@@ -10,11 +11,13 @@ export function LibraryList({
   currency,
   myRatings,
   homeLikes,
+  today,
 }: {
   foods: FoodView[];
   currency: string;
   myRatings?: Map<string, "like" | "okay" | "dislike">;
   homeLikes?: Map<string, { likes: number; total: number }>;
+  today: string;
 }) {
   if (foods.length === 0) {
     return (
@@ -46,7 +49,10 @@ export function LibraryList({
                   ~{formatMoney(food.typicalCostPaise, { currency })}
                 </span>
               ) : null}
-              <RatingButtons foodId={food.id} current={myRatings?.get(food.id)} />
+              <div className="flex items-center gap-2">
+                <RatingButtons foodId={food.id} current={myRatings?.get(food.id)} />
+                <PlanItButton name={food.name} foodId={food.id} minDate={today} />
+              </div>
             </div>
           </div>
         </li>
