@@ -274,6 +274,8 @@ export default async function HomeOverviewPage() {
             concentrationRatio={concentrationRatio(ranked)}
             myMemberId={context.me.id}
             limit={3}
+            from={weekStart}
+            to={today}
           />
         </section>
       ) : null}

@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PointsBreakdownButton } from "@/components/chores/points-breakdown";
 import { formatMoney } from "@/lib/utils/money";
 import type {
   ChoreInsightsOutput,
@@ -243,7 +244,15 @@ export function ChoresView({ report }: { report: ChoreInsightsOutput }) {
             <li key={member.memberId} className="flex items-center justify-between gap-3">
               <span className="min-w-0 truncate">{member.memberName}</span>
               <span className="shrink-0 tabular-nums">
-                {member.confirmedPoints} of {member.assignedPoints} pts
+                {/* EF-12 — the figure opens to the chores behind it. */}
+                <PointsBreakdownButton
+                  memberId={member.memberId}
+                  displayName={member.memberName}
+                  points={member.confirmedPoints}
+                  from={report.range.from}
+                  to={report.range.to}
+                />{" "}
+                of {member.assignedPoints} pts
                 {member.missedPoints > 0 ? (
                   <Badge tone="danger" className="ml-2">
                     {member.missedPoints} missed

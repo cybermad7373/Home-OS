@@ -1,5 +1,6 @@
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { MemberAvatar } from "@/components/ui/avatar";
+import { PointsBreakdownButton } from "@/components/chores/points-breakdown";
 import { cn } from "@/lib/utils/cn";
 
 export interface StandingRow {
@@ -23,17 +24,25 @@ export interface StandingRow {
  *
  * The caller's own row is always shown, even when they are outside the top
  * three, so nobody has to scroll to find themselves.
+ *
+ * Every points figure here opens to the chores that produced it (EF-12). The
+ * number is the button: a member questioning a figure taps the figure.
  */
 export function Leaderboard({
   standing,
   concentrationRatio,
   myMemberId,
   limit,
+  from,
+  to,
 }: {
   standing: StandingRow[];
   concentrationRatio: number;
   myMemberId: string;
   limit?: number;
+  /** The range the figures cover, so a breakdown opens on the same records. */
+  from: string;
+  to: string;
 }) {
   const top = limit ? standing.slice(0, limit) : standing;
   const me = standing.find((row) => row.memberId === myMemberId);
@@ -68,8 +77,14 @@ export function Leaderboard({
                     <span className="caption-text text-text-subtle"> · you</span>
                   ) : null}
                 </span>
-                <span className="tabular shrink-0 text-[13px] font-semibold">
-                  {row.earnedPoints}
+                <span className="shrink-0">
+                  <PointsBreakdownButton
+                    memberId={row.memberId}
+                    displayName={row.displayName}
+                    points={row.earnedPoints}
+                    from={from}
+                    to={to}
+                  />
                 </span>
               </span>
 

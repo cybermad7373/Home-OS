@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { getStanding } from "@/lib/data/chores";
 import { concentrationRatio, rankStanding } from "@/lib/domain/fairness/targets";
+import { houseToday } from "@/lib/utils/date";
 
 export const metadata: Metadata = { title: "House standing" };
 
@@ -12,6 +13,11 @@ export default async function StandingPage() {
   const session = await requireSession();
   const context = await getHouseContext(session);
   const standing = await getStanding(session, context.house.id);
+
+  // The standing here is all-time, so a points breakdown must open on the
+  // Home's whole record rather than on this week (EF-12).
+  const from = context.house.created_at.slice(0, 10);
+  const to = houseToday(context.house.timezone);
 
   const ranked = rankStanding(standing).map((row) => ({
     ...row,
@@ -41,6 +47,8 @@ export default async function StandingPage() {
         standing={ranked}
         concentrationRatio={concentrationRatio(ranked)}
         myMemberId={context.me.id}
+        from={from}
+        to={to}
       />
     </>
   );
