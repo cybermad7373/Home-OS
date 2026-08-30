@@ -1550,3 +1550,88 @@ default**. Recording something that happened is queueable; agreeing to something
 is not. A decision response replayed an hour later does not mean what the member
 meant, and the property this version exists for is that no Critical decision
 completes on stale input.
+
+---
+
+## D-67 — Approvals holds the bar's sixth slot at every width
+
+`08-UI-UX-SPEC.md` section 3.1 says two things that cannot both hold: the
+primary bar carries at most six items, and Approvals is never dropped while
+something is pending. Phase 14's own acceptance criterion breaks the tie —
+"Approvals appears in primary navigation with its count the moment anything is
+pending" — so the pending queue wins the slot at every width, not only from
+640 px up.
+
+Insights is what yields it. It is the only primary destination that is never
+urgent: nothing in it decays, and nothing in it is waiting on the person
+looking. Approvals is the opposite, and a queue nobody can see is the failure
+this product exists to prevent.
+
+The reasoning is repeated in `components/layout/nav.tsx` so the next reader
+does not correct it back.
+
+---
+
+## D-68 — `/money` and `/dashboard` are redirects, not renames
+
+The navigation specification calls the money tab `/money` and the home screen
+`/home`. The ledger has lived at `/expenses` since phase 2 and carries
+approvals, recurring, close and settle beneath it; `/dashboard` was the PWA's
+`start_url` from phase 1.
+
+Renaming either family would break every link a Home has already shared and
+every bookmark on it, and buy nothing a redirect does not. So the documented
+URLs work, `/expenses` stays canonical, and `/dashboard` lands on `/home`.
+
+The same rule retires `/analytics` in phase 15: it redirects to `/insights`,
+and the `/api/analytics/*` endpoints stay beside the insights ones, reading
+through the same repositories so the two cannot drift while both exist.
+
+---
+
+## D-69 — the insights position is the settlement's arithmetic, not a copy of it
+
+IN-09 requires that "paid minus fair share" on the insights screen equals the
+settlement's `expense_net` for every member. The cheap way to satisfy that is to
+write the subtraction twice and test that the two agree. The way that stays
+true is to have one calculator.
+
+So the money view and the financial position both read their positions from
+`computeBalances`, and who-owes-whom from `minimiseTransfers` — the functions
+the settlement itself uses — and the position's repository reads paid and fair
+share from `getPeriodPosition` rather than from a second query written to look
+like it. The criterion is then true by construction, and there is exactly one
+place to change if the arithmetic ever should change.
+
+The same rule settles budgets: phase 15 reads phase 8's `getDailyCost` rather
+than growing a second budget calculator. Two of them would eventually disagree
+about whether a house is over, and the house would be right to trust neither.
+
+---
+
+## D-70 — a service worker may cache assets, never house data
+
+The worker's fetch handler was cache-first for every GET that was not a
+navigation and was not under `/api`. The intent was right and stated in a
+comment — "house data that is quietly stale is worse than an honest failure" —
+but a React Server Component payload is house data and is neither of those
+things: `router.refresh()` fetches it with mode `cors`, so the first copy the
+worker ever saw was replayed for the life of the cache.
+
+In use that looked like a write that half-worked. A lead let somebody into the
+Home, the request left the queue, and the new member never appeared in the
+list. Reloading fixed it, because a reload is a navigation and took the network
+branch. Every one of the app's `router.refresh()` call sites was affected.
+
+The rule is now the narrow one: only content-addressed responses may answer
+from cache without asking the network — `/_next/static`, the icons and the
+manifest, all of which change with a deploy rather than with the household.
+RSC requests are not intercepted at all, because there is nothing useful to
+offer one offline: handing the router the offline page would replace the screen
+the person is looking at, and passing a streamed response back through
+`respondWith` leaves the request looking open long after the router has
+finished with it.
+
+A navigation still falls back to the cached shell and then to `/offline`. That
+is the case the worker exists for.
+

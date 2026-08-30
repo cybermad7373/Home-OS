@@ -113,19 +113,22 @@ by Supabase/Postgres. The main boundaries are deliberate:
 
 ## Current delivery focus
 
-Specification 2.0 was adopted on 2026-08-26. Product phase 1 (web/PWA) is in
-progress: engineering phases 1–9 are complete. Phases 10–15 are the version-2.0 additions —
-membership and Homes, governance, rules, food, Today/Calendar/navigation, and
-insights. Phase 10 is built and applied locally (migrations 047–050). Phase 11
-is built — migrations 051–060, 071–072 applied locally. Phase 12 (Rules) is
-built and committed (migrations 065–070). Phase 13 (Food) is built and
-verified end to end — migrations 081–086 applied locally, including the
-shopping list, planned-meals UI, library-merge UI and expense-link UI
-(`PROGRESS.md` Phase 13 section). Phases 14–15 not started. **Local Supabase
-is running; integration suites no longer skip; `npm run gen:types` fixed to read
-local stack.** `PROGRESS.md` is the authority on what is built and what has
-actually been applied to a database. Product phase 2 is native Android/iOS
-(engineering phase 17) and is not started.
+Specification 2.0 was adopted on 2026-08-26. **Every engineering phase of it is
+now built**: 1–9 were complete before it, and 10–15 — membership and Homes,
+governance, rules, food, Today/Calendar/navigation, and insights — are built and
+verified against the local stack, with migrations 045–089 applied there.
+
+What remains before product phase 1 (web/PWA) can be called launched is not a
+phase. It is the gate listed under "Known gaps and follow-ups" in `PROGRESS.md`:
+migration 045 and the LLM master key applied to a real environment, the
+`weekly-digest` redeploy, a push delivered to a real device, and the production
+release checks. **Nothing in this repository has been pushed to the hosted
+project**; local Supabase is the test target, and writing to the hosted project
+is always a separately requested action.
+
+`PROGRESS.md` is the authority on what is built and what has actually been
+applied to a database. Product phase 2 is native Android/iOS (engineering phase
+17) and is not started.
 
 Before touching AI code, read `docs/10-LLM-SPEC.md` (now at version 3.0, six call
 sites behind an AI Router with per-Home capability switches): credentials are

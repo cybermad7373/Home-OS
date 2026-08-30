@@ -12,7 +12,7 @@ How the rest of the build runs. The reasoning is D-59; this is the summary.
 
 | | |
 |---|---|
-| **Next piece of work** | Phase 14 is in progress (see its section): CH-12 and CE-12/S-12 done. Remaining, in the practical order chosen to avoid the nav linking to routes that do not exist yet: Home overview (S-51), Today (S-50) and its aggregate endpoint, Calendar (S-52) and its aggregate endpoint, then the nav/quick-add shell rewrite last, then the phase's E2E journey. |
+| **Next piece of work** | Every engineering phase of specification 2.0 is built. What remains is not a phase: the launch gate in "Known gaps" — migration 045 and the LLM master key applied to an environment, the `weekly-digest` redeploy, a real-device push test, and the production release checks. |
 | **Test target** | The local stack. The hosted project is written to only by an explicitly requested `db:push`. |
 | **Scope** | The whole of specification 2.0: finish phase 11, then 12 to 15 in the roadmap's order. Nothing trimmed. |
 | **Phase-11 order** | Jobs and notifications, then S-37 proposers, then absence, then shared assignment and `change_confirmation_policy`, then governed close with adjustments, then expected contributions and the reserve. |
@@ -20,7 +20,7 @@ How the rest of the build runs. The reasoning is D-59; this is the summary.
 | **E2E** | One Playwright journey per phase, written with the phase. Phase 11's is propose, respond, apply. |
 | **AI keys** | Supplied when a call site needs real verification, pasted into the app's own settings panel and sealed against that Home. Never in the repository, an env file, a fixture or a test. |
 
-Local Supabase is running (DB `127.0.0.1:54952`). Migrations 045–084 applied locally.
+Local Supabase is running. Migrations 045–089 applied locally.
 Integration suites no longer skip themselves. `npm run gen:types` fixed to read local stack.
 `lib/types/schema-pending.ts` reduced to 17-line shim (only `JoinRequestStatus`).
 
@@ -188,8 +188,8 @@ roadmap.
 | **11** | **Governance** — decisions, approvals, quorum, absence, governed money | **built — migrations 051–060, 071–072 applied locally** |
 | **12** | **Rules** — plain text, AI parsing, versioning, history | **built — migrations 065–070 applied locally (commits 45f7266, 3b2e108)** |
 | **13** | **Food** — meals, library, preferences, recommendations | **built and verified — migrations 081–086 applied locally; schema, domain, data, API, AI ideas, all screens (including shopping list, planned-meals, library merge, expense-link) and eleven E2E specs done (see Phase 13 section)** |
-| **14** | **Today, Calendar and navigation** | **in progress — migrations 087–088 applied locally; CH-12 and CE-12/S-12 done (see Phase 14 section); nav shell, Home overview, Today, Calendar and the phase E2E not started** |
-| **15** | **Insights** — one filtered screen | **specified, not started** |
+| **14** | **Today, Calendar and navigation** | **built and verified — migrations 087–089 applied locally; Home overview, Today, Calendar, the six-item bar with the universal quick-add, and a nine-case E2E journey (see Phase 14 section)** |
+| **15** | **Insights** — one filtered screen | **built and verified — one screen with filters at `/insights`, `/analytics` retired to it, the financial position, permanent export including the PDF statement, and point explainability (see Phase 15 section)** |
 | 17 | Native mobile clients | not started — follows web/PWA launch |
 
 Phase 6 was not in the original `docs/07-ROADMAP.md`. It was added when the
@@ -212,23 +212,45 @@ the move of close, reopen, removal and confirmation behind decisions in phase 11
 
 Run from the repository root:
 
-| Check | Command | Result on 2026-08-29 |
+| Check | Command | Result on 2026-08-30 |
 |-------|---------|----------------------|
 | Types | `npm run typecheck` | clean |
 | Lint | `npm run lint` | clean |
 | Build | `npm run build` | clean |
-| Unit, property and integration tests | `npm run test` | 723 passing, 0 failing, 0 skipped |
+| Unit, property and integration tests | `npm run test` | 848 passing across 62 files, 0 failing, 0 skipped |
 | Edge function types | `npx deno check supabase/functions/*/index.ts` | all eight clean |
 | Web Push and key sealing | `npm run test:functions` | 9 passing |
-| End-to-end | `npm run test:e2e` | phase-12 (rules, 7/7) and phase-13 (food, 7/7) fully green. Phase-1/10 (foundation) 3/4 — one pre-existing 360px overflow on `/house/members` not fully closed. Phase-11 (governance) has three real pre-existing bugs fixed 2026-08-29 (stale button text, a dead duplicate-onboarding helper, wrong invite-link path) but still fails on a co-lead signup timeout not yet root-caused — see `PARALLEL-PLAN.md` B5. |
+| End-to-end | `npm run test:e2e` | **92 passing, 0 failing, 0 flaky**, across both the mobile and desktop projects |
 
-All pre-existing failures resolved:
+Every end-to-end failure this file used to list is closed, and each was a real
+product defect rather than a flaky test:
+
+- **`/house/members` overflowed a 360 px screen by 177 px.** The shell's content
+  column is a flex item, so its default `min-width: auto` floored it at its own
+  min-content width — and every `truncate` in the app carries `white-space:
+  nowrap`, which contributes a whole unwrapped line to that figure. One long
+  username widened the entire page, and the truncation meant to prevent exactly
+  that never got to run. `min-w-0` on that column fixes it everywhere at once.
+- **The governance journey's "co-lead signup timeout".** The invite link is the
+  one page a stranger lands on cold, and a tap before hydration submitted the
+  form the way a browser does with no JavaScript — a GET to the same URL, which
+  reloaded the page and silently discarded the request the person believed they
+  had sent.
+- **The food journey's Plan button** sat underneath its own date input at 360 px
+  and could not be tapped.
+- **The service worker answered every `router.refresh()` from a stale copy.**
+  Its fetch handler was cache-first for every GET that was not a navigation and
+  not under `/api` — and an RSC payload is neither. A lead would let somebody in,
+  watch the queue empty, and never see the new member appear. See the phase-15
+  section; the fix is in `public/sw.js`.
+
+Earlier fixes, still standing:
 - Auto-confirm regression (A1) — fixed in migration 058
 - Routine privilege gap (B2) — fixed in migrations 080, 083, 084
 - Stale telegram_enabled test (B3) — removed
 - Removal netting — fixed in migration 072
 
-Migrations 045–084 applied to local stack. Generated types match local schema.
+Migrations 045–089 applied to local stack. Generated types match local schema.
 `lib/types/schema-pending.ts` is a 17-line shim (only `JoinRequestStatus`).
 A VAPID pair is generated and set as function secrets; the public half is in `.env.local`.
 
@@ -1248,7 +1270,7 @@ before this pass and still have).
 
 ---
 
-## Phase 14 — Today, Calendar and navigation (in progress)
+## Phase 14 — Today, Calendar and navigation
 
 Started 2026-08-29. First slice: CH-12 and the rest of CE-12/S-12, both listed
 in the phase's own scope but independent of the nav rebuild — no other phase-14
@@ -1288,22 +1310,135 @@ a real Postgres under RLS (not the service role), and the attach function's
 three refusals (wrong assignee, wrong state, and the happy path). 741 tests
 passing, typecheck/lint/build all clean.
 
-**Not yet built:** the nav and quick-add shell, the Home overview (S-51), the
-Today screen (S-50) and its `GET /api/today`, the Calendar (S-52) and its
-aggregate endpoint, and the phase's own E2E journey — deliberately last, so it
-never links to a route that does not exist yet.
+**Home overview (S-51), `/home`.** The pending block first — decisions, chore
+confirmations, expense approvals, join requests, in that order, and only the
+queues the caller may actually act on — then the week's effort, the month's
+money in the shape the household actually has, who owes whom, the standing and
+the members, and last an entry-point grid so nothing in the app is reachable
+only from a URL. The decisions live in `lib/domain/home/overview.ts` and are
+unit-tested without a database; who-owes-whom comes from the same
+`computeBalances`/`minimiseTransfers` the settlement uses. `/dashboard` retired
+to a redirect rather than being deleted: it was the PWA `start_url` and people
+have bookmarked it.
+
+**Today (S-50), `/today`, and `GET /api/today`.** Six blocks in a fixed order:
+People, my chores, what needs me, money, food, announcements. Both the page and
+the endpoint call one `getToday`, so a native client and the web app cannot
+disagree about the day. Today asks the food library's recommender and never the
+AI half — the AI call is a second network hop with its own latency, and Today is
+the screen that must not wait.
+
+**House announcements** (migration 089). Text severity with a check constraint,
+matching `docs/04-DATABASE.md` section 4; a lead posts, everybody in the Home
+reads, and the expiry constraint holds on UPDATE too, so an expiry cannot be
+back-dated — an announcement ends by expiring or by being taken down, and
+rewriting history so it "was never shown" is neither. Eleven integration cases
+against a real Postgres, including that refusal.
+
+**Calendar (S-52), `/more/calendar`,** with `GET /api/calendar/{day,week,month}`.
+Day, week and month as three server-rendered links rather than a client
+component: each view is a different read, and a tab that re-fetches on the
+server is both simpler and shareable as a URL. Planned meals render distinctly
+from eaten ones. The rollups — completion rate, points by member, meal spend,
+money — are pure and unit-tested, with a cancelled chore excluded from both
+halves of the rate.
+
+**The shell.** A six-item bar: Home, Today, Chores, Money, Food, and a sixth
+slot that yields. `docs/08-UI-UX-SPEC.md` section 3.1 caps the bar at six *and*
+says never to drop Approvals while something is pending; the phase's own
+acceptance criterion settles it in favour of the pending queue, so Approvals
+takes that slot with its count at every width and Insights holds it otherwise.
+The centre button opens the universal quick-add, which offers only what the
+caller may actually do — asserted in unit tests rather than left to the
+rendering. The desktop sidebar groups the same destinations and carries the
+caller's own standing.
+
+**E2E:** `tests/e2e/today.spec.ts`, nine cases — the retired `/dashboard`, every
+primary destination one tap from Home, Today, all three Calendar views, the
+quick-add's exact seven admin actions, an announcement posted and taken down,
+and 360 px.
+
+---
+
+## Phase 15 — Insights
+
+Built 2026-08-30. One screen at `/insights` answers questions about money, work,
+food and the Home itself, and `/analytics` — the four-tab page it supersedes —
+redirects to it.
+
+**Inherited, and largely rewritten.** Phase 15 arrived half-written by another
+tool, against a schema this repository does not have:
+`chore_assignments.week_start`, `meals.cost_paise`, a rating column on
+`meal_participants`, and a data layer exporting `getSession`/`getMembership`
+that do not exist. Three defects in the pure layer are worth recording, because
+each is a shape to watch for rather than a typo:
+
+- `buildMoneyInsights` generated its buckets by walking **backwards** from the
+  start of the range while looping until it passed the end. It never terminated
+  on any input.
+- The transfer minimiser mutated the rows it was handed, so the
+  paid-versus-fair-share table it returned had every net position zeroed.
+- Week buckets began on Sunday while the effort ledger's `week_start` is a
+  Monday, so a chore would be counted in a different week from the one it was
+  scored in and the two figures could never reconcile.
+
+**What is built.** `lib/domain/insights/` is the pure layer: shared bounded
+bucketing, the four builders, the financial position, and point explainability.
+`lib/data/insights.ts` is the repository, and one `getInsights` serves both the
+screen and `GET /api/insights`. Reuse over reimplementation throughout — budgets
+read through phase 8's `getDailyCost`, and the position reads paid and fair
+share from the settlement's own `getPeriodPosition`, which is what makes IN-09's
+criterion ("paid minus fair share equals the settlement's `expense_net`") true
+by construction rather than by coincidence.
+
+**Filters live in the URL** — type, period, grouping, range, category, person —
+so a view is a link a member can send to the Home, and there is no
+page-per-report anywhere. Charts are laid out rather than plotted: a bar is a
+div with a height and a text label above it, which is what makes "legible at
+360 px and in both themes" hold rather than depend on a library's defaults.
+
+**Export carries no gate of any kind** (IN-10, NFR-19): every view, the expense
+ledger, budgets, the position, a full-history file with no date bound, and the
+PDF settlement statement for a closed month. Every serialiser goes through the
+one `csvField` in the repository, so the formula-injection guard cannot be
+forgotten in a new one — and the journey creates a category named like a
+formula through the real UI and reads it back out of the real export.
+
+**Point explainability (EF-12).** The figure is the button. A member questioning
+a points total taps the total and gets the dated chores behind it, on the house
+standing, the Home overview's leaderboard and the insights chores view. A zero
+is explained as readily as a total: an empty list says in words that nothing was
+confirmed rather than showing a blank sheet. The screen sends the figure it
+displayed, and the answer reports whether the records agree with it, so a stale
+screen says so.
+
+**A capability nearly lost, and kept.** The retired analytics screen carried the
+top-three concentration ratio as a month-by-month trend. The ratio is now
+computed per bucket and drawn as a trend inside the chores view, so retiring the
+old screen costs the house nothing.
+
+**Tests:** 47 unit cases including a property test that the bucket generator
+terminates and ascends for any range in a fifty-year window; seven integration
+cases that run the repository's own queries through a real member's client — the
+test that would have caught the inherited schema inventions in seconds — and a
+nine-case journey.
+
+**One repo-wide defect surfaced by this phase's testing.** The service worker's
+fetch handler was cache-first for every GET that was not a navigation and not
+under `/api`, and a React Server Component payload is neither: `router.refresh()`
+fetches with mode `cors`, so the first copy the worker ever saw was replayed for
+the life of the cache. Every one of the app's nine `router.refresh()` call sites
+was affected; letting somebody into the Home is only where a test happened to
+look. Only content-addressed assets may now answer from cache, and RSC requests
+are not intercepted at all.
 
 ---
 
 ## Known gaps and follow-ups
 
-- **Specification 2.0 is partly built.** Phase 10 is written; five engineering
-  phases (11 to 15) stand between the current code and the specification. The order in
-  `docs/07-ROADMAP.md` is not arbitrary: membership before governance, because a
-  decision needs participants and participants need roles; and governance before
-  rules, food's navigation slot and the Approvals surface, because retrofitting a
-  decision engine under four features that each grew their own approval flow is
-  precisely the outcome the engine exists to prevent.
+- **Specification 2.0 is built.** Phases 10 to 15 are all delivered and verified
+  against the local stack. What stands between the code and a launch is the gate
+  below, not a phase.
 - **One shipped behaviour still changes in place.** The `member_status` rename
   landed in migration 047 with its grep classified by enum first. What remains is
   phase 11's: close, reopen, removal and chore confirmation move behind decisions,
@@ -1327,10 +1462,9 @@ never links to a route that does not exist yet.
   2026-08-27 the answer is settled rather than merely observed: the local
   `supabase start` stack becomes the test target and removes the whole class of
   noise (D-59). It is not yet standing up.
-- **No end-to-end coverage past phase 1.** The unit and integration suites are
-  thorough; the Playwright journey still only walks sign-up and house creation.
-  From phase 11 onward each phase adds one journey of its own rather than
-  leaving all twenty-two of `docs/12-TEST-PLAN.md` section 4 to a final pass.
+- **End-to-end coverage now runs to phase 15.** Every phase from 11 onward has
+  its own journey, and the suite is 92 cases across the mobile and desktop
+  projects. `docs/12-TEST-PLAN.md` section 4 still lists journeys nobody walks.
 - **A dependent's chores now have a screen**, at `/chores/dependents`, linked
   from a guardian's own chore page: each dependent in their care, today's work
   first, with a "Meera did it" button per chore. Confirming is still refused —
@@ -1349,12 +1483,13 @@ never links to a route that does not exist yet.
   admin assigned directly, and the product has no admin-override path to raise
   it from. It is in the catalogue and fires the moment one exists.
 
-- The analytics page shows spend trends, category ranking, budget status,
-  paid-versus-fair-share and effort concentration. CSV export and the budget
-  alert producer are both delivered and covered, contrary to what this line
-  said before.
-- `tests/e2e/` covers the phase-1 journey only. Expenses, close and chores have
-  integration coverage but no browser-level journey.
+- The analytics page is retired. `/insights` answers the same questions and
+  more, from one screen with filters; `/analytics` and the `/api/analytics/*`
+  endpoints remain as aliases through the transition, reading through the same
+  repositories the insights endpoints do so the two cannot drift.
+- Expenses, close and chores still have no browser-level journey of their own,
+  though the food, rules, governance, Today and insights journeys cross all
+  three.
 - Edge Functions must be deployed manually (`npx supabase functions deploy …`).
   Until they are, the cron jobs fire into a 404. Every job is idempotent, so a
   late deployment catches up rather than losing work. All eight were deployed on
