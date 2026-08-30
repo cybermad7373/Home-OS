@@ -28,8 +28,7 @@ import { QuickAddSheet, quickAddOptions } from "./quick-add";
  *
  *   * **Insights** is the only primary destination that is never urgent, so it
  *     is the one that yields the slot. It is in More below 640 px and a primary
- *     item from 640 px up. Until phase 15 replaces it, the Insights slot opens
- *     the analytics screen it supersedes.
+ *     item from 640 px up.
  *   * **Approvals** takes that same slot, with its count, the moment anything
  *     is waiting on the caller (AP-05), and returns to More when the queue
  *     empties. It is shown at every width, not only from 640 px: section 3.1
@@ -64,7 +63,7 @@ function yieldingTab(pendingApprovals: number): Tab {
         icon: ShieldCheck,
         badge: pendingApprovals,
       }
-    : { href: "/analytics", label: "Insights", icon: BarChart3, wideOnly: true };
+    : { href: "/insights", label: "Insights", icon: BarChart3, wideOnly: true };
 }
 
 function isActive(pathname: string, href: string) {
@@ -223,7 +222,7 @@ function sidebarGroups({
         { href: "/chores", label: "Chores" },
         { href: "/expenses", label: "Money" },
         { href: "/food", label: "Food" },
-        { href: "/analytics", label: "Insights" },
+        { href: "/insights", label: "Insights" },
       ],
     },
     {
