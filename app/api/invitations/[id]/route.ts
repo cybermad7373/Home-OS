@@ -1,6 +1,6 @@
 import { jsonResponse, route } from "@/lib/api/handler";
-import { ApiError, apiErrorFromPostgres } from "@/lib/api/errors";
 import { requireLeadMembership, requireSession } from "@/lib/data/house";
+import { revokeInvitation } from "@/lib/data/homes";
 
 /**
  * DELETE /api/invitations/:id — revoke the link without issuing a new one.
@@ -14,17 +14,7 @@ export const DELETE = route(
     const { house } = await requireLeadMembership(session);
     const { id } = await context.params;
 
-    const { data, error } = await session.supabase
-      .from("invitations")
-      .update({ revoked_at: new Date().toISOString() })
-      .eq("id", id)
-      .eq("house_id", house.id)
-      .is("revoked_at", null)
-      .select("id")
-      .maybeSingle();
-
-    if (error) throw apiErrorFromPostgres(error);
-    if (!data) throw new ApiError("NOT_FOUND");
+    await revokeInvitation(session, house.id, id);
     return jsonResponse({ revoked: true });
   },
 );

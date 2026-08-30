@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { JoinOrCreate } from "@/components/forms/join-or-create";
-import { getMembership, requireSession } from "@/lib/data/house";
+import { getMembership, getOwnProfile, requireSession } from "@/lib/data/house";
 
 export const metadata: Metadata = { title: "Join or create a house" };
 
@@ -10,11 +10,7 @@ export default async function OnboardingHousePage() {
 
   // A Google sign-in arrives with no username. Everything else in the house
   // identifies people by one, so it is claimed before a house is chosen.
-  const { data: profile } = await session.supabase
-    .from("users")
-    .select("username")
-    .eq("id", session.userId)
-    .maybeSingle();
+  const profile = await getOwnProfile(session);
   if (!profile?.username) redirect("/onboarding/username");
 
   const membership = await getMembership(session);

@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/infra/supabase/server";
 import { readSelectedHouseId } from "@/lib/infra/supabase/selected-house";
 import { ApiError, apiErrorFromPostgres } from "@/lib/api/errors";
-import type { Database } from "@/lib/types/database";
+import type { Database, UserRow } from "@/lib/types/database";
 import type {
   HouseContext,
   HouseMemberRow,
@@ -248,6 +248,30 @@ export async function listRooms(session: Session, houseId: string): Promise<Room
     monthlyRentPaise: room.monthly_rent_paise,
     occupants: occupantsByRoom.get(room.id) ?? [],
   }));
+}
+
+/**
+ * The caller's own account row.
+ *
+ * Onboarding needs it before there is a Home to read a member through: a
+ * Google sign-in arrives with no username, and every screen after this one
+ * identifies people by one. `null` when the row has not been created yet.
+ *
+ * Only ever the caller's own row. Looking anybody up by email stays on the
+ * server and out of this accessor entirely (AGENTS.md, "Non-negotiable domain
+ * and data rules").
+ */
+export async function getOwnProfile(
+  session: Session,
+): Promise<Pick<UserRow, "username" | "email" | "display_name" | "upi_vpa"> | null> {
+  const { data, error } = await session.supabase
+    .from("users")
+    .select("username, email, display_name, upi_vpa")
+    .eq("id", session.userId)
+    .maybeSingle();
+
+  if (error) throw apiErrorFromPostgres(error);
+  return data ?? null;
 }
 
 export async function getSettings(

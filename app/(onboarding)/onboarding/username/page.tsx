@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ClaimUsername } from "@/components/forms/claim-username";
-import { requireSession } from "@/lib/data/house";
+import { getOwnProfile, requireSession } from "@/lib/data/house";
 
 export const metadata: Metadata = { title: "Pick a username" };
 
@@ -15,11 +15,7 @@ function suggest(email: string | null, displayName: string | null): string {
 export default async function UsernamePage() {
   const session = await requireSession();
 
-  const { data: profile } = await session.supabase
-    .from("users")
-    .select("username, email, display_name")
-    .eq("id", session.userId)
-    .maybeSingle();
+  const profile = await getOwnProfile(session);
 
   if (profile?.username) redirect("/onboarding/house");
 

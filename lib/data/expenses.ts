@@ -369,6 +369,124 @@ export async function listRecurring(
   return data ?? [];
 }
 
+/**
+ * Category and recurring writes.
+ *
+ * These live here rather than in the route handlers that used to hold them.
+ * `app/` validates, authorises and answers; the SQL is this file's job
+ * (AGENTS.md, "Project shape"). Every one of them scopes by `house_id` as well
+ * as by `id`, so a well-formed request naming another Home's row finds nothing
+ * rather than relying on RLS alone to refuse it.
+ */
+export async function createCategory(
+  session: Session,
+  houseId: string,
+  input: { name: string; icon?: string | null; monthlyBudgetPaise: number | null },
+): Promise<ExpenseCategoryRow> {
+  const { data, error } = await session.supabase
+    .from("expense_categories")
+    .insert({
+      house_id: houseId,
+      name: input.name,
+      icon: input.icon || null,
+      monthly_budget_paise: input.monthlyBudgetPaise,
+    })
+    .select("*")
+    .single();
+
+  if (error) throw apiErrorFromPostgres(error);
+  return data;
+}
+
+export async function updateCategory(
+  session: Session,
+  houseId: string,
+  id: string,
+  patch: Partial<ExpenseCategoryRow>,
+): Promise<ExpenseCategoryRow> {
+  const { data, error } = await session.supabase
+    .from("expense_categories")
+    .update(patch)
+    .eq("id", id)
+    .eq("house_id", houseId)
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw apiErrorFromPostgres(error);
+  if (!data) throw new ApiError("NOT_FOUND");
+  return data;
+}
+
+export async function createRecurring(
+  session: Session,
+  houseId: string,
+  input: {
+    name: string;
+    amountPaise: number;
+    categoryId: string;
+    paidByMemberId: string | null;
+    splitBasis: RecurringExpenseRow["split_basis"];
+    dayOfMonth: number;
+    autoApprove: boolean;
+    active: boolean;
+    nextRunDate: string;
+  },
+): Promise<RecurringExpenseRow> {
+  const { data, error } = await session.supabase
+    .from("recurring_expenses")
+    .insert({
+      house_id: houseId,
+      name: input.name,
+      amount_paise: input.amountPaise,
+      category_id: input.categoryId,
+      paid_by_member_id: input.paidByMemberId,
+      split_basis: input.splitBasis,
+      day_of_month: input.dayOfMonth,
+      auto_approve: input.autoApprove,
+      active: input.active,
+      next_run_date: input.nextRunDate,
+    })
+    .select("*")
+    .single();
+
+  if (error) throw apiErrorFromPostgres(error);
+  return data;
+}
+
+export async function updateRecurring(
+  session: Session,
+  houseId: string,
+  id: string,
+  patch: Partial<RecurringExpenseRow>,
+): Promise<RecurringExpenseRow> {
+  const { data, error } = await session.supabase
+    .from("recurring_expenses")
+    .update(patch)
+    .eq("id", id)
+    .eq("house_id", houseId)
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw apiErrorFromPostgres(error);
+  if (!data) throw new ApiError("NOT_FOUND");
+  return data;
+}
+
+/** BR-098 — deleting stops future posting; instances already posted stay. */
+export async function deleteRecurring(
+  session: Session,
+  houseId: string,
+  id: string,
+): Promise<void> {
+  const { error } = await session.supabase
+    .from("recurring_expenses")
+    .delete()
+    .eq("id", id)
+    .eq("house_id", houseId);
+
+  if (error) throw apiErrorFromPostgres(error);
+}
+
 /** Writes the expense and its splits in one transaction — see migration 017. */
 export async function createExpense(
   session: Session,

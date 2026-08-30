@@ -1,8 +1,8 @@
 import { jsonResponse, parseBody, route } from "@/lib/api/handler";
-import { ApiError, apiErrorFromPostgres } from "@/lib/api/errors";
 import { requireAdminMembership, requireSession } from "@/lib/data/house";
 import { choreTemplateUpdateSchema } from "@/lib/validation/chores";
 import type { ChoreTemplateRow } from "@/lib/types/database";
+import { deactivateTemplate, updateTemplate } from "@/lib/data/chores";
 
 /** PATCH /api/chores/templates/:id — admin only. */
 export const PATCH = route(
@@ -19,17 +19,7 @@ export const PATCH = route(
       }
     }
 
-    const { data, error } = await session.supabase
-      .from("chore_templates")
-      .update(patch)
-      .eq("id", id)
-      .eq("house_id", house.id)
-      .select("*")
-      .maybeSingle();
-
-    if (error) throw apiErrorFromPostgres(error);
-    if (!data) throw new ApiError("NOT_FOUND");
-    return jsonResponse(data);
+    return jsonResponse(await updateTemplate(session, house.id, id, patch));
   },
 );
 
@@ -45,13 +35,7 @@ export const DELETE = route(
     const { house } = await requireAdminMembership(session);
     const { id } = await context.params;
 
-    const { error } = await session.supabase
-      .from("chore_templates")
-      .update({ active: false })
-      .eq("id", id)
-      .eq("house_id", house.id);
-
-    if (error) throw apiErrorFromPostgres(error);
+    await deactivateTemplate(session, house.id, id);
     return jsonResponse({ id, active: false });
   },
 );

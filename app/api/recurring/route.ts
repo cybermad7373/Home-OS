@@ -1,5 +1,4 @@
 import { jsonResponse, parseBody, route } from "@/lib/api/handler";
-import { apiErrorFromPostgres } from "@/lib/api/errors";
 import {
   requireActiveMembership,
   requireAdminMembership,
@@ -9,6 +8,7 @@ import { listRecurring } from "@/lib/data/expenses";
 import { recurringSchema } from "@/lib/validation/expenses";
 import { rupeesToPaise } from "@/lib/utils/money";
 import { nextRunDate } from "@/lib/domain/expenses/recurring";
+import { createRecurring } from "@/lib/data/expenses";
 
 /** GET /api/recurring — the definitions. The daily job posts them. */
 export const GET = route(async () => {
@@ -23,23 +23,17 @@ export const POST = route(async (request: Request) => {
   const { house } = await requireAdminMembership(session);
   const input = await parseBody(request, recurringSchema);
 
-  const { data, error } = await session.supabase
-    .from("recurring_expenses")
-    .insert({
-      house_id: house.id,
-      name: input.name,
-      amount_paise: rupeesToPaise(input.amount),
-      category_id: input.category_id,
-      paid_by_member_id: input.paid_by_member_id ?? null,
-      split_basis: input.split_basis,
-      day_of_month: input.day_of_month,
-      auto_approve: input.auto_approve ?? true,
-      active: input.active ?? true,
-      next_run_date: nextRunDate(input.day_of_month, house.timezone),
-    })
-    .select("*")
-    .single();
+  const recurring = await createRecurring(session, house.id, {
+    name: input.name,
+    amountPaise: rupeesToPaise(input.amount),
+    categoryId: input.category_id,
+    paidByMemberId: input.paid_by_member_id ?? null,
+    splitBasis: input.split_basis,
+    dayOfMonth: input.day_of_month,
+    autoApprove: input.auto_approve ?? true,
+    active: input.active ?? true,
+    nextRunDate: nextRunDate(input.day_of_month, house.timezone),
+  });
 
-  if (error) throw apiErrorFromPostgres(error);
-  return jsonResponse(data, 201);
+  return jsonResponse(recurring, 201);
 });

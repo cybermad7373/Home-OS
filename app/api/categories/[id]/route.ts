@@ -1,9 +1,9 @@
 import { jsonResponse, parseBody, route } from "@/lib/api/handler";
-import { ApiError, apiErrorFromPostgres } from "@/lib/api/errors";
 import { requireAdminMembership, requireSession } from "@/lib/data/house";
 import { categoryUpdateSchema } from "@/lib/validation/expenses";
 import { rupeesToPaise } from "@/lib/utils/money";
 import type { ExpenseCategoryRow } from "@/lib/types/database";
+import { updateCategory } from "@/lib/data/expenses";
 
 /** PATCH /api/categories/:id — admin only. Budgets feed the phase-7 alerts. */
 export const PATCH = route(
@@ -23,16 +23,6 @@ export const PATCH = route(
         : null;
     }
 
-    const { data, error } = await session.supabase
-      .from("expense_categories")
-      .update(patch)
-      .eq("id", id)
-      .eq("house_id", house.id)
-      .select("*")
-      .maybeSingle();
-
-    if (error) throw apiErrorFromPostgres(error);
-    if (!data) throw new ApiError("NOT_FOUND");
-    return jsonResponse(data);
+    return jsonResponse(await updateCategory(session, house.id, id, patch));
   },
 );

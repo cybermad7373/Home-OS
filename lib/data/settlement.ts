@@ -58,6 +58,51 @@ export interface SettlementView {
   confirmedAt: string | null;
 }
 
+export interface PenaltySettings {
+  /** Zero when the house has penalties switched off, whatever rate is saved. */
+  ratePaise: number;
+  enabled: boolean;
+}
+
+/**
+ * The penalty settings the close arithmetic runs with.
+ *
+ * A house with penalties off charges nothing whatever rate happens to be
+ * stored, so the rate is zeroed here rather than branched on later: the
+ * arithmetic runs one way and comes out at nil.
+ */
+export async function getPenaltySettings(
+  session: Session,
+  houseId: string,
+): Promise<PenaltySettings> {
+  const { data, error } = await session.supabase
+    .from("house_settings")
+    .select("penalty_rate_paise, penalty_enabled")
+    .eq("house_id", houseId)
+    .maybeSingle();
+
+  if (error) throw apiErrorFromPostgres(error);
+  const enabled = data?.penalty_enabled ?? false;
+  return { enabled, ratePaise: enabled ? (data?.penalty_rate_paise ?? 0) : 0 };
+}
+
+/** The stored period row for a month, or null if the house has never had one. */
+export async function findPeriod(
+  session: Session,
+  houseId: string,
+  period: string,
+): Promise<{ id: string; status: MonthlyPeriodRow["status"] } | null> {
+  const { data, error } = await session.supabase
+    .from("monthly_periods")
+    .select("id, status")
+    .eq("house_id", houseId)
+    .eq("period", period)
+    .maybeSingle();
+
+  if (error) throw apiErrorFromPostgres(error);
+  return data ?? null;
+}
+
 /**
  * The live position for a month, computed on read.
  *

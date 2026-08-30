@@ -3,6 +3,7 @@ import { jsonResponse, parseBody, route } from "@/lib/api/handler";
 import { requireAdminMembership, requireSession } from "@/lib/data/house";
 import { proposeDecision } from "@/lib/data/governance";
 import { reopenPeriodSchema } from "@/lib/validation/settlement";
+import { findPeriod } from "@/lib/data/settlement";
 
 /**
  * POST /api/periods/:period/reopen — proposes the reopen.
@@ -24,13 +25,7 @@ export const POST = route(
     const { period } = await context.params;
     const { reason } = await parseBody(request, reopenPeriodSchema);
 
-    const { data: periodRow } = await session.supabase
-      .from("monthly_periods")
-      .select("id, status")
-      .eq("house_id", house.id)
-      .eq("period", period)
-      .maybeSingle();
-
+    const periodRow = await findPeriod(session, house.id, period);
     if (!periodRow) throw new ApiError("NOT_FOUND", { period });
 
     // Asked here as well as in the effect. A Home should not spend a day

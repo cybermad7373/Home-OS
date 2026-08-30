@@ -218,6 +218,89 @@ export async function listTemplates(
 }
 
 /**
+ * Template writes, and the two settings the scheduler reads.
+ *
+ * Moved out of the route handlers that held them: `app/` validates, authorises
+ * and answers, and the SQL belongs here (AGENTS.md, "Project shape"). Each
+ * write is scoped by `house_id` as well as by `id`, so a request naming
+ * another Home's template finds nothing rather than leaning on RLS alone.
+ */
+export async function createTemplate(
+  session: Session,
+  houseId: string,
+  input: Omit<ChoreTemplateRow, "id" | "house_id" | "created_at" | "updated_at">,
+): Promise<ChoreTemplateRow> {
+  const { data, error } = await session.supabase
+    .from("chore_templates")
+    .insert({ ...input, house_id: houseId })
+    .select("*")
+    .single();
+
+  if (error) throw apiErrorFromPostgres(error);
+  return data;
+}
+
+export async function updateTemplate(
+  session: Session,
+  houseId: string,
+  id: string,
+  patch: Partial<ChoreTemplateRow>,
+): Promise<ChoreTemplateRow> {
+  const { data, error } = await session.supabase
+    .from("chore_templates")
+    .update(patch)
+    .eq("id", id)
+    .eq("house_id", houseId)
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw apiErrorFromPostgres(error);
+  if (!data) throw new ApiError("NOT_FOUND");
+  return data;
+}
+
+/**
+ * Deactivates rather than deletes. Assignments reference the template for their
+ * name and category, and a past week must still read correctly.
+ */
+export async function deactivateTemplate(
+  session: Session,
+  houseId: string,
+  id: string,
+): Promise<void> {
+  const { error } = await session.supabase
+    .from("chore_templates")
+    .update({ active: false })
+    .eq("id", id)
+    .eq("house_id", houseId);
+
+  if (error) throw apiErrorFromPostgres(error);
+}
+
+export interface SchedulingSettings {
+  carryCapPercent: number;
+  llmSchedulingEnabled: boolean;
+}
+
+/** What the generator needs to know about the house before it runs. */
+export async function getSchedulingSettings(
+  session: Session,
+  houseId: string,
+): Promise<SchedulingSettings> {
+  const { data, error } = await session.supabase
+    .from("house_settings")
+    .select("carry_cap_percent, llm_scheduling_enabled")
+    .eq("house_id", houseId)
+    .maybeSingle();
+
+  if (error) throw apiErrorFromPostgres(error);
+  return {
+    carryCapPercent: data?.carry_cap_percent ?? 50,
+    llmSchedulingEnabled: data?.llm_scheduling_enabled ?? false,
+  };
+}
+
+/**
  * CH-12 — the last-completed figure for every template in the house, read
  * from v_template_last_done: confirmed completions only, null for a template
  * never done.

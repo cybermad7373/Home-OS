@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "@/components/forms/profile-form";
-import { getHouseContext, getMembership, requireSession } from "@/lib/data/house";
+import {
+  getHouseContext,
+  getMembership,
+  getOwnProfile,
+  requireSession,
+} from "@/lib/data/house";
 
 export const metadata: Metadata = { title: "Your profile" };
 
@@ -13,11 +18,7 @@ export default async function OnboardingProfilePage() {
   if (membership.member.status === "requested") redirect("/onboarding/pending");
 
   const context = await getHouseContext(session);
-  const { data: profile } = await session.supabase
-    .from("users")
-    .select("upi_vpa")
-    .eq("id", session.userId)
-    .maybeSingle();
+  const profile = await getOwnProfile(session);
 
   return (
     <ProfileForm

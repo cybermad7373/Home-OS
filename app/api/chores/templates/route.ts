@@ -1,5 +1,4 @@
 import { jsonResponse, parseBody, route } from "@/lib/api/handler";
-import { apiErrorFromPostgres } from "@/lib/api/errors";
 import {
   requireActiveMembership,
   requireAdminMembership,
@@ -7,6 +6,7 @@ import {
 } from "@/lib/data/house";
 import { listTemplates } from "@/lib/data/chores";
 import { choreTemplateSchema } from "@/lib/validation/chores";
+import { createTemplate } from "@/lib/data/chores";
 
 /** GET /api/chores/templates — what the house has decided needs doing. */
 export const GET = route(async () => {
@@ -21,10 +21,7 @@ export const POST = route(async (request: Request) => {
   const { house } = await requireAdminMembership(session);
   const input = await parseBody(request, choreTemplateSchema);
 
-  const { data, error } = await session.supabase
-    .from("chore_templates")
-    .insert({
-      house_id: house.id,
+  const template = await createTemplate(session, house.id, {
       name: input.name,
       category: input.category,
       effort_points: input.effort_points,
@@ -37,10 +34,7 @@ export const POST = route(async (request: Request) => {
       requires_cooking_skill: input.requires_cooking_skill ?? false,
       is_heavy: input.is_heavy ?? false,
       active: input.active ?? true,
-    })
-    .select("*")
-    .single();
+  });
 
-  if (error) throw apiErrorFromPostgres(error);
-  return jsonResponse(data, 201);
+  return jsonResponse(template, 201);
 });

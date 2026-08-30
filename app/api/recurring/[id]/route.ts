@@ -1,10 +1,10 @@
 import { jsonResponse, parseBody, route } from "@/lib/api/handler";
-import { ApiError, apiErrorFromPostgres } from "@/lib/api/errors";
 import { requireAdminMembership, requireSession } from "@/lib/data/house";
 import { recurringUpdateSchema } from "@/lib/validation/expenses";
 import { rupeesToPaise } from "@/lib/utils/money";
 import { nextRunDate } from "@/lib/domain/expenses/recurring";
 import type { RecurringExpenseRow } from "@/lib/types/database";
+import { deleteRecurring, updateRecurring } from "@/lib/data/expenses";
 
 /** PATCH /api/recurring/:id — admin only. */
 export const PATCH = route(
@@ -32,17 +32,7 @@ export const PATCH = route(
     // BR-098 — deactivating stops future posting and leaves posted ones alone.
     if (input.active !== undefined) patch.active = input.active;
 
-    const { data, error } = await session.supabase
-      .from("recurring_expenses")
-      .update(patch)
-      .eq("id", id)
-      .eq("house_id", house.id)
-      .select("*")
-      .maybeSingle();
-
-    if (error) throw apiErrorFromPostgres(error);
-    if (!data) throw new ApiError("NOT_FOUND");
-    return jsonResponse(data);
+    return jsonResponse(await updateRecurring(session, house.id, id, patch));
   },
 );
 
@@ -53,13 +43,7 @@ export const DELETE = route(
     const { house } = await requireAdminMembership(session);
     const { id } = await context.params;
 
-    const { error } = await session.supabase
-      .from("recurring_expenses")
-      .delete()
-      .eq("id", id)
-      .eq("house_id", house.id);
-
-    if (error) throw apiErrorFromPostgres(error);
+    await deleteRecurring(session, house.id, id);
     return jsonResponse({ deleted: true });
   },
 );

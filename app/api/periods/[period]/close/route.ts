@@ -9,6 +9,7 @@ import { proposeDecision } from "@/lib/data/governance";
 import { previewClose } from "@/lib/data/settlement";
 import { closePeriodSchema } from "@/lib/validation/settlement";
 import { paiseToRupeeString } from "@/lib/utils/money";
+import { findPeriod, getPenaltySettings } from "@/lib/data/settlement";
 
 /**
  * GET /api/periods/:period/close — the dry run.
@@ -24,19 +25,10 @@ export const GET = route(
     const { period } = await context.params;
 
     const shadow = new URL(request.url).searchParams.get("shadow") === "1";
-    const settings = await session.supabase
-      .from("house_settings")
-      .select("penalty_rate_paise, penalty_enabled")
-      .eq("house_id", house.id)
-      .single();
+    const penalty = await getPenaltySettings(session, house.id);
 
     const preview = await previewClose(session, house.id, period, {
-      // A house with the penalty switched off charges nothing, whatever rate
-      // happens to be saved. Zeroing the rate here rather than branching later
-      // keeps one code path: the arithmetic runs, and comes out at nil.
-      penaltyRatePaise: settings.data?.penalty_enabled
-        ? (settings.data?.penalty_rate_paise ?? 0)
-        : 0,
+      penaltyRatePaise: penalty.ratePaise,
       shadowMode: shadow,
     });
 
@@ -104,19 +96,13 @@ export const POST = route(
     const { period } = await context.params;
     const input = await parseBody(request, closePeriodSchema);
 
-    const settings = await session.supabase
-      .from("house_settings")
-      .select("penalty_rate_paise, penalty_enabled")
-      .eq("house_id", house.id)
-      .single();
+    const penalty = await getPenaltySettings(session, house.id);
 
     // A dry run of exactly the arithmetic the effect will be applied with, so
     // that a month which cannot be closed is refused here rather than after the
     // Home has spent a day answering.
     const preview = await previewClose(session, house.id, period, {
-      penaltyRatePaise: settings.data?.penalty_enabled
-        ? (settings.data?.penalty_rate_paise ?? 0)
-        : 0,
+      penaltyRatePaise: penalty.ratePaise,
       shadowMode: input.shadow_mode,
     });
 
@@ -124,13 +110,7 @@ export const POST = route(
       throw new ApiError("CLOSE_BLOCKED", { blockers: preview.blockers });
     }
 
-    const { data: periodRow } = await session.supabase
-      .from("monthly_periods")
-      .select("id")
-      .eq("house_id", house.id)
-      .eq("period", period)
-      .maybeSingle();
-
+    const periodRow = await findPeriod(session, house.id, period);
     if (!periodRow) throw new ApiError("NOT_FOUND", { period });
 
     const result = await proposeDecision(session, house.id, member.id, {

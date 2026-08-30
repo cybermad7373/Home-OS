@@ -168,6 +168,30 @@ export interface InvitePreview {
  * An invalid, expired or revoked token returns the same shape with
  * `valid: false`, so the endpoint never reveals whether the Home exists.
  */
+/**
+ * Takes a live invite link out of circulation.
+ *
+ * Scoped to a link that has not already been revoked, so revoking twice is a
+ * NOT_FOUND rather than a silent success that suggests something happened.
+ */
+export async function revokeInvitation(
+  session: Session,
+  houseId: string,
+  id: string,
+): Promise<void> {
+  const { data, error } = await session.supabase
+    .from("invitations")
+    .update({ revoked_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("house_id", houseId)
+    .is("revoked_at", null)
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw apiErrorFromPostgres(error);
+  if (!data) throw new ApiError("NOT_FOUND");
+}
+
 export async function previewInvitation(token: string): Promise<InvitePreview | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("lookup_invitation", { p_token: token });

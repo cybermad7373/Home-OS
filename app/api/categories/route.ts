@@ -1,5 +1,4 @@
 import { jsonResponse, parseBody, route } from "@/lib/api/handler";
-import { apiErrorFromPostgres } from "@/lib/api/errors";
 import {
   requireActiveMembership,
   requireAdminMembership,
@@ -8,6 +7,7 @@ import {
 import { listCategories } from "@/lib/data/expenses";
 import { categorySchema } from "@/lib/validation/expenses";
 import { rupeesToPaise } from "@/lib/utils/money";
+import { createCategory } from "@/lib/data/expenses";
 
 /** GET /api/categories — every category, with its budget. */
 export const GET = route(async () => {
@@ -22,19 +22,11 @@ export const POST = route(async (request: Request) => {
   const { house } = await requireAdminMembership(session);
   const input = await parseBody(request, categorySchema);
 
-  const { data, error } = await session.supabase
-    .from("expense_categories")
-    .insert({
-      house_id: house.id,
-      name: input.name,
-      icon: input.icon || null,
-      monthly_budget_paise: input.monthly_budget
-        ? rupeesToPaise(input.monthly_budget)
-        : null,
-    })
-    .select("*")
-    .single();
+  const category = await createCategory(session, house.id, {
+    name: input.name,
+    icon: input.icon,
+    monthlyBudgetPaise: input.monthly_budget ? rupeesToPaise(input.monthly_budget) : null,
+  });
 
-  if (error) throw apiErrorFromPostgres(error);
-  return jsonResponse(data, 201);
+  return jsonResponse(category, 201);
 });

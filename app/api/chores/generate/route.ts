@@ -3,6 +3,7 @@ import { requireAdminMembership, requireSession } from "@/lib/data/house";
 import { generateWeek, nextWeekStart } from "@/lib/data/chores";
 import { generateWeekSchema } from "@/lib/validation/chores";
 import { houseToday } from "@/lib/utils/date";
+import { getSchedulingSettings } from "@/lib/data/chores";
 
 /**
  * POST /api/chores/generate — admin only.
@@ -16,20 +17,16 @@ export const POST = route(async (request: Request) => {
   const { house } = await requireAdminMembership(session);
   const input = await parseBody(request, generateWeekSchema);
 
-  const settings = await session.supabase
-    .from("house_settings")
-    .select("carry_cap_percent, llm_scheduling_enabled")
-    .eq("house_id", house.id)
-    .single();
+  const settings = await getSchedulingSettings(session, house.id);
 
   const weekStart = input.week_start ?? nextWeekStart(houseToday(house.timezone));
 
   const result = await generateWeek(session, house.id, weekStart, {
-    carryCapPercent: settings.data?.carry_cap_percent ?? 50,
+    carryCapPercent: settings.carryCapPercent,
     dryRun: input.dry_run,
     // The kill switch of LLM spec section 8. Off, or no key anywhere, and the
     // engine's schedule is what publishes — which is what happens today.
-    llmSchedulingEnabled: settings.data?.llm_scheduling_enabled ?? false,
+    llmSchedulingEnabled: settings.llmSchedulingEnabled,
   });
 
   return jsonResponse(result, input.dry_run ? 200 : 201);
