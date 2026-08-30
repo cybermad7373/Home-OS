@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,31 @@ import { Input } from "@/components/ui/input";
  * The message is optional and is the one thing the leads see besides a name,
  * so the hint asks for the sentence that actually helps them decide.
  */
+/**
+ * True once React has taken over the markup, false during the server render
+ * and the first client render.
+ *
+ * The invite link is the one page in the product a stranger lands on cold,
+ * with nothing cached and nothing hydrated. A tap that arrives before
+ * hydration submits the form the way a browser does with no JavaScript: a GET
+ * to this same URL, which reloads the page and silently discards the request
+ * the person believed they had sent. Disabling the button until the handler
+ * exists is the honest state — pressing it earlier could never have worked.
+ *
+ * `useSyncExternalStore` rather than an effect that sets state: the two
+ * snapshots differ by definition, so this is the store React provides for
+ * exactly this question, and it does not schedule a second render pass.
+ */
+const NEVER_CHANGES = () => () => {};
+
+function useHydrated(): boolean {
+  return useSyncExternalStore(
+    NEVER_CHANGES,
+    () => true,
+    () => false,
+  );
+}
+
 export function JoinRequestForm({
   token,
   houseName,
@@ -25,16 +50,7 @@ export function JoinRequestForm({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  /**
-   * The invite link is the one page in the product a stranger lands on cold,
-   * with nothing cached and nothing hydrated. A tap that arrives before
-   * hydration submits the form the way a browser does with no JavaScript: a
-   * GET to this same URL, which reloads the page and silently discards the
-   * request the person believed they had sent. Disabled until the handler
-   * exists is the honest state — pressing it earlier could never have worked.
-   */
-  const [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), []);
+  const ready = useHydrated();
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
