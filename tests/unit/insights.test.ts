@@ -386,6 +386,62 @@ describe("buildChoreInsights", () => {
     expect(report.summary.topThreeShare).toBeNull();
   });
 
+  it("reports the concentration ratio per period, so it reads as a trend", () => {
+    const four = [
+      ...MEMBERS,
+      { memberId: "m3", displayName: "Chandra", active: true },
+      { memberId: "m4", displayName: "Divya", active: true },
+    ];
+
+    const report = buildChoreInsights({
+      // 2026-08-03 and 2026-08-10 are Mondays, so this is exactly two weeks.
+      range: { from: "2026-08-03", to: "2026-08-16", granularity: "week" },
+      members: four,
+      isFamily: false,
+      assignments: [
+        // Week one: one person carried the whole house.
+        assignment({ assignmentId: "a1", choreDate: "2026-08-03", memberId: "m1", points: 40 }),
+        // Week two: shared evenly across all four, so the top three hold 75%.
+        ...["m1", "m2", "m3", "m4"].map((memberId, index) =>
+          assignment({
+            assignmentId: `b${index}`,
+            choreDate: "2026-08-10",
+            memberId,
+            memberName: memberId,
+            points: 10,
+          }),
+        ),
+      ],
+    });
+
+    // This is the month-by-month trend the retired analytics screen carried,
+    // kept rather than lost when that screen became a redirect.
+    expect(report.buckets.map((bucket) => bucket.key)).toEqual(["2026-08-03", "2026-08-10"]);
+    expect(report.buckets.map((bucket) => bucket.topThreeShare)).toEqual([1, 0.75]);
+  });
+
+  it("reports no concentration for a period where nothing was confirmed", () => {
+    const report = buildChoreInsights({
+      range: { from: "2026-08-01", to: "2026-08-14", granularity: "week" },
+      members: MEMBERS,
+      isFamily: false,
+      assignments: [assignment({ choreDate: "2026-08-03", status: "missed" })],
+    });
+
+    expect(report.buckets.every((bucket) => bucket.topThreeShare === null)).toBe(true);
+  });
+
+  it("gives a family no per-period concentration either", () => {
+    const report = buildChoreInsights({
+      range: { from: "2026-08-01", to: "2026-08-14", granularity: "week" },
+      members: MEMBERS,
+      isFamily: true,
+      assignments: [assignment({ choreDate: "2026-08-03" })],
+    });
+
+    expect(report.buckets.every((bucket) => bucket.topThreeShare === null)).toBe(true);
+  });
+
   it("ranks a shared house by who did most", () => {
     const report = buildChoreInsights({
       range: AUGUST,

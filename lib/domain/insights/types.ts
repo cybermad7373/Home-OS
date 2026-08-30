@@ -162,6 +162,12 @@ export interface WorkloadBucket {
   assignedPoints: number;
   confirmedPoints: number;
   missedPoints: number;
+  /**
+   * The share of the period's confirmed points earned by the top three — the
+   * BRD's headline metric, per bucket, so it can be read as a trend. `null` in
+   * a family Home (BR-260) and in a period where nothing was confirmed.
+   */
+  topThreeShare: number | null;
 }
 
 export interface ChoreInsightsOutput {

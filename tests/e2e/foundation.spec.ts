@@ -39,9 +39,8 @@ async function signUp(page: import("@playwright/test").Page, account: Account) {
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
   await page.waitForURL("**/onboarding/**", { timeout: 30000 });
-  await page.waitForLoadState("networkidle");
 
-  // Handle username onboarding if redirected there
+  // A Google-less sign-up sometimes lands on the username step first.
   if (page.url().includes("/onboarding/username")) {
     await page.getByLabel("Username").fill(account.username);
     // The availability check enables the button; waiting on that rather than on
@@ -50,7 +49,6 @@ async function signUp(page: import("@playwright/test").Page, account: Account) {
     await expect(claimBtn).toBeEnabled({ timeout: 15000 });
     await claimBtn.click();
     await page.waitForURL("**/onboarding/house", { timeout: 30000 });
-    await page.waitForLoadState("networkidle");
   }
 
   // Wait for the JoinOrCreate component to render, by content rather than a

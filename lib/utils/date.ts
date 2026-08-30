@@ -16,6 +16,30 @@ export function houseToday(timezone = DEFAULT_TIMEZONE, at: Date = new Date()): 
   }).format(at);
 }
 
+/**
+ * The Monday on or before a date. Every week in HouseOS starts on one — the
+ * effort ledger's `week_start`, the schedule, the Calendar's week view and the
+ * insights buckets all agree on it.
+ *
+ * This is the only implementation. It had grown three copies in three modules,
+ * and a house whose chore was scored in one week and reported in another is
+ * exactly what that duplication costs.
+ */
+export function weekStartOf(isoDate: string): string {
+  // Noon rather than midnight keeps the arithmetic clear of every DST edge.
+  const date = new Date(`${isoDate}T12:00:00Z`);
+  const isoDayOfWeek = date.getUTCDay() === 0 ? 7 : date.getUTCDay();
+  date.setUTCDate(date.getUTCDate() - (isoDayOfWeek - 1));
+  return date.toISOString().slice(0, 10);
+}
+
+/** The Monday after the one a date falls in. */
+export function nextWeekStart(isoDate: string): string {
+  const monday = new Date(`${weekStartOf(isoDate)}T12:00:00Z`);
+  monday.setUTCDate(monday.getUTCDate() + 7);
+  return monday.toISOString().slice(0, 10);
+}
+
 /** Formats an ISO date for display, e.g. "Mon 24 Aug". */
 export function formatDate(
   isoDate: string,

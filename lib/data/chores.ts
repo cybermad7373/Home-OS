@@ -496,19 +496,17 @@ export async function getLedgerWeek(
   return data ?? [];
 }
 
-/** The Monday on or before a date. Every week in the system starts on one. */
-export function weekStartOf(isoDate: string): string {
-  const date = new Date(`${isoDate}T12:00:00Z`);
-  const isoDayOfWeek = date.getUTCDay() === 0 ? 7 : date.getUTCDay();
-  date.setUTCDate(date.getUTCDate() - (isoDayOfWeek - 1));
-  return date.toISOString().slice(0, 10);
-}
+/**
+ * Re-exported, not redefined. Both live in lib/utils/date so that the ledger,
+ * the schedule, the Calendar and the insights buckets cannot disagree about
+ * which Monday a date belongs to. Callers that have always imported them from
+ * here keep working.
+ */
+export { nextWeekStart, weekStartOf } from "@/lib/utils/date";
 
-export function nextWeekStart(isoDate: string): string {
-  const monday = new Date(`${weekStartOf(isoDate)}T12:00:00Z`);
-  monday.setUTCDate(monday.getUTCDate() + 7);
-  return monday.toISOString().slice(0, 10);
-}
+// Imported as well as re-exported: a re-export is not a binding this module can
+// call, and `redistributePublishedDay` below needs one.
+import { weekStartOf } from "@/lib/utils/date";
 
 export interface GenerationResult {
   weekStart: string;

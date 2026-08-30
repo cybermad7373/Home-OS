@@ -145,11 +145,11 @@ export function boundsOfMonth(period: string): { from: string; to: string } {
   return { from: `${period}-01`, to: `${period}-${String(lastDay).padStart(2, "0")}` };
 }
 
-/** The Monday on or before a date, in the Home's own dates rather than UTC. */
-export function weekStartOfDate(date: string): string {
-  const parsed = Date.parse(`${date}T00:00:00Z`);
-  const weekday = new Date(parsed).getUTCDay();
-  // getUTCDay puts Sunday at 0; the week starts on Monday.
-  const back = (weekday + 6) % 7;
-  return new Date(parsed - back * 86_400_000).toISOString().slice(0, 10);
-}
+/**
+ * The Monday on or before a date.
+ *
+ * An alias for the one implementation in lib/utils/date, kept under this name
+ * because the Calendar's callers use it. Three separate copies of this
+ * arithmetic used to exist.
+ */
+export { weekStartOf as weekStartOfDate } from "@/lib/utils/date";

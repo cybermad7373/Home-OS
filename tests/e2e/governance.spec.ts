@@ -59,14 +59,14 @@ async function signIn(page: import("@playwright/test").Page, identifier: string)
 }
 
 async function signOut(page: import("@playwright/test").Page) {
-  // Clear all cookies to ensure session is destroyed
+  // Clearing the cookies is the sign-out: the proxy treats a caller with no
+  // session as signed out on the very next request.
   await page.context().clearCookies();
   await page.goto("/signin");
-  await page.waitForLoadState("networkidle");
+  await expect(page.getByLabel("Username or email")).toBeVisible();
 }
 
 async function createHome(page: import("@playwright/test").Page, name: string) {
-  await page.waitForLoadState("networkidle");
   await page.waitForSelector('h1:has-text("Get started"), button:has-text("Set up a new home")', { timeout: 30000 });
   await page.getByText("Set up a new home", { exact: true }).click();
   await page.getByLabel("Home name").fill(name);
@@ -116,8 +116,8 @@ test("lead creates home and adds co-lead + member", async ({ page }) => {
   await page.goto("/house/members");
   // "Let them in" is in the JoinRequests section (pending queue)
   await page.getByRole("button", { name: "Let them in" }).first().click();
-  // Wait for the page to refresh and the co-lead to appear in the member list
-  await page.waitForLoadState("networkidle");
+  // The refreshed list is the readiness signal, not an idle network.
+  await expect(page.getByText(coLead.name)).toBeVisible();
   // Make co-lead a Co-Admin: click Edit on the co-lead, change role, save
   await page.locator(`li:has-text("${coLead.name}") button:has-text("Edit")`).click();
   await page.getByRole("combobox", { name: "Role" }).selectOption("co_admin");

@@ -56,7 +56,14 @@ export function buildChoreInsights(input: ChoreInsightsInput): ChoreInsightsOutp
     assignedPoints: 0,
     confirmedPoints: 0,
     missedPoints: 0,
+    topThreeShare: null,
   }));
+
+  // Confirmed points per member per bucket, so the concentration ratio can be
+  // read as a trend rather than as one figure for the whole range. This is the
+  // month-by-month view the analytics screen carried before phase 15, kept
+  // rather than lost when that screen was retired.
+  const confirmedInBucket = bucketKeys.map(() => new Map<string, number>());
 
   // Every active member gets a row, including one who did nothing. A zero is a
   // fact about the week, and leaving it out is how an unbalanced house looks
@@ -74,7 +81,13 @@ export function buildChoreInsights(input: ChoreInsightsInput): ChoreInsightsOutp
 
     if (index !== undefined) {
       buckets[index].assignedPoints += points;
-      if (assignment.status === "confirmed") buckets[index].confirmedPoints += points;
+      if (assignment.status === "confirmed") {
+        buckets[index].confirmedPoints += points;
+        if (assignment.memberId) {
+          const tally = confirmedInBucket[index];
+          tally.set(assignment.memberId, (tally.get(assignment.memberId) ?? 0) + points);
+        }
+      }
       if (isMissed(assignment.status)) buckets[index].missedPoints += points;
     }
 
@@ -93,6 +106,12 @@ export function buildChoreInsights(input: ChoreInsightsInput): ChoreInsightsOutp
     if (assignment.status === "confirmed") workload.confirmedPoints += points;
     else if (isPending(assignment.status)) workload.pendingPoints += points;
     else if (isMissed(assignment.status)) workload.missedPoints += points;
+  }
+
+  if (!isFamily) {
+    buckets.forEach((bucket, index) => {
+      bucket.topThreeShare = shareOfTopThree([...confirmedInBucket[index].values()]);
+    });
   }
 
   const rows = [...byMember.values()].map((workload) => ({
@@ -158,8 +177,13 @@ function unassignedPoints(assignments: ChoreAssignment[]): number {
  * house with no confirmed work is not a concentrated one.
  */
 function topThreeShare(rows: MemberWorkload[]): number | null {
-  const points = rows.map((row) => row.confirmedPoints).sort((a, b) => b - a);
-  const total = points.reduce((sum, value) => sum + value, 0);
+  return shareOfTopThree(rows.map((row) => row.confirmedPoints));
+}
+
+/** The same ratio over a bare list of per-member point totals. */
+function shareOfTopThree(points: number[]): number | null {
+  const descending = [...points].sort((a, b) => b - a);
+  const total = descending.reduce((sum, value) => sum + value, 0);
   if (total === 0) return null;
-  return points.slice(0, 3).reduce((sum, value) => sum + value, 0) / total;
+  return descending.slice(0, 3).reduce((sum, value) => sum + value, 0) / total;
 }

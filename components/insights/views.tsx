@@ -231,6 +231,35 @@ export function ChoresView({ report }: { report: ChoreInsightsOutput }) {
         />
       </Card>
 
+      {report.buckets.some((bucket) => bucket.topThreeShare !== null) ? (
+        <Card>
+          <CardTitle>Effort concentration</CardTitle>
+          <CardDescription>
+            The share of each period&rsquo;s confirmed points earned by the three people who did
+            most. The target is under 45%.
+          </CardDescription>
+          <ul className="mt-3 flex flex-col gap-2">
+            {report.buckets
+              .filter((bucket) => bucket.topThreeShare !== null)
+              .map((bucket) => {
+                const percent = Math.round((bucket.topThreeShare ?? 0) * 100);
+                return (
+                  <li key={bucket.key} className="flex items-center gap-3">
+                    <span className="caption-text w-20 shrink-0 text-text-muted">{bucket.key}</span>
+                    <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-2">
+                      <span
+                        className={percent > 45 ? "block h-full bg-warning" : "block h-full bg-success"}
+                        style={{ width: `${percent}%` }}
+                      />
+                    </span>
+                    <span className="shrink-0 tabular-nums">{percent}%</span>
+                  </li>
+                );
+              })}
+          </ul>
+        </Card>
+      ) : null}
+
       <Card>
         <CardTitle>{report.ranked ? "Who did what" : "What everybody contributed"}</CardTitle>
         {report.ranked && report.summary.topThreeShare !== null ? (

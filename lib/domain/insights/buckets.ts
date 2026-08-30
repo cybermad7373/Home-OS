@@ -12,6 +12,8 @@
  * in, and the two figures would never reconcile.
  */
 
+import { weekStartOf as mondayOf } from "@/lib/utils/date";
+
 export type Granularity = "day" | "week" | "month";
 
 export const GRANULARITIES: Granularity[] = ["day", "week", "month"];
@@ -33,13 +35,8 @@ function asIso(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-/** The Monday of the ISO week a date falls in. */
-export function weekStartOf(isoDate: string): string {
-  const date = asDate(isoDate);
-  const isoDayOfWeek = date.getUTCDay() === 0 ? 7 : date.getUTCDay();
-  date.setUTCDate(date.getUTCDate() - (isoDayOfWeek - 1));
-  return asIso(date);
-}
+/** The Monday of the ISO week a date falls in — one implementation, shared. */
+export { weekStartOf } from "@/lib/utils/date";
 
 /**
  * The bucket a date belongs to. Day and week buckets are `YYYY-MM-DD`; a month
@@ -51,7 +48,7 @@ export function bucketKeyOf(isoDate: string, granularity: Granularity): string {
     case "day":
       return isoDate.slice(0, 10);
     case "week":
-      return weekStartOf(isoDate);
+      return mondayOf(isoDate);
     case "month":
       return isoDate.slice(0, 7);
   }

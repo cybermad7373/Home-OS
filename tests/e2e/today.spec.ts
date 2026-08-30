@@ -194,7 +194,11 @@ test("Today and the Calendar work at 360 px", async ({ page }) => {
 
   for (const path of ["/home", "/today", "/more/calendar"]) {
     await page.goto(path);
-    await page.waitForLoadState("networkidle");
+    // Wait on the rendered page rather than on an idle network: the width
+    // measurement below needs layout, and layout is done once the page's own
+    // content is up. The main landmark is the one that is unambiguous — both
+    // the tab bar and the sidebar are called "Primary".
+    await expect(page.getByRole("main")).toBeVisible();
 
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

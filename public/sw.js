@@ -13,7 +13,7 @@
  * recording.
  */
 
-const VERSION = "houseos-v3";
+const VERSION = "houseos-v4";
 const SHELL = ["/offline", "/icons/icon-192.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -71,15 +71,21 @@ self.addEventListener("fetch", (event) => {
    */
   const isRsc = url.searchParams.has("_rsc") || request.headers.get("RSC") === "1";
 
-  if (request.mode === "navigate" || isRsc) {
+  /*
+   * Not intercepted at all, rather than fetched and passed through. An RSC
+   * payload is a stream, and handing a streamed response back through
+   * respondWith leaves the request looking open to the page long after the
+   * router has finished with it — which stalls anything waiting on the network
+   * to fall quiet. There is nothing useful to offer one offline either: giving
+   * the router the offline page would replace the screen the person is on.
+   */
+  if (isRsc) return;
+
+  if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).catch(async () => {
         const cached = await caches.match(request);
-        // An RSC refetch has no useful offline fallback: handing the router the
-        // offline page would replace the screen with it. Failing is honest, and
-        // the app keeps showing what the person was already looking at.
-        if (cached) return cached;
-        return isRsc ? Response.error() : caches.match("/offline");
+        return cached ?? caches.match("/offline");
       }),
     );
     return;

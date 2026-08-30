@@ -24,6 +24,16 @@ export default defineConfig({
    * telling us about the dev server, and a second attempt separates the two.
    */
   retries: process.env.CI ? 2 : 1,
+  /**
+   * One worker, always. Every journey here is `describe.configure({ mode:
+   * "serial" })` against one app server and one Postgres, so there is no
+   * parallelism to win — but the mobile and desktop projects will happily run
+   * at the same time, and two browsers driving one `next` process on a laptop
+   * turns ordinary clicks into sixty-second timeouts that read exactly like
+   * product defects. They are not: the same cases pass in twenty seconds when
+   * they have the machine to themselves.
+   */
+  workers: 1,
   use: {
     baseURL: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
     trace: "on-first-retry",
