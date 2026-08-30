@@ -626,3 +626,76 @@ export async function reopenPeriod(
   if (error) throw apiErrorFromPostgres(error);
   return data as unknown as string;
 }
+
+/**
+ * A closed month, flattened for the statement export (IN-10).
+ *
+ * `netsToZero` is carried rather than assumed. Every member's net summed is
+ * the invariant the close is gated on (BR-107), and a statement that prints a
+ * month is a statement that should be able to say the month balanced.
+ */
+export interface SettlementStatement {
+  period: string;
+  status: string;
+  totalExpensesPaise: number;
+  totalFairSharePaise: number;
+  netsToZero: boolean;
+  members: {
+    memberId: string;
+    name: string;
+    paidPaise: number;
+    fairSharePaise: number;
+    netPaise: number;
+  }[];
+  payments: {
+    fromMemberId: string;
+    fromName: string;
+    toMemberId: string;
+    toName: string;
+    amountPaise: number;
+    status: string;
+    confirmedAt: string | null;
+  }[];
+}
+
+/**
+ * The statement for a closed month, or `null` if the month is not closed.
+ *
+ * A statement is a record of a settled month. Issuing one for a month still
+ * open would put a figure in somebody's hands that the house can still change,
+ * which is exactly the document a statement is not.
+ */
+export async function getSettlementForPeriod(
+  session: Session,
+  houseId: string,
+  period: string,
+): Promise<SettlementStatement | null> {
+  const position = await getPeriodPosition(session, houseId, period);
+  if (position.status !== "closed") return null;
+
+  const settlements = await listSettlements(session, houseId, period);
+
+  return {
+    period,
+    status: position.status,
+    totalExpensesPaise: position.totalExpensePaise,
+    totalFairSharePaise: position.position.reduce((sum, m) => sum + m.fairSharePaise, 0),
+    netsToZero: position.position.reduce((sum, m) => sum + m.netPaise, 0) === 0,
+    members: position.position.map((m) => ({
+      memberId: m.memberId,
+      name: m.displayName,
+      paidPaise: m.paidPaise,
+      fairSharePaise: m.fairSharePaise,
+      netPaise: m.netPaise,
+    })),
+    payments: settlements.map((s) => ({
+      fromMemberId: s.fromMemberId,
+      fromName: s.fromName,
+      toMemberId: s.toMemberId,
+      toName: s.toName,
+      amountPaise: s.amountPaise,
+      status: s.status,
+      confirmedAt: s.confirmedAt,
+    })),
+  };
+}
