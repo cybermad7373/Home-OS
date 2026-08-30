@@ -75,6 +75,7 @@
         "npm:fast-check@^4.9.0",
         "npm:lucide-react@^1.33.0",
         "npm:next@16.3.2",
+        "npm:pdf-lib@^1.17.1",
         "npm:pg@^8.23.0",
         "npm:react-dom@19.2.8",
         "npm:react@19.2.8",
