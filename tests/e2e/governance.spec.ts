@@ -139,9 +139,7 @@ test("lead creates home and adds co-lead + member", async ({ page }) => {
   await signIn(page, lead.username);
   await page.goto("/house/members");
   await page.getByRole("button", { name: "Let them in" }).first().click();
-  // Wait for the member to be accepted and appear in the member list
-  await page.waitForLoadState("networkidle");
-  await page.getByText(member.name).waitFor({ state: "visible", timeout: 10000 });
+  await page.getByText(member.name).waitFor({ state: "visible", timeout: 15000 });
 });
 
 test("lead proposes removal of member (Critical decision)", async ({ page }) => {

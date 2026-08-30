@@ -143,7 +143,14 @@ export function AuthForm({ mode }: { mode: Mode }) {
           <span className="font-medium text-text">{email}</span>. Open it, then sign in
           with <span className="font-medium text-text">{username}</span> or that email.
         </p>
-        <Link href="/signin" className="caption-text mt-4 block text-primary">
+        {/*
+          Not prefetched, and neither are the two links below. The proxy sends
+          a signed-in caller away from /signin and /signup, so prefetching them
+          is work that can never be used — and Next's proxy redirect answers a
+          prefetch with a stream it does not close, which leaves a connection
+          open on the server for every visitor who lands on either page.
+        */}
+        <Link href="/signin" prefetch={false} className="caption-text mt-4 block text-primary">
           Back to sign in
         </Link>
       </Card>
@@ -281,14 +288,14 @@ export function AuthForm({ mode }: { mode: Mode }) {
           {mode === "signup" ? (
             <>
               Already have an account?{" "}
-              <Link className="text-primary" href="/signin">
+              <Link className="text-primary" href="/signin" prefetch={false}>
                 Sign in
               </Link>
             </>
           ) : (
             <>
               New here?{" "}
-              <Link className="text-primary" href="/signup">
+              <Link className="text-primary" href="/signup" prefetch={false}>
                 Create an account
               </Link>
             </>

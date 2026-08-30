@@ -13,7 +13,7 @@
  * recording.
  */
 
-const VERSION = "houseos-v2";
+const VERSION = "houseos-v3";
 const SHELL = ["/offline", "/icons/icon-192.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -33,24 +33,59 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+/**
+ * Only content-addressed assets may be served from the cache without asking the
+ * network. Everything else is house data in some form.
+ *
+ * `/_next/static` filenames carry a build hash, and the icons and manifest
+ * change with a deploy rather than with the household — so a cached copy of one
+ * of those is the same bytes the network would return.
+ */
+function isImmutableAsset(pathname) {
+  return (
+    pathname.startsWith("/_next/static/") ||
+    pathname.startsWith("/icons/") ||
+    pathname === "/manifest.webmanifest"
+  );
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
   // Never cache anything that mutates, and never cache an API read: house data
   // that is quietly stale is worse than an honest failure.
-  if (request.method !== "GET" || new URL(request.url).pathname.startsWith("/api/")) {
+  const url = new URL(request.url);
+  if (request.method !== "GET" || url.pathname.startsWith("/api/")) {
     return;
   }
 
-  if (request.mode === "navigate") {
+  /*
+   * A React Server Component payload is house data, and it does not arrive as a
+   * navigation — `router.refresh()` fetches it with mode "cors". A cache-first
+   * rule that catches everything non-navigational therefore answers every
+   * refresh in the app from the first copy it ever saw: a lead lets somebody in,
+   * the queue empties, and the new member never appears until the page is
+   * reloaded by hand. The screen looks like the write half-failed.
+   *
+   * So RSC requests go to the network like any other read of the household.
+   */
+  const isRsc = url.searchParams.has("_rsc") || request.headers.get("RSC") === "1";
+
+  if (request.mode === "navigate" || isRsc) {
     event.respondWith(
       fetch(request).catch(async () => {
         const cached = await caches.match(request);
-        return cached ?? caches.match("/offline");
+        // An RSC refetch has no useful offline fallback: handing the router the
+        // offline page would replace the screen with it. Failing is honest, and
+        // the app keeps showing what the person was already looking at.
+        if (cached) return cached;
+        return isRsc ? Response.error() : caches.match("/offline");
       }),
     );
     return;
   }
+
+  if (!isImmutableAsset(url.pathname)) return;
 
   event.respondWith(
     caches.match(request).then(

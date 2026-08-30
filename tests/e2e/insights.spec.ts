@@ -91,12 +91,16 @@ test("one screen answers all four questions", async ({ page }) => {
   // must say so in words rather than rendering an empty card.
   await expect(page.getByText("Nothing spent in this range")).toBeVisible();
 
+  // Scoped to the filter bar: the desktop sidebar carries links called
+  // "Chores" and "Food" too, and they go somewhere else entirely.
+  const types = page.getByRole("navigation", { name: "Insight type" });
+
   for (const [label, heading] of [
     ["Chores", "No chores in this range"],
     ["Food", "No meals in this range"],
     ["Home", "How active the home is"],
   ] as const) {
-    await page.getByRole("link", { name: label, exact: true }).first().click();
+    await types.getByRole("link", { name: label, exact: true }).click();
     await expect(page.getByText(heading)).toBeVisible();
   }
 });
@@ -105,13 +109,22 @@ test("the filters are in the URL, so a view is a link", async ({ page }) => {
   await signIn(page);
   await page.goto("/insights");
 
-  await page.getByRole("link", { name: "Chores", exact: true }).first().click();
+  await page
+    .getByRole("navigation", { name: "Insight type" })
+    .getByRole("link", { name: "Chores", exact: true })
+    .click();
   await expect(page).toHaveURL(/type=chores/);
 
-  await page.getByRole("link", { name: "Month", exact: true }).first().click();
+  await page
+    .getByRole("navigation", { name: "Grouping" })
+    .getByRole("link", { name: "Month", exact: true })
+    .click();
   await expect(page).toHaveURL(/granularity=month/);
 
-  await page.getByRole("link", { name: "6 months", exact: true }).first().click();
+  await page
+    .getByRole("navigation", { name: "Range" })
+    .getByRole("link", { name: "6 months", exact: true })
+    .click();
   await expect(page).toHaveURL(/months=6/);
 
   // The whole view survives a reload, because none of it lives in the tab.
