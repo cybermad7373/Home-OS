@@ -119,7 +119,7 @@ export function ApprovalQueue({
   if (decisions.length === 0) {
     return (
       <EmptyState
-        icon={<CheckCheck size={24} aria-hidden />}
+        illustration="generic"
         title="Nothing needs you."
         body="Decisions the house asks you about appear here — expenses, chores, absences, join requests, and anything that changes how the home works."
       />

@@ -49,9 +49,22 @@
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.06);
   --shadow-md: 0 4px 12px rgb(0 0 0 / 0.08);
   --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.12);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 1px rgb(255 255 255 / 0.08) inset;
+  --shadow-elevated: 0 8px 24px rgb(0 0 0 / 0.1), 0 1px 1px rgb(255 255 255 / 0.1) inset;
+
+  /* motion tokens */
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 80ms;
+  --duration-base: 180ms;
+  --duration-sheet: 240ms;
+  --duration-count: 400ms;
+  --duration-toast: 200ms;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -75,6 +88,8 @@
     --danger-bg: #450a0a;
     --info: #60a5fa;
     --info-bg: #172554;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.2), 0 1px 1px rgb(255 255 255 / 0.03) inset;
+    --shadow-elevated: 0 8px 24px rgb(0 0 0 / 0.3), 0 1px 1px rgb(255 255 255 / 0.05) inset;
     color-scheme: dark;
   }
 }
@@ -99,6 +114,8 @@
   --danger-bg: #450a0a;
   --info: #60a5fa;
   --info-bg: #172554;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.2), 0 1px 1px rgb(255 255 255 / 0.03) inset;
+  --shadow-elevated: 0 8px 24px rgb(0 0 0 / 0.3), 0 1px 1px rgb(255 255 255 / 0.05) inset;
   color-scheme: dark;
 }
 
@@ -123,15 +140,28 @@
   --color-info: var(--info);
   --color-info-bg: var(--info-bg);
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
 
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
+  --shadow-card: var(--shadow-card);
+  --shadow-elevated: var(--shadow-elevated);
+
+  --ease-spring: var(--ease-spring);
+  --ease-out: var(--ease-out);
+  --duration-fast: var(--duration-fast);
+  --duration-base: var(--duration-base);
+  --duration-sheet: var(--duration-sheet);
+  --duration-count: var(--duration-count);
+  --duration-toast: var(--duration-toast);
 }
 
 @layer base {
@@ -142,7 +172,7 @@
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
     font-size: 15px;
     line-height: 22px;
     -webkit-font-smoothing: antialiased;
@@ -153,6 +183,7 @@
   input[inputmode="decimal"],
   input[type="number"] {
     font-variant-numeric: tabular-nums;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
   }
 
   /* A visible focus ring on every interactive element, never removed. */
@@ -174,6 +205,7 @@
     line-height: 38px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
   }
 
   .title-text {
@@ -204,6 +236,62 @@
     min-height: 44px;
     min-width: 44px;
   }
+
+  /* Double-bezel card shell */
+  .card-shell {
+    @apply relative bg-surface/50 dark:bg-surface/50 ring-1 ring-border dark:ring-border rounded-[1.5rem] p-1.5 shadow-[var(--shadow-card)];
+  }
+
+  .card-core {
+    @apply rounded-[1.25rem] bg-surface dark:bg-surface shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] p-4;
+  }
+
+  .sheet-shell {
+    @apply relative bg-surface/50 dark:bg-surface/50 ring-1 ring-border dark:ring-border rounded-[2rem] p-2 shadow-[var(--shadow-elevated)];
+  }
+
+  .sheet-core {
+    @apply rounded-[1.75rem] bg-surface dark:bg-surface p-6;
+  }
+
+  /* Magnetic button press */
+  .pressable {
+    @apply transition-transform duration-[var(--duration-fast)] ease-[var(--ease-out)] active:scale-[0.98];
+  }
+
+  .magnetic-icon {
+    @apply transition-transform duration-[var(--duration-fast)] ease-[var(--ease-out)] group-hover:translate-x-1 group-hover:-translate-y-[1px] group-hover:scale-105;
+  }
+
+  /* Scroll reveal stagger */
+  .reveal-up {
+    @apply opacity-0 translate-y-6 transition-all duration-600 ease-[var(--ease-spring)];
+  }
+
+  .reveal-up.in-view {
+    @apply opacity-100 translate-y-0;
+  }
+
+  /* Number count-up animation */
+  .count-up {
+    @apply inline-block;
+  }
+
+  /* Shimmer for skeletons */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite ease-in-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shimmer { animation: none; background: var(--surface-2); }
+  }
 }
 
 /* NFR: all motion collapses to opacity-only when the viewer asks for less. */
@@ -216,4 +304,8 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+
+  .reveal-up { @apply opacity-100 translate-y-0 transition-none; }
+  .pressable { @apply active:scale-100; }
+  .magnetic-icon { @apply group-hover:translate-x-0 group-hover:-translate-y-0 group-hover:scale-100; }
 }

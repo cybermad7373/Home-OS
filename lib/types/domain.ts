@@ -15,6 +15,7 @@ import type {
   HouseMemberRow,
   HouseRow,
   HouseSettingsRow,
+  HouseSettingsRowExtended,
   HomeType,
   MemberKind,
   MemberRole,
@@ -68,7 +69,7 @@ export interface RoomView {
 /** Everything a screen needs about the caller's house, in one object. */
 export interface HouseContext {
   house: HouseRow;
-  settings: HouseSettingsRow;
+  settings: HouseSettingsRowExtended;
   rooms: RoomView[];
   members: MemberView[];
   me: MemberView;
@@ -104,7 +105,7 @@ export function houseShapeOf(house: HouseRow, settings: HouseSettingsRow): House
   };
 }
 
-export type { HouseMemberRow, HouseRow, HouseSettingsRow, RoomRow };
+export type { HouseMemberRow, HouseRow, HouseSettingsRow, HouseSettingsRowExtended, RoomRow };
 
 export const RESIDENCY_LABEL: Record<ResidencyType, string> = {
   full_time: "Full time",

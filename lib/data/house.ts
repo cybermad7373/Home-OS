@@ -10,6 +10,7 @@ import type {
   HouseMemberRow,
   HouseRow,
   HouseSettingsRow,
+  HouseSettingsRowExtended,
   MemberView,
   RoomView,
 } from "@/lib/types/domain";
@@ -277,7 +278,7 @@ export async function getOwnProfile(
 export async function getSettings(
   session: Session,
   houseId: string,
-): Promise<HouseSettingsRow> {
+): Promise<HouseSettingsRowExtended> {
   const { data, error } = await session.supabase
     .from("house_settings")
     .select("*")

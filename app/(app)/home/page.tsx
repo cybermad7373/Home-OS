@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Card, CardShell, CardCore, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { MemberAvatar } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/layout/page-header";
 import { NotificationBell } from "@/components/notifications/bell";
@@ -23,6 +23,12 @@ import { ownRowsFirst, owesRows, pendingItems } from "@/lib/domain/home/overview
 import { weekDates } from "@/lib/domain/scheduling/capacity";
 import { formatMoney } from "@/lib/utils/money";
 import { formatDate, houseToday } from "@/lib/utils/date";
+import { HomeHeroCards } from "./HomeHeroCards";
+import { HomeOwesWhom } from "./HomeOwesWhom";
+import { HomeStanding } from "./HomeStanding";
+import { HomeModuleLinks } from "./HomeModuleLinks";
+import { HomePendingBlock } from "./HomePendingBlock";
+import { HomeHouseMembers } from "./HomeHouseMembers";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -111,229 +117,33 @@ export default async function HomeOverviewPage() {
         action={<NotificationBell unread={unread} />}
       />
 
-      {/*
-        One block for everything waiting, rather than a stack of one-line cards
-        that push the Home's actual position off the screen. Today is where the
-        caller works through them; this is where they learn there is work.
-      */}
-      {pending.length > 0 ? (
-        <Card className="mb-3 border-warning p-0">
-          <ul className="divide-y divide-border">
-            {pending.map((item) => (
-              <li key={item.key}>
-                <Link
-                  href={item.href}
-                  className="touch-target flex items-center justify-between gap-3 px-4 py-3 hover:bg-surface-2"
-                >
-                  <span className="text-[15px]">{item.label}</span>
-                  <Badge tone={item.urgent ? "warning" : "neutral"}>{item.count}</Badge>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      ) : null}
+      {/* Pending Block - unified card with urgency gradient */}
+      <HomePendingBlock pending={pending} />
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Card>
-          <CardTitle>This week</CardTitle>
-          {assignedThisWeek === 0 ? (
-            <>
-              <p className="display-number mt-2 text-text-subtle">—</p>
-              <CardDescription>Nothing assigned to you this week yet.</CardDescription>
-            </>
-          ) : (
-            <>
-              <p className="display-number mt-2">
-                {earnedThisWeek}
-                <span className="text-text-subtle"> / {assignedThisWeek}</span>
-              </p>
-              <div
-                className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2"
-                role="progressbar"
-                aria-valuenow={earnedThisWeek}
-                aria-valuemin={0}
-                aria-valuemax={assignedThisWeek}
-              >
-                <div
-                  className="h-full bg-primary"
-                  style={{
-                    width: `${Math.min(100, (earnedThisWeek / assignedThisWeek) * 100)}%`,
-                  }}
-                />
-              </div>
-              <CardDescription className="mt-2">
-                points confirmed · {Math.max(0, assignedThisWeek - earnedThisWeek)} still to go
-              </CardDescription>
-            </>
-          )}
-        </Card>
+      {/* Hero Cards - Asymmetric Bento Layout */}
+      <HomeHeroCards
+        earnedThisWeek={earnedThisWeek}
+        assignedThisWeek={assignedThisWeek}
+        isPot={context.shape.isPot}
+        dailyCost={dailyCost}
+        yourNetPaise={yourNetPaise}
+        money={money}
+        house={context.house}
+      />
 
-        {/*
-          Two different questions, and which one matters depends on the
-          household. Flatmates want to know where they stand with each other; a
-          family has no such standing and wants to know what the month costs.
-        */}
-        {context.shape.isPot ? (
-          <Link href="/money/daily" className="block">
-            <Card className="h-full transition-colors hover:border-primary">
-              <CardTitle>This month</CardTitle>
-              <p className="display-number mt-2">
-                {formatMoney(dailyCost.monthToDatePaise, { currency: context.house.currency })}
-              </p>
-              <CardDescription>
-                {formatMoney(dailyCost.averagePerDayPaise, { currency: context.house.currency })} a
-                day · on track for{" "}
-                {formatMoney(dailyCost.projectedMonthPaise, { currency: context.house.currency })}
-              </CardDescription>
-            </Card>
-          </Link>
-        ) : (
-          <Card>
-            <CardTitle>This month</CardTitle>
-            <p
-              className={
-                yourNetPaise === 0
-                  ? "display-number mt-2"
-                  : yourNetPaise > 0
-                    ? "display-number mt-2 text-success"
-                    : "display-number mt-2 text-danger"
-              }
-            >
-              {formatMoney(Math.abs(yourNetPaise), { currency: context.house.currency })}
-            </p>
-            <CardDescription>
-              {yourNetPaise === 0
-                ? "You are square with the house"
-                : yourNetPaise > 0
-                  ? "the house owes you"
-                  : "you owe the house"}
-              {" · "}paid {formatMoney(money.yourPaidPaise, { currency: context.house.currency })}
-            </CardDescription>
-          </Card>
-        )}
-      </div>
+      {/* Who Owes Whom - Visual relationship diagram */}
+      <HomeOwesWhom owes={owes} meId={context.me.id} house={context.house} />
 
-      {/*
-        DB-03 — the Home's full financial relationships, not only the caller's.
-        Three rows and "see all", with any row the caller is part of lifted to
-        the top: knowing that Bala owes Chitra is what stops two people settling
-        the same debt twice.
-      */}
-      {owes.length > 0 ? (
-        <section className="mt-6">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="heading-text">Who owes whom</h2>
-            <Link className="caption-text text-primary" href="/settle">
-              See all →
-            </Link>
-          </div>
-          <Card className="p-0">
-            <ul className="divide-y divide-border">
-              {owes.slice(0, 3).map((row) => (
-                <li
-                  key={`${row.fromMemberId}-${row.toMemberId}`}
-                  className="flex items-center justify-between gap-3 px-4 py-3"
-                >
-                  <p className="min-w-0 truncate text-[15px]">
-                    <span className={row.fromMemberId === context.me.id ? "font-medium" : ""}>
-                      {row.fromMemberId === context.me.id ? "You" : row.fromName}
-                    </span>
-                    <span className="text-text-muted">
-                      {row.fromMemberId === context.me.id ? " owe " : " owes "}
-                    </span>
-                    <span className={row.toMemberId === context.me.id ? "font-medium" : ""}>
-                      {row.toMemberId === context.me.id ? "you" : row.toName}
-                    </span>
-                  </p>
-                  <span className="shrink-0 font-medium tabular-nums">
-                    {formatMoney(row.amountPaise, { currency: context.house.currency })}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-          {owes.length > 3 ? (
-            <p className="caption-text mt-2 text-text-muted">
-              and {owes.length - 3} more {owes.length - 3 === 1 ? "payment" : "payments"}
-            </p>
-          ) : null}
-        </section>
-      ) : null}
+      {/* House Standing - Animated progress rings */}
+      {context.shape.effortMode === "points" && ranked.some((row) => row.earnedPoints > 0) && (
+        <HomeStanding ranked={ranked} meId={context.me.id} />
+      )}
 
-      {context.shape.effortMode === "points" && ranked.some((row) => row.earnedPoints > 0) ? (
-        <section className="mt-6">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="heading-text">House standing</h2>
-            <Link className="caption-text text-primary" href="/chores/standing">
-              See all →
-            </Link>
-          </div>
-          <Leaderboard
-            standing={ranked}
-            concentrationRatio={concentrationRatio(ranked)}
-            myMemberId={context.me.id}
-            limit={3}
-            from={weekStart}
-            to={today}
-          />
-        </section>
-      ) : null}
+      {/* The House Members */}
+      <HomeHouseMembers active={active} meId={context.me.id} />
 
-      <section className="mt-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="heading-text">The house</h2>
-          <Link className="caption-text text-primary" href="/house/members">
-            See all →
-          </Link>
-        </div>
-        <Card className="p-0">
-          <ul className="divide-y divide-border">
-            {active.slice(0, 6).map((member) => (
-              <li key={member.id} className="flex items-center gap-3 px-4 py-3">
-                <MemberAvatar name={member.displayName} avatarUrl={member.avatarUrl} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">
-                    {member.displayName}
-                    {member.id === context.me.id ? (
-                      <span className="caption-text text-text-subtle"> · you</span>
-                    ) : null}
-                  </p>
-                  <p className="caption-text text-text-muted">{member.room?.name ?? "No room"}</p>
-                </div>
-                {member.role === "admin" ? <Badge tone="primary">Admin</Badge> : null}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      </section>
-
-      {/*
-        The way into every module, so no screen in the product is reachable
-        only from a URL — the phase's own acceptance criterion.
-      */}
-      <section className="mt-6">
-        <h2 className="heading-text mb-3">Go to</h2>
-        <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {[
-            { href: "/today", label: "Today" },
-            { href: "/chores", label: "Chores" },
-            { href: "/money", label: "Money" },
-            { href: "/food", label: "Food" },
-            { href: "/more/calendar", label: "Calendar" },
-            { href: "/more", label: "More" },
-          ].map((entry) => (
-            <li key={entry.href}>
-              <Link
-                href={entry.href}
-                className="touch-target flex items-center justify-center rounded-[10px] border border-border bg-surface px-3 py-3 text-[15px] hover:border-primary"
-              >
-                {entry.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {/* Module Entry Points - Feature tiles */}
+      <HomeModuleLinks />
     </>
   );
 }

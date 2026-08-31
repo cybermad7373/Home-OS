@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils/cn";
+import { motion, useReducedMotion } from "motion/react";
 
 /**
  * The numeric keypad from S-17.
@@ -19,6 +20,8 @@ export function AmountKeypad({
   onChange: (next: string) => void;
   currency?: string;
 }) {
+  const reduce = useReducedMotion();
+
   function press(key: string) {
     if (key === "⌫") {
       onChange(value.length <= 1 ? "0" : value.slice(0, -1));
@@ -39,29 +42,58 @@ export function AmountKeypad({
 
   return (
     <div>
-      <div className="mb-4 text-center">
+      <motion.div
+        className="mb-4 text-center"
+        initial={reduce ? false : { opacity: 0, y: 10 }}
+        animate={reduce ? false : { opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      >
         <span className="text-text-muted">{currency}</span>
-        <span className="tabular ml-1 text-[40px] font-bold leading-tight">
+        <motion.span
+          className="tabular ml-1 text-[44px] font-bold leading-tight"
+          initial={reduce ? false : { scale: 0.9 }}
+          animate={reduce ? false : { scale: 1 }}
+          transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+        >
           {formatWhileTyping(value)}
-        </span>
-      </div>
+        </motion.span>
+      </motion.div>
 
-      <div className="grid grid-cols-3 gap-2" role="group" aria-label="Amount keypad">
-        {keys.map((key) => (
-          <button
+      <motion.div
+        className="grid grid-cols-3 gap-2"
+        role="group"
+        aria-label="Amount keypad"
+        initial={reduce ? false : { opacity: 0 }}
+        animate={reduce ? false : { opacity: 1 }}
+        transition={{ delay: 0.1, duration: 0.3 }}
+      >
+        {keys.map((key, index) => (
+          <motion.button
             key={key}
             type="button"
             onClick={() => press(key)}
             aria-label={key === "⌫" ? "Delete" : key}
             className={cn(
               "touch-target h-14 rounded-[10px] bg-surface-2 text-[20px] font-medium",
-              "transition-transform duration-75 ease-out active:scale-[0.97] hover:bg-border",
+              "transition-transform duration-75 ease-out active:scale-[0.95] hover:bg-border",
+              key === "⌫" && "text-text-muted"
             )}
+            whileTap={{ scale: 0.92 }}
+            initial={reduce ? false : { opacity: 0, scale: 0.8 }}
+            animate={reduce ? false : { opacity: 1, scale: 1 }}
+            transition={{ delay: index * 0.02, duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
           >
-            {key}
-          </button>
+            {key === "⌫" && (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
+                <line x1="18" y1="9" x2="12" y2="15" />
+                <line x1="12" y1="9" x2="18" y2="15" />
+              </svg>
+            )}
+            {key !== "⌫" && key}
+          </motion.button>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }

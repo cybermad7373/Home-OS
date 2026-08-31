@@ -7,6 +7,7 @@ import { SignOutButton } from "@/components/layout/sign-out-button";
 import { MemberAvatar } from "@/components/ui/avatar";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { HOME_TYPE_LABEL, RESIDENCY_LABEL } from "@/lib/types/domain";
+import type { HouseSettingsRowExtended } from "@/lib/types/database";
 
 export const metadata: Metadata = { title: "More" };
 
@@ -22,7 +23,7 @@ interface MoreLink {
  * shown scores. Listing a screen that can only ever be empty teaches people to
  * stop reading the menu.
  */
-function links({ isPot, isRota }: { isPot: boolean; isRota: boolean }): MoreLink[] {
+function links({ isPot, isRota, gameLayerEnabled }: { isPot: boolean; isRota: boolean; gameLayerEnabled: boolean }): MoreLink[] {
   return [
     {
       href: "/more/calendar",
@@ -118,6 +119,15 @@ function links({ isPot, isRota }: { isPot: boolean; isRota: boolean }): MoreLink
       label: "Notification settings",
       body: "What reaches you, quiet hours, and which devices",
     },
+    ...(gameLayerEnabled
+      ? [
+          {
+            href: "/more/game",
+            label: "Game layer",
+            body: "Streaks, badges and game points — your personal progress",
+          },
+        ]
+      : []),
     { href: "/onboarding/profile", label: "My profile", body: "Cooking, UPI ID, your room" },
   ];
 }
@@ -166,6 +176,7 @@ export default async function MorePage() {
             ...links({
               isPot: context.shape.isPot,
               isRota: context.shape.effortMode === "rota",
+              gameLayerEnabled: context.settings.game_layer_enabled ?? false,
             }),
             ...(context.isAdmin ? ADMIN_LINKS : []),
           ].map((link) => (

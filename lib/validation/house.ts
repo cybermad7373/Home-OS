@@ -110,6 +110,7 @@ export const houseSettingsSchema = z
     money_mode: moneyModeSchema.optional(),
     effort_mode: effortModeSchema.optional(),
     penalty_enabled: z.boolean().optional(),
+    game_layer_enabled: z.boolean().optional(),
     // An empty string clears it: the house has no daily target.
     daily_budget: rupeeStringSchema.optional().or(z.literal("")),
   })

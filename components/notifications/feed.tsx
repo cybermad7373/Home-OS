@@ -166,7 +166,7 @@ export function NotificationFeed({
   if (items.length === 0) {
     return (
       <EmptyState
-        icon={<BellOff size={28} aria-hidden />}
+        illustration="notifications"
         title="Nothing yet"
         body="Reminders, confirmations and anything the house needs you for will land here."
       />

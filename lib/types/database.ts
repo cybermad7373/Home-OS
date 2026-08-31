@@ -111,3 +111,8 @@ export type ResponseCapacityName = Enums["response_capacity"];
 export type ResponseKindName = Enums["response_kind"];
 export type RuleStatusName = Enums["rule_status"];
 export type RuleParseSourceName = Enums["rule_parse_source"];
+
+/** Extended with game_layer_enabled (migration 20260901000000) */
+export type HouseSettingsRowExtended = Tables["house_settings"]["Row"] & {
+  game_layer_enabled?: boolean;
+};

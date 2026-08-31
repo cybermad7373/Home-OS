@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils/cn";
 import type {
   EffortMode,
   HouseSettingsRow,
+  HouseSettingsRowExtended,
   MoneyMode,
 } from "@/lib/types/database";
 
@@ -31,7 +32,7 @@ export function SettingsForm({
   currency,
   llmConfigured,
 }: {
-  settings: HouseSettingsRow;
+  settings: HouseSettingsRowExtended;
   /** Null when the Home has no live link — nobody new can ask until one exists. */
   inviteUrl: string | null;
   currency: string;
@@ -55,6 +56,7 @@ export function SettingsForm({
   const [moneyMode, setMoneyMode] = useState<MoneyMode>(settings.money_mode);
   const [effortMode, setEffortMode] = useState<EffortMode>(settings.effort_mode);
   const [penaltyEnabled, setPenaltyEnabled] = useState(settings.penalty_enabled);
+  const [gameLayerEnabled, setGameLayerEnabled] = useState(settings.game_layer_enabled);
   const [dailyBudget, setDailyBudget] = useState(
     settings.daily_budget_paise ? paiseToRupeeString(settings.daily_budget_paise) : "",
   );
@@ -89,6 +91,7 @@ export function SettingsForm({
         money_mode: moneyMode,
         effort_mode: effortMode,
         penalty_enabled: penaltyEnabled,
+        game_layer_enabled: gameLayerEnabled,
         daily_budget: dailyBudget,
       }),
     });
@@ -352,6 +355,29 @@ export function SettingsForm({
               onChange={(event) => setCarryCap(event.target.value)}
             />
           </Field>
+        </div>
+      </Card>
+
+      <Card>
+        <CardTitle>Gamification</CardTitle>
+        <CardDescription>
+          Opt in to the game layer: streaks, badges, and game points. No leaderboard,
+          no ranking — just personal progress. Admin-only toggle.
+        </CardDescription>
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <span className="label-text">
+            {gameLayerEnabled
+              ? "Streaks and badges are visible to all members"
+              : "Game layer is off — no streaks or badges shown"}
+          </span>
+          <Button
+            variant={gameLayerEnabled ? "primary" : "outline"}
+            size="sm"
+            aria-pressed={gameLayerEnabled}
+            onClick={() => setGameLayerEnabled((v: boolean | undefined) => !v)}
+          >
+            {gameLayerEnabled ? "On" : "Off"}
+          </Button>
         </div>
       </Card>
 
