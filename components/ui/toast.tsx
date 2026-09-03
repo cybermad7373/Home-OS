@@ -10,7 +10,6 @@ import {
 } from "react";
 import { cn } from "@/lib/utils/cn";
 import { motion, AnimatePresence } from "motion/react";
-import { useMediaQuery } from "@/lib/utils/media-query";
 
 type Tone = "neutral" | "success" | "danger" | "warning" | "info";
 interface Toast {
@@ -83,7 +82,6 @@ const ICONS: Record<Tone, React.ReactNode> = {
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const reduce = useMediaQuery("(prefers-reduced-motion: reduce)");
 
   const push = useCallback((
     message: string,
@@ -103,14 +101,23 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((current) => current.filter((toast) => toast.id !== id));
   }, []);
 
-  const contextValue = useMemo<ToastContextValue>(() => {
-    const fn: ToastContextValue = (message: string, tone: Tone = "neutral") => {
-      push(message, { tone });
-    };
-    fn.push = push;
-    fn.dismiss = dismiss;
-    return fn;
-  }, [push, dismiss]);
+  /*
+   * The context is callable *and* has methods, so it is a function with two
+   * properties. Assembled with `Object.assign` rather than by assigning to the
+   * function after declaring it: mutating a value you have just created inside
+   * a `useMemo` is the pattern React's immutability rule exists to stop, and
+   * the rule cannot tell this harmless case from a harmful one.
+   */
+  const contextValue = useMemo<ToastContextValue>(
+    () =>
+      Object.assign(
+        (message: string, tone: Tone = "neutral") => {
+          push(message, { tone });
+        },
+        { push, dismiss },
+      ),
+    [push, dismiss],
+  );
 
   return (
     <ToastContext.Provider value={contextValue}>
@@ -124,7 +131,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           {toasts.map((toast) => (
             <motion.div
               key={toast.id}
-              initial={false as any}
+              initial={false}
               animate={{ opacity: 1, x: 0, y: 0 }}
               exit={{ opacity: 0, x: 100, y: -20 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}

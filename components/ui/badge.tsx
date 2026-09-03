@@ -31,16 +31,14 @@ const badgeVariants = cva(
 export function Badge({
   className,
   tone,
-  animate = false,
   ...props
-}: React.HTMLAttributes<HTMLSpanElement> & VariantProps<typeof badgeVariants> & { animate?: boolean }) {
+}: React.HTMLAttributes<HTMLSpanElement> & VariantProps<typeof badgeVariants>) {
   return <span className={cn(badgeVariants({ tone }), className)} {...props} />;
 }
 
-export function BadgeDot({ tone = "neutral", className, animate = false, ...props }: {
+export function BadgeDot({ tone = "neutral", className, ...props }: {
   tone?: "neutral" | "success" | "warning" | "danger" | "info" | "primary";
   className?: string;
-  animate?: boolean;
 } & React.HTMLAttributes<HTMLSpanElement>) {
   const dotColors = {
     neutral: "bg-text-muted",

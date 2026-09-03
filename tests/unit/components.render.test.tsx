@@ -138,6 +138,9 @@ describe("every primitive that takes children renders them", () => {
     ["Chip", (child) => createElement(Chip, null, child)],
     ["ChipRow", (child) => createElement(ChipRow, null, child)],
     ["Label", (child) => createElement(Label, null, child)],
+    // These two take children through props because `createElement`'s third
+    // argument does not satisfy their required-children types.
+    // eslint-disable-next-line react/no-children-prop
     ["Field", (child) => createElement(Field, { label: "L", htmlFor: "x", children: child })],
     ["CardHeader", (child) => createElement(CardHeader, null, child)],
     ["CardTitle", (child) => createElement(CardTitle, null, child)],
@@ -145,6 +148,7 @@ describe("every primitive that takes children renders them", () => {
     ["CardContent", (child) => createElement(CardContent, null, child)],
     ["CardFooter", (child) => createElement(CardFooter, null, child)],
     ["CardAction", (child) => createElement(CardAction, null, child)],
+    // eslint-disable-next-line react/no-children-prop
     ["Section", (child) => createElement(Section, { label: "S", children: child })],
     ["List", (child) => createElement(List, null, createElement("li", null, child))],
   ];

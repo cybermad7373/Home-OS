@@ -3,6 +3,7 @@
 import { motion, type HTMLMotionProps } from "motion/react";
 import { useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils/cn";
 
 interface PageTransitionProps {
   children: ReactNode;
@@ -87,7 +88,13 @@ export function Sheet({
         transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
         {...props}
       >
-        <div className={`${sizeClasses[size]} w-full lg:w-[420px] bg-surface dark:bg-surface rounded-t-[2rem] lg:rounded-l-[2rem] shadow-[var(--shadow-elevated)] ring-1 ring-border dark:ring-border overflow-hidden`}>
+        <div
+          className={cn(
+            sizeClasses[size],
+            "w-full overflow-hidden rounded-t-[2rem] bg-surface shadow-[var(--elev-4)] ring-1 ring-border lg:w-[440px] lg:rounded-l-[2rem]",
+            className,
+          )}
+        >
           <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-border">
             <h2 className="heading-text">{title}</h2>
             <button
@@ -132,7 +139,10 @@ export function Drawer({ open, onClose, children, title, className, ...props }: 
       onClick={onClose}
     >
       <motion.div
-        className="h-full w-full max-w-[480px] bg-surface dark:bg-surface shadow-[var(--shadow-elevated)] ring-1 ring-border dark:ring-border overflow-hidden"
+        className={cn(
+          "h-full w-full max-w-[480px] overflow-hidden bg-surface shadow-[var(--elev-4)] ring-1 ring-border",
+          className,
+        )}
         onClick={(e) => e.stopPropagation()}
         initial={reduce ? undefined : { x: "100%" }}
         animate={{ x: 0 }}

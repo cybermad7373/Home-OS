@@ -9,7 +9,6 @@ import type {
   HouseContext,
   HouseMemberRow,
   HouseRow,
-  HouseSettingsRow,
   HouseSettingsRowExtended,
   MemberView,
   RoomView,

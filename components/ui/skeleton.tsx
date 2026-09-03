@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils/cn";
 import { motion, useReducedMotion } from "motion/react";
+import { cn } from "@/lib/utils/cn";
 
 /** Skeletons match the real layout's shape, so nothing shifts when data lands. */
 export function Skeleton({ className, variant = "default" }: {
@@ -12,16 +12,7 @@ export function Skeleton({ className, variant = "default" }: {
 
   const baseClass = "bg-surface-2 rounded-[var(--radius-sm)]";
 
-  const variants = {
-    default: "h-4 w-full",
-    text: "h-4 w-3/4",
-    circular: "rounded-full",
-    rectangular: "rounded-[var(--radius-sm)]",
-    card: "aspect-[4/3] rounded-[var(--radius-lg)]",
-    avatar: "rounded-full",
-    button: "h-11 rounded-full",
-    stat: "h-8 w-24 rounded-[var(--radius-sm)]",
-  };
+
 
   const classNameMap = {
     default: "h-4 w-full",

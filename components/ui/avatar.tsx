@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { cn } from "@/lib/utils/cn";
 import { motion, useReducedMotion } from "motion/react";
 
@@ -36,7 +35,6 @@ export function MemberAvatar({
 }: MemberAvatarProps) {
   const reduce = useReducedMotion();
   const pixels = SIZES[size];
-  const ringSizes = { sm: 8, md: 10, lg: 12, xl: 16 } as const;
 
   const statusColors = {
     home: "bg-success",
@@ -112,7 +110,6 @@ export function AvatarStack({
 }) {
   const reduce = useReducedMotion();
   const pixels = SIZES[size];
-  const overlap = size === "sm" ? -8 : size === "md" ? -10 : -12;
 
   const visible = avatars.slice(0, max);
   const remaining = avatars.length - max;

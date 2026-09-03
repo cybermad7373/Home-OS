@@ -13,7 +13,6 @@ import { formatMoney, paiseToRupeeString, rupeesToPaise } from "@/lib/utils/mone
 import { cn } from "@/lib/utils/cn";
 import type {
   EffortMode,
-  HouseSettingsRow,
   HouseSettingsRowExtended,
   MoneyMode,
 } from "@/lib/types/database";
