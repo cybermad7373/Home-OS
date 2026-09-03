@@ -2,24 +2,30 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Field } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { BottomSheet } from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
+import { cn } from "@/lib/utils/cn";
 import type { AnnouncementView } from "@/lib/data/announcements";
 
-const TONE: Record<AnnouncementView["severity"], string> = {
-  info: "border-border",
-  important: "border-warning",
-  urgent: "border-danger",
-};
-
-const MARK: Record<AnnouncementView["severity"], string> = {
-  info: "",
-  important: "⚠ ",
-  urgent: "⚠ ",
+/**
+ * Severity is a rule down the left edge, not a coloured border around the
+ * whole card.
+ *
+ * A ring of amber or red around a whole paragraph tints everything inside it
+ * and makes two announcements of different severities read as two different
+ * kinds of object. A 3px rule says the same thing at the edge of the card and
+ * leaves the words alone — and it is the same mark urgency gets everywhere
+ * else in the app.
+ */
+const RULE: Record<AnnouncementView["severity"], string> = {
+  info: "before:bg-border-strong",
+  important: "before:bg-text",
+  urgent: "before:bg-accent",
 };
 
 /**
@@ -93,16 +99,17 @@ export function AnnouncementsBlock({
   }
 
   return (
-    <section className="mt-6">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="heading-text">Announcements</h2>
+    <section className="mt-8">
+      <div className="mb-3 flex items-center gap-3">
+        <h2 className="eyebrow-text shrink-0">Announcements</h2>
+        <span aria-hidden className="h-px flex-1 bg-border" />
         {canPost ? (
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="caption-text text-primary"
+            className="eyebrow-text shrink-0 text-text-muted transition-colors hover:text-text"
           >
-            + Post one
+            Post one
           </button>
         ) : null}
       </div>
@@ -115,11 +122,19 @@ export function AnnouncementsBlock({
         <ul className="flex flex-col gap-2">
           {announcements.map((announcement) => (
             <li key={announcement.id}>
-              <Card className={`${TONE[announcement.severity]} p-3`}>
+              <Card
+                className={cn(
+                  "overflow-hidden p-3 pl-4",
+                  "before:absolute before:inset-y-0 before:left-0 before:w-[3px]",
+                  RULE[announcement.severity],
+                )}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-medium">
-                      {MARK[announcement.severity]}
+                    <p className="flex items-center gap-1.5 font-medium">
+                      {announcement.severity === "urgent" ? (
+                        <TriangleAlert size={14} className="shrink-0 text-accent" aria-label="Urgent" />
+                      ) : null}
                       {announcement.title}
                     </p>
                     <p className="mt-1 whitespace-pre-line text-[14px] text-text">

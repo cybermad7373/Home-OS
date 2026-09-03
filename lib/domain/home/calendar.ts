@@ -145,6 +145,83 @@ export function boundsOfMonth(period: string): { from: string; to: string } {
   return { from: `${period}-01`, to: `${period}-${String(lastDay).padStart(2, "0")}` };
 }
 
+/** Every date in a `YYYY-MM` period, in order. */
+export function datesOfMonth(period: string): string[] {
+  const { from, to } = boundsOfMonth(period);
+  const start = Date.parse(`${from}T00:00:00Z`);
+  const days = Number(to.slice(8)) - Number(from.slice(8)) + 1;
+  return Array.from({ length: days }, (_, index) =>
+    new Date(start + index * 86_400_000).toISOString().slice(0, 10),
+  );
+}
+
+export interface DatedChore {
+  choreDate: string;
+  status: string;
+}
+
+export interface DatedMeal {
+  mealDate: string;
+}
+
+export interface DatedExpense {
+  expenseDate: string;
+  amountPaise: number;
+  status: string;
+}
+
+export interface DayDensity {
+  date: string;
+  chores: number;
+  /** Chores on that date that were confirmed — the grid shades by this. */
+  choresDone: number;
+  meals: number;
+  expensePaise: number;
+}
+
+/**
+ * How much happened on each day of a range.
+ *
+ * The week view already had this, computed inline in the data layer; the month
+ * view needed the same figures to draw a grid, and a month read that already
+ * loads every chore, meal and expense of the month should not need a second
+ * query to say which day each of them fell on. So the arithmetic moved here,
+ * where it can be asserted without a database, and both views call it.
+ *
+ * Only approved expenses count towards a day's spend. An expense still waiting
+ * on an approval is not yet money the house has agreed it spent, and shading a
+ * calendar day dark for a claim that may be rejected would be a lie the grid
+ * tells at a glance.
+ */
+export function dayDensity(
+  dates: string[],
+  chores: DatedChore[],
+  meals: DatedMeal[],
+  expenses: DatedExpense[],
+): DayDensity[] {
+  const byDate = new Map<string, DayDensity>(
+    dates.map((date) => [date, { date, chores: 0, choresDone: 0, meals: 0, expensePaise: 0 }]),
+  );
+
+  for (const chore of chores) {
+    const day = byDate.get(chore.choreDate);
+    if (!day) continue;
+    day.chores += 1;
+    if (chore.status === "confirmed") day.choresDone += 1;
+  }
+  for (const meal of meals) {
+    const day = byDate.get(meal.mealDate);
+    if (day) day.meals += 1;
+  }
+  for (const expense of expenses) {
+    if (expense.status !== "approved") continue;
+    const day = byDate.get(expense.expenseDate);
+    if (day) day.expensePaise += expense.amountPaise;
+  }
+
+  return dates.map((date) => byDate.get(date)!);
+}
+
 /**
  * The Monday on or before a date.
  *

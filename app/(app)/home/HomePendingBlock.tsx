@@ -1,10 +1,5 @@
-"use client";
-
 import Link from "next/link";
-import { Card, CardShell, CardCore } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { motion, useReducedMotion } from "motion/react";
-import { SectionReveal } from "@/components/motion/StaggerReveal";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 interface PendingItem {
@@ -15,54 +10,49 @@ interface PendingItem {
   urgent: boolean;
 }
 
-interface HomePendingBlockProps {
-  pending: PendingItem[];
-}
-
-export function HomePendingBlock({ pending }: HomePendingBlockProps) {
-  const reduce = useReducedMotion();
-  
+/**
+ * What the house is waiting on you for, at the very top, before anything the
+ * house merely wants you to know.
+ *
+ * Two things changed from 2.0. The urgent rows had a tinted background and a
+ * pulsing dot each, so a screen with three of them was three competing alarms;
+ * now urgency is the accent rule down the left edge and the count in accent —
+ * one signal, spent once per row. And it no longer animates in: a list that
+ * slides in from the left every time you open Home makes the first thing you
+ * see the last thing to arrive.
+ */
+export function HomePendingBlock({ pending }: { pending: PendingItem[] }) {
   if (pending.length === 0) return null;
 
   return (
-    <SectionReveal>
-      <CardShell className="mb-4 overflow-hidden border-warning/30">
-        <CardCore className="p-0">
-          <ul className="divide-y divide-border" role="list" aria-label="Pending items needing attention">
-            {pending.map((item, index) => (
-              <motion.li
-                key={item.key}
-                initial={reduce ? false : { opacity: 0, x: -20 }}
-                animate={reduce ? false : { opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+    <section aria-labelledby="waiting-on-you" className="mb-8">
+      <p id="waiting-on-you" className="eyebrow-text mb-2">
+        Waiting on you
+      </p>
+      <ul className="divide-y divide-border overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface">
+        {pending.map((item) => (
+          <li key={item.key}>
+            <Link
+              href={item.href}
+              className={cn(
+                "touch-target relative flex items-center gap-3 py-3 pl-4 pr-3 transition-colors hover:bg-surface-2",
+                item.urgent && "before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-accent",
+              )}
+            >
+              <span className="min-w-0 flex-1 text-[15px]">{item.label}</span>
+              <span
+                className={cn(
+                  "readout shrink-0 text-[15px] leading-none",
+                  item.urgent ? "text-accent" : "text-text",
+                )}
               >
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "touch-target flex items-center justify-between gap-3 px-4 py-3 transition-colors",
-                    item.urgent ? "bg-danger/5 hover:bg-danger/10" : "hover:bg-surface-2"
-                  )}
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    {item.urgent && (
-                      <motion.span
-                        className="w-2 h-2 rounded-full bg-danger flex-shrink-0"
-                        initial={reduce ? false : { scale: 0 }}
-                        animate={reduce ? false : { scale: 1 }}
-                        transition={{ delay: index * 0.05 + 0.3, duration: 0.3, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
-                      />
-                    )}
-                    <span className="text-[15px] font-medium truncate">{item.label}</span>
-                  </div>
-                  <Badge tone={item.urgent ? "danger" : "warning"} animate>
-                    {item.count}
-                  </Badge>
-                </Link>
-              </motion.li>
-            ))}
-          </ul>
-        </CardCore>
-      </CardShell>
-    </SectionReveal>
+                {item.count}
+              </span>
+              <ChevronRight size={15} className="shrink-0 text-text-subtle" aria-hidden />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

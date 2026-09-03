@@ -1,11 +1,6 @@
-"use client";
-
 import Link from "next/link";
-import { Card, CardShell, CardCore } from "@/components/ui/card";
-import { MemberAvatar, AvatarStack } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { SectionReveal } from "@/components/motion/StaggerReveal";
-import { motion, useReducedMotion } from "motion/react";
+import { MemberAvatar } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils/cn";
 
 interface Member {
   id: string;
@@ -15,102 +10,50 @@ interface Member {
   role: "admin" | "co_admin" | "member" | null;
 }
 
-interface HomeHouseMembersProps {
-  active: Member[];
-  meId: string;
-}
-
-export function HomeHouseMembers({ active, meId }: HomeHouseMembersProps) {
-  const reduce = useReducedMotion();
-  const displayMembers = active.slice(0, 6);
-  const remaining = active.length - 6;
+/**
+ * Everyone who lives here, as a strip rather than a list.
+ *
+ * It used to be six full-width rows with an avatar, a name, a room and a
+ * badge — a third of the screen spent on a fact that changes about twice a
+ * year. As a scrolling strip of faces it takes one row, shows eight people
+ * instead of six, and still gets you to anybody in one tap.
+ *
+ * Every member wore a green "home" status dot in the 2.0 version regardless of
+ * whether they were actually in the house, so the dot meant nothing. It is
+ * gone; presence is `/house/away`'s job, and it knows the answer.
+ */
+export function HomeHouseMembers({ active, meId }: { active: Member[]; meId: string }) {
+  if (active.length === 0) return null;
 
   return (
-    <SectionReveal>
-      <section className="mt-8" aria-labelledby="members-heading">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 id="members-heading" className="heading-text">The house</h2>
-          <Link className="caption-text text-primary hover:underline" href="/house/members">
-            See all →
-          </Link>
-        </div>
-
-        <CardShell className="overflow-hidden">
-          <CardCore className="p-0">
-            <ul className="divide-y divide-border" role="list" aria-label="House members">
-              {displayMembers.map((member, index) => (
-                <motion.li
-                  key={member.id}
-                  className={member.id === meId ? "bg-primary/5 relative" : ""}
-                  initial={reduce ? false : { opacity: 0, x: -20 }}
-                  animate={reduce ? false : { opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.04, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                >
-                  {member.id === meId && !reduce && (
-                    <motion.div
-                      className="absolute inset-0 -inset-px rounded-[1.25rem] border border-primary/20 pointer-events-none"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.5 }}
-                    />
-                  )}
-                  <div className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2/50 transition-colors">
-                    <MemberAvatar
-                      name={member.id === meId ? "You" : member.displayName}
-                      avatarUrl={member.avatarUrl}
-                      size="md"
-                      status="home"
-                      ring={member.id === meId}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">
-                        {member.id === meId ? "You" : member.displayName}
-                        {member.id === meId && (
-                          <span className="caption-text text-text-subtle ml-2">· you</span>
-                        )}
-                      </p>
-                      <p className="caption-text text-text-muted">
-                        {member.room?.name ?? "No room"}
-                      </p>
-                    </div>
-                    {member.role === "admin" && (
-                      <Badge tone="primary" animate>
-                        Admin
-                      </Badge>
-                    )}
-                    {member.role === "co_admin" && (
-                      <Badge tone="info" animate>
-                        Co-Admin
-                      </Badge>
-                    )}
-                  </div>
-                </motion.li>
-              ))}
-
-              {remaining > 0 && (
-                <motion.li
-                  className="px-4 py-3 text-center"
-                  initial={reduce ? false : { opacity: 0 }}
-                  animate={reduce ? false : { opacity: 1 }}
-                  transition={{ delay: displayMembers.length * 0.04, duration: 0.3 }}
-                >
-                  <AvatarStack
-                    avatars={active.slice(6, 10).map((m) => ({
-                      name: m.displayName,
-                      avatarUrl: m.avatarUrl,
-                    }))}
-                    max={4}
-                    size="sm"
-                  />
-                  <p className="caption-text text-text-muted mt-2">
-                    and {remaining} more {remaining === 1 ? "member" : "members"}
-                  </p>
-                </motion.li>
-              )}
-            </ul>
-          </CardCore>
-        </CardShell>
-      </section>
-    </SectionReveal>
+    <ul className="scroll-x flex gap-1 py-1">
+      {active.map((member) => {
+        const isMe = member.id === meId;
+        const lead = member.role === "admin" || member.role === "co_admin";
+        return (
+          <li key={member.id} className="shrink-0">
+            <Link
+              href="/house/members"
+              className="flex w-[76px] flex-col items-center gap-2 rounded-[var(--radius-md)] px-1 py-2 transition-colors hover:bg-surface-2"
+            >
+              <MemberAvatar
+                name={isMe ? "You" : member.displayName}
+                avatarUrl={member.avatarUrl}
+                size="lg"
+                ring={isMe}
+              />
+              <span className="w-full text-center">
+                <span className={cn("block truncate text-[12px]", isMe && "font-medium")}>
+                  {isMe ? "You" : member.displayName.split(/\s+/)[0]}
+                </span>
+                <span className="eyebrow-text block truncate">
+                  {lead ? "Lead" : (member.room?.name ?? "—")}
+                </span>
+              </span>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

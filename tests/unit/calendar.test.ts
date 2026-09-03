@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   boundsOfMonth,
   completionRate,
+  datesOfMonth,
   datesOfWeek,
+  dayDensity,
   mealSpend,
   moneyRollup,
   pointsByMember,
@@ -140,5 +142,67 @@ describe("boundsOfMonth", () => {
 
   it("knows a leap February", () => {
     expect(boundsOfMonth("2028-02").to).toBe("2028-02-29");
+  });
+});
+
+describe("datesOfMonth", () => {
+  it("gives every day of the month, in order", () => {
+    const dates = datesOfMonth("2026-09");
+    expect(dates).toHaveLength(30);
+    expect(dates[0]).toBe("2026-09-01");
+    expect(dates.at(-1)).toBe("2026-09-30");
+  });
+
+  it("knows a leap February", () => {
+    expect(datesOfMonth("2028-02")).toHaveLength(29);
+  });
+});
+
+describe("dayDensity", () => {
+  const dates = ["2026-09-01", "2026-09-02", "2026-09-03"];
+
+  it("returns a row for every date, including the empty ones", () => {
+    const rows = dayDensity(dates, [], [], []);
+    expect(rows.map((row) => row.date)).toEqual(dates);
+    expect(rows.every((row) => row.chores === 0 && row.expensePaise === 0)).toBe(true);
+  });
+
+  it("separates the chores that were confirmed from the ones that only exist", () => {
+    const rows = dayDensity(
+      dates,
+      [
+        { choreDate: "2026-09-01", status: "confirmed" },
+        { choreDate: "2026-09-01", status: "missed" },
+        { choreDate: "2026-09-01", status: "assigned" },
+      ],
+      [],
+      [],
+    );
+    expect(rows[0].chores).toBe(3);
+    expect(rows[0].choresDone).toBe(1);
+  });
+
+  it("counts only approved money towards a day's spend", () => {
+    const rows = dayDensity(
+      dates,
+      [],
+      [],
+      [
+        { expenseDate: "2026-09-02", amountPaise: 50_000, status: "approved" },
+        { expenseDate: "2026-09-02", amountPaise: 99_900, status: "pending_approval" },
+        { expenseDate: "2026-09-02", amountPaise: 10_000, status: "rejected" },
+      ],
+    );
+    expect(rows[1].expensePaise).toBe(50_000);
+  });
+
+  it("ignores rows dated outside the range it was asked about", () => {
+    const rows = dayDensity(
+      dates,
+      [{ choreDate: "2026-08-31", status: "confirmed" }],
+      [{ mealDate: "2026-10-01" }],
+      [{ expenseDate: "2026-09-09", amountPaise: 1, status: "approved" }],
+    );
+    expect(rows.reduce((sum, row) => sum + row.chores + row.meals + row.expensePaise, 0)).toBe(0);
   });
 });

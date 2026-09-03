@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardDescription } from "@/components/ui/card";
+import { ChevronRight, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { Section } from "@/app/(app)/home/Section";
+import { Readout } from "@/components/ui/readout";
 import { ChoreCard } from "@/components/chores/chore-card";
 import { AnnouncementsBlock } from "@/components/announcements/announcements-block";
 import { getHouseContext, requireSession } from "@/lib/data/house";
@@ -10,26 +11,30 @@ import { getToday } from "@/lib/data/today";
 import { presenceLabel } from "@/lib/domain/home/today";
 import { formatMoney } from "@/lib/utils/money";
 import { formatDate } from "@/lib/utils/date";
+import { cn } from "@/lib/utils/cn";
 
 export const metadata: Metadata = { title: "Today" };
 
 /**
  * S-50 — Today. The screen the product is used from.
  *
- * Six blocks, always in this order: People, My chores, Needs you, Money, Food,
- * Announcements, and the calendar link under them. A block with nothing in it
- * is **omitted**, not shown empty — except Food, whose prompt is the point.
+ * The order is fixed and it is an order of obligation: who is here, what you
+ * owe, what is blocked on you, what today cost, what there is to eat, what the
+ * house said. A block with nothing in it is **omitted**, not shown empty —
+ * except Food, whose prompt is the point.
  *
  * All of it comes from one composed read (`getToday`), which is also what
  * `GET /api/today` returns, so the page and the endpoint cannot disagree.
+ *
+ * Every block used to carry its own 16px heading inside its own card, so the
+ * screen read as six objects of equal weight and none of them was the answer
+ * to "what do I have to do today". The headings are hairline rules now, and
+ * the content is the only thing with weight.
  */
 export default async function TodayPage() {
   const session = await requireSession();
   const context = await getHouseContext(session);
-
-  const [today] = await Promise.all([
-    getToday(session, context),
-  ]);
+  const today = await getToday(session, context);
 
   const currency = context.house.currency;
   const openChores = today.myChores.filter((chore) => chore.status !== "confirmed");
@@ -39,35 +44,38 @@ export default async function TodayPage() {
       <PageHeader
         title="Today"
         subtitle={formatDate(today.date, context.house.timezone, {
-          weekday: "short",
+          weekday: "long",
           day: "numeric",
-          month: "short",
+          month: "long",
         })}
       />
 
-      {/* People — who is here, and who is not. */}
-      <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="heading-text">People</h2>
-          <span className="caption-text text-text-muted">{presenceLabel(today.presence)}</span>
-        </div>
-        <Card className="flex flex-wrap items-center gap-x-3 gap-y-1 py-3">
+      {/* Who is here, and who is not. One line, because on most days it is one
+          fact and it does not deserve a card. */}
+      <Section
+        label={`People · ${presenceLabel(today.presence)}`}
+        href="/house/away"
+        linkLabel="Away"
+      >
+        <ul className="flex flex-wrap gap-x-4 gap-y-1.5">
           {today.presence.home.map((member) => (
-            <span key={member.memberId} className="caption-text text-text">
-              <span aria-hidden className="text-success">
-                ●
-              </span>{" "}
+            <li key={member.memberId} className="flex items-center gap-1.5 text-[14px]">
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-text" />
               {member.displayName}
-            </span>
+            </li>
           ))}
           {today.presence.away.map((member) => (
-            <span key={member.memberId} className="caption-text text-text-muted">
-              <span aria-hidden>○</span> {member.displayName}
+            <li
+              key={member.memberId}
+              className="flex items-center gap-1.5 text-[14px] text-text-subtle"
+            >
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full border border-border-strong" />
+              {member.displayName}
               <span className="sr-only"> is away</span>
-            </span>
+            </li>
           ))}
-        </Card>
-      </section>
+        </ul>
+      </Section>
 
       {/*
         My chores. CE-12: Done is one tap from here — the ChoreCard's own
@@ -75,99 +83,91 @@ export default async function TodayPage() {
         never before it.
       */}
       {openChores.length > 0 ? (
-        <section className="mt-6">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="heading-text">My chores</h2>
-            <Link className="caption-text text-primary" href="/chores/mine">
-              All mine →
-            </Link>
-          </div>
-          <Card className="p-0">
-            <ul className="divide-y divide-border">
-              {openChores.map((chore) => (
-                <li key={chore.id}>
-                  <ChoreCard
-                    chore={chore}
-                    myMemberId={context.me.id}
-                    houseId={context.house.id}
-                  />
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </section>
+        <Section label="My chores" href="/chores/mine" linkLabel="All mine">
+          <ul className="divide-y divide-border overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface">
+            {openChores.map((chore) => (
+              <li key={chore.id}>
+                <ChoreCard chore={chore} myMemberId={context.me.id} houseId={context.house.id} />
+              </li>
+            ))}
+          </ul>
+        </Section>
       ) : null}
 
       {/*
         Needs you — chore confirmations, expense approvals and decisions in one
         list, ordered by urgency rather than by kind. A Critical decision
-        carries the mark and sits above everything.
+        carries the accent rule and sits above everything.
       */}
       {today.needsYou.length > 0 ? (
-        <section className="mt-6">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="heading-text">Needs you</h2>
-            <Badge tone="warning">{today.needsYou.length}</Badge>
-          </div>
-          <Card className="p-0">
-            <ul className="divide-y divide-border">
-              {today.needsYou.map((item) => (
-                <li key={`${item.kind}-${item.id}`}>
-                  <Link
-                    href={item.href}
-                    className="touch-target flex items-center justify-between gap-3 px-4 py-3 hover:bg-surface-2"
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate text-[15px]">
-                        {item.critical ? (
-                          <span aria-label="Critical" className="text-danger">
-                            ⚠{" "}
-                          </span>
-                        ) : null}
-                        {item.title}
-                      </span>
-                      <span className="caption-text block text-text-muted">{item.detail}</span>
+        <Section label={`Needs you · ${today.needsYou.length}`}>
+          <ul className="divide-y divide-border overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface">
+            {today.needsYou.map((item) => (
+              <li key={`${item.kind}-${item.id}`}>
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "touch-target relative flex items-center gap-3 py-3 pl-4 pr-3 transition-colors hover:bg-surface-2",
+                    item.critical &&
+                      "before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-accent",
+                  )}
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5 text-[15px]">
+                      {item.critical ? (
+                        <TriangleAlert
+                          size={13}
+                          className="shrink-0 text-accent"
+                          aria-label="Critical"
+                        />
+                      ) : null}
+                      <span className="truncate">{item.title}</span>
                     </span>
-                    <span aria-hidden className="caption-text shrink-0 text-primary">
-                      Review →
+                    <span className="caption-text block truncate text-text-muted">
+                      {item.detail}
                     </span>
-                  </Link>
+                  </span>
+                  <ChevronRight size={15} className="shrink-0 text-text-subtle" aria-hidden />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      ) : null}
+
+      {/* What today cost, and what is still unapproved in it. The 2.0 version
+          printed one run-on sentence joining two expenses with an em dash; a
+          list of amounts is both shorter and the thing being asked about. */}
+      {today.money.expenses.length > 0 ? (
+        <Section label="Money · today" href="/expenses" linkLabel="Ledger">
+          <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-4">
+            <Readout value={formatMoney(today.money.totalPaise, { currency })} size="lg" />
+            <ul className="mt-3 space-y-1">
+              {today.money.expenses.slice(0, 3).map((expense) => (
+                <li
+                  key={expense.id}
+                  className="flex items-baseline justify-between gap-3 text-[14px]"
+                >
+                  <span className="min-w-0 truncate">
+                    {expense.description ?? expense.category.name}
+                    <span className="text-text-muted"> · {expense.paidBy.displayName}</span>
+                    {expense.status === "pending_approval" ? (
+                      <span className="text-text-subtle"> · unapproved</span>
+                    ) : null}
+                  </span>
+                  <span className="tabular shrink-0 text-text-muted">
+                    {formatMoney(expense.amountPaise, { currency })}
+                  </span>
                 </li>
               ))}
             </ul>
-          </Card>
-        </section>
-      ) : null}
-
-      {/* Money — what today cost, and what is still unapproved in it. */}
-      {today.money.expenses.length > 0 ? (
-        <section className="mt-6">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="heading-text">Money</h2>
-            <Link className="caption-text text-primary" href="/expenses">
-              All →
-            </Link>
+            {today.money.expenses.length > 3 ? (
+              <p className="caption-text mt-2 text-text-subtle">
+                and {today.money.expenses.length - 3} more
+              </p>
+            ) : null}
           </div>
-          <Card>
-            <p className="display-number">
-              {formatMoney(today.money.totalPaise, { currency })}
-            </p>
-            <CardDescription>
-              {today.money.expenses
-                .slice(0, 2)
-                .map((expense) =>
-                  [
-                    expense.description ?? expense.category.name,
-                    expense.paidBy.displayName,
-                    expense.status === "pending_approval" ? "pending approval" : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · "),
-                )
-                .join(" — ")}
-            </CardDescription>
-          </Card>
-        </section>
+        </Section>
       ) : null}
 
       {/*
@@ -175,26 +175,19 @@ export default async function TodayPage() {
         the prompt is the point: an unrecorded meal is the commonest gap in the
         Home's record, and asking is what closes it.
       */}
-      <section className="mt-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="heading-text">Food</h2>
-          <Link className="caption-text text-primary" href="/food">
-            Add a meal →
-          </Link>
-        </div>
-        <Card>
+      <Section label="Food" href="/food" linkLabel="Add a meal">
+        <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-4">
           {today.food.meals.length > 0 ? (
-            <p className="text-[15px]">
-              {today.food.meals.map((meal) => meal.name).join(" · ")}
-            </p>
+            <p className="text-[15px]">{today.food.meals.map((meal) => meal.name).join(" · ")}</p>
           ) : (
             <p className="text-[15px]">What did you eat?</p>
           )}
 
           {today.food.plans.length > 0 ? (
-            <CardDescription className="mt-1">
-              Planned: {today.food.plans.map((plan) => plan.name).join(" · ")}
-            </CardDescription>
+            <p className="caption-text mt-2 text-text-muted">
+              <span className="eyebrow-text mr-2">Planned</span>
+              {today.food.plans.map((plan) => plan.name).join(" · ")}
+            </p>
           ) : null}
 
           {/*
@@ -202,16 +195,17 @@ export default async function TodayPage() {
             the Food screen, where waiting for a model is acceptable.
           */}
           {today.food.suggestions.length > 0 ? (
-            <CardDescription className="mt-1">
-              Try: {today.food.suggestions.map((food) => food.name).join(" · ")}
-            </CardDescription>
+            <p className="caption-text mt-1.5 text-text-muted">
+              <span className="eyebrow-text mr-2">Often</span>
+              {today.food.suggestions.map((food) => food.name).join(" · ")}
+            </p>
           ) : today.food.coldStart ? (
-            <CardDescription className="mt-1">
+            <p className="caption-text mt-2 text-text-subtle">
               Record a few meals and this starts suggesting from what the home actually eats.
-            </CardDescription>
+            </p>
           ) : null}
-        </Card>
-      </section>
+        </div>
+      </Section>
 
       <AnnouncementsBlock
         announcements={today.announcements}
@@ -219,12 +213,18 @@ export default async function TodayPage() {
         timezone={context.house.timezone}
       />
 
-      <div className="mt-6">
+      <div className="mt-8">
         <Link
           href="/more/calendar"
-          className="touch-target flex items-center justify-center rounded-[10px] border border-border bg-surface px-3 py-3 text-[15px] hover:border-primary"
+          className="touch-target flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-border bg-surface px-4 py-3 text-[15px] transition-colors hover:border-border-strong hover:bg-surface-2"
         >
-          View calendar →
+          <span>
+            The week ahead
+            <span className="caption-text block text-text-muted">
+              Chores, money, food and decisions on one timeline
+            </span>
+          </span>
+          <ChevronRight size={16} className="shrink-0 text-text-subtle" aria-hidden />
         </Link>
       </div>
     </>

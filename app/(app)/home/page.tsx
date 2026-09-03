@@ -1,11 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardShell, CardCore, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { MemberAvatar } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/layout/page-header";
 import { SetupNudges, type Nudge } from "@/components/layout/setup-nudges";
-import { Leaderboard } from "@/components/chores/leaderboard";
 import { getDailyCost } from "@/lib/data/analytics";
 import { hasAvailability } from "@/lib/data/availability";
 import { getLlmConfig } from "@/lib/data/llm";
@@ -19,15 +14,14 @@ import {
   listAwaitingConfirmation,
   weekStartOf,
 } from "@/lib/data/chores";
-import { concentrationRatio, rankStanding } from "@/lib/domain/fairness/targets";
+import { rankStanding } from "@/lib/domain/fairness/targets";
 import { ownRowsFirst, owesRows, pendingItems } from "@/lib/domain/home/overview";
 import { weekDates } from "@/lib/domain/scheduling/capacity";
-import { formatMoney } from "@/lib/utils/money";
 import { formatDate, houseToday } from "@/lib/utils/date";
-import { HomeHeroCards } from "./HomeHeroCards";
+import { Section } from "./Section";
+import { HomeFigures } from "./HomeFigures";
 import { HomeOwesWhom } from "./HomeOwesWhom";
 import { HomeStanding } from "./HomeStanding";
-import { HomeModuleLinks } from "./HomeModuleLinks";
 import { HomePendingBlock } from "./HomePendingBlock";
 import { HomeHouseMembers } from "./HomeHouseMembers";
 
@@ -41,7 +35,13 @@ export const metadata: Metadata = { title: "Home" };
  * The dashboard answered "what must I do"; Today (S-50) answers that now. This
  * screen answers "where does the Home stand" — the week's effort, the month's
  * money, who owes whom for **everyone** rather than only the caller (DB-03),
- * what is pending, and a way into each module.
+ * and what is pending.
+ *
+ * It no longer ends in a grid of module tiles. Those six tiles — Today,
+ * Chores, Money, Food, Calendar, More — were the bottom bar drawn a second
+ * time, in a second visual language, half a screen further down. Every route
+ * they offered is one tap away from the bar that is always on screen, so the
+ * tiles cost a scroll and taught nobody anything.
  */
 export default async function HomeOverviewPage() {
   const session = await requireSession();
@@ -132,44 +132,49 @@ export default async function HomeOverviewPage() {
 
   return (
     <>
+      {/* The house's name is in the switcher at the top of every screen, so
+          printing it again 40px lower says nothing. The date is what this
+          screen is actually about. */}
       <PageHeader
-        title={context.house.name}
-        subtitle={`${formatDate(today, context.house.timezone, {
+        title={formatDate(today, context.house.timezone, {
           weekday: "long",
           day: "numeric",
           month: "long",
-        })} · ${active.length} ${active.length === 1 ? "member" : "members"}`}
+        })}
+        subtitle={`${active.length} ${active.length === 1 ? "member" : "members"} at ${context.house.name}`}
       />
 
       <SetupNudges nudges={nudges} />
 
-      {/* Pending Block - unified card with urgency gradient */}
+      {/* Anything the house is blocked on you for comes before anything it
+          merely wants you to know. */}
       <HomePendingBlock pending={pending} />
 
-      {/* Hero Cards - Asymmetric Bento Layout */}
-      <HomeHeroCards
+      <HomeFigures
         earnedThisWeek={earnedThisWeek}
         assignedThisWeek={assignedThisWeek}
         isPot={context.shape.isPot}
         dailyCost={dailyCost}
         yourNetPaise={yourNetPaise}
         money={money}
-        house={context.house}
+        currency={context.house.currency}
       />
 
-      {/* Who Owes Whom - Visual relationship diagram */}
-      <HomeOwesWhom owes={owes} meId={context.me.id} house={context.house} />
+      {owes.length > 0 ? (
+        <Section label="Who owes whom" href="/settle" linkLabel="Settle up">
+          <HomeOwesWhom owes={owes} meId={context.me.id} currency={context.house.currency} />
+        </Section>
+      ) : null}
 
-      {/* House Standing - Animated progress rings */}
-      {context.shape.effortMode === "points" && ranked.some((row) => row.earnedPoints > 0) && (
-        <HomeStanding ranked={ranked} meId={context.me.id} />
-      )}
+      {context.shape.effortMode === "points" && ranked.some((row) => row.earnedPoints > 0) ? (
+        <Section label="Standing" href="/chores/standing">
+          <HomeStanding ranked={ranked} meId={context.me.id} />
+        </Section>
+      ) : null}
 
-      {/* The House Members */}
-      <HomeHouseMembers active={active} meId={context.me.id} />
-
-      {/* Module Entry Points - Feature tiles */}
-      <HomeModuleLinks />
+      <Section label="The house" href="/house/members">
+        <HomeHouseMembers active={active} meId={context.me.id} />
+      </Section>
     </>
   );
 }

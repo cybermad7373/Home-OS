@@ -11,11 +11,14 @@ import { DECISION_TYPE_LABEL } from "@/lib/types/domain";
 import {
   boundsOfMonth,
   completionRate,
+  datesOfMonth,
   datesOfWeek,
+  dayDensity,
   mealSpend,
   moneyRollup,
   pointsByMember,
   type CompletionRate,
+  type DayDensity,
   type MealSpend,
   type MoneyRollup,
 } from "@/lib/domain/home/calendar";
@@ -132,7 +135,7 @@ export interface CalendarWeek {
   money: MoneyRollup;
   mealsLogged: number;
   /** One entry per date, so the week grid can show density without a second read. */
-  perDay: { date: string; chores: number; meals: number; expensePaise: number }[];
+  perDay: DayDensity[];
 }
 
 export async function getCalendarWeek(
@@ -169,19 +172,16 @@ export async function getCalendarWeek(
       })),
     ),
     mealsLogged: meals.length,
-    perDay: dates.map((date) => ({
-      date,
-      chores: chores.filter((chore) => chore.choreDate === date).length,
-      meals: meals.filter((meal) => meal.mealDate === date).length,
-      expensePaise: expenses.expenses
-        .filter((expense) => expense.expenseDate === date && expense.status === "approved")
-        .reduce((sum, expense) => sum + expense.amountPaise, 0),
-    })),
+    perDay: dayDensity(dates, chores, meals, expenses.expenses),
   };
 }
 
 export interface CalendarMonth {
   period: string;
+  /** Every date of the month, so the grid does not recompute the calendar. */
+  dates: string[];
+  /** One entry per date. The month read already holds every row it needs. */
+  perDay: DayDensity[];
   money: MoneyRollup;
   points: { memberId: string; displayName: string; points: number }[];
   completion: CompletionRate;
@@ -209,8 +209,12 @@ export async function getCalendarMonth(
     assigneeMemberId: chore.assignee?.memberId ?? null,
   }));
 
+  const dates = datesOfMonth(period);
+
   return {
     period,
+    dates,
+    perDay: dayDensity(dates, chores, meals, expenses.expenses),
     money: moneyRollup(
       expenses.expenses.map((expense) => ({
         amountPaise: expense.amountPaise,

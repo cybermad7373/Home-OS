@@ -219,6 +219,49 @@ export const QUEUE_GROUP_LABEL: Record<QueueGroup, string> = {
   settlement: "Settlement",
 };
 
+/**
+ * A chore's state, in the words the screens use — and one vocabulary for all
+ * of them.
+ *
+ * The chore card had its own labels while the Calendar printed the raw column
+ * value with the underscore swapped for a space, so the same chore read
+ * "Waiting to be confirmed" on Today and "done pending" on the Calendar. The
+ * tone travels with the label for the same reason.
+ */
+export type ChoreStatus =
+  | "assigned"
+  | "open"
+  | "done_pending"
+  | "confirmed"
+  | "rejected"
+  | "missed"
+  | "cancelled";
+
+export const CHORE_STATUS_LABEL: Record<ChoreStatus, string> = {
+  assigned: "To do",
+  open: "Nobody assigned",
+  done_pending: "Waiting to be confirmed",
+  confirmed: "Confirmed",
+  rejected: "Rejected — one retry left",
+  missed: "Missed",
+  cancelled: "Cancelled",
+};
+
+export const CHORE_STATUS_TONE: Record<
+  ChoreStatus,
+  "neutral" | "success" | "warning" | "danger" | "info"
+> = {
+  assigned: "neutral",
+  open: "warning",
+  // Neutral, not amber: a chore waiting on a signature is the normal path
+  // through the app, not a warning about anything.
+  done_pending: "neutral",
+  confirmed: "success",
+  rejected: "danger",
+  missed: "danger",
+  cancelled: "neutral",
+};
+
 export const DECISION_LEVEL_LABEL: Record<DecisionLevel, string> = {
   normal: "Normal",
   important: "Important",

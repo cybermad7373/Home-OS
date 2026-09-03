@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MemberAvatar } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/toast";
 import { canConfirm } from "@/lib/domain/governance/quorum";
+import { CHORE_STATUS_LABEL, CHORE_STATUS_TONE } from "@/lib/types/domain";
 import { cn } from "@/lib/utils/cn";
 import { relativeTime } from "@/lib/utils/date";
 import { compressImage } from "@/lib/utils/image";
@@ -89,15 +91,6 @@ const CATEGORY_COLOUR: Record<string, string> = {
   other: "var(--cat-other)",
 };
 
-const STATUS_LABEL: Record<ChoreItem["status"], { text: string; tone: "neutral" | "success" | "warning" | "danger" | "info" }> = {
-  assigned: { text: "To do", tone: "neutral" },
-  open: { text: "Nobody assigned", tone: "warning" },
-  done_pending: { text: "Waiting to be confirmed", tone: "warning" },
-  confirmed: { text: "Confirmed", tone: "success" },
-  rejected: { text: "Rejected — one retry left", tone: "danger" },
-  missed: { text: "Missed", tone: "danger" },
-  cancelled: { text: "Cancelled", tone: "neutral" },
-};
 
 /**
  * One chore, with whatever action the caller can actually take on it.
@@ -138,7 +131,8 @@ export function ChoreCard({
   const isMine = chore.assignee?.memberId === myMemberId;
   const isMyDependents =
     guardianFor !== undefined && chore.assignee?.memberId === guardianFor.memberId;
-  const status = STATUS_LABEL[chore.status];
+  const statusLabel = CHORE_STATUS_LABEL[chore.status];
+  const statusTone = CHORE_STATUS_TONE[chore.status];
 
   // The card never offers a button the database will refuse. `canConfirm` is
   // the one statement of who may sign — the same function the confirmation
@@ -259,7 +253,7 @@ export function ChoreCard({
         </p>
 
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
-          <Badge tone={status.tone}>{status.text}</Badge>
+          <Badge tone={statusTone}>{statusLabel}</Badge>
           {chore.autoConfirmed ? <Badge tone="info">Auto-confirmed</Badge> : null}
           {chore.doneAt ? (
             <span className="caption-text text-text-subtle">
@@ -300,7 +294,7 @@ export function ChoreCard({
                   )
                 }
               >
-                {guardianFor.displayName} did it ✓
+                {guardianFor.displayName} did it
               </Button>
             ) : null}
 
@@ -313,7 +307,7 @@ export function ChoreCard({
                     act("done", {}, "Marked done. It auto-confirms if nobody responds.")
                   }
                 >
-                  Done ✓
+                  Done
                 </Button>
                 <Button
                   size="sm"
@@ -371,7 +365,7 @@ export function ChoreCard({
                     onClick={() => setRejecting(true)}
                     aria-label={`Reject ${chore.name}`}
                   >
-                    ✕
+                    <X size={14} aria-hidden />
                   </Button>
                   <Button
                     size="sm"
@@ -467,7 +461,7 @@ export function ChoreCard({
               className="caption-text mt-1 text-primary"
               onClick={() => setAttaching(true)}
             >
-              {chore.photoUrl || chore.note ? "Edit photo or note" : "+ Add photo or note"}
+              {chore.photoUrl || chore.note ? "Edit photo or note" : "Add photo or note"}
             </button>
           )
         ) : null}
