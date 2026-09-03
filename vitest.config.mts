@@ -7,7 +7,14 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts"],
+    // `.tsx` as well as `.ts`: the config used to match `.ts` only, so a
+    // component render test could be written and would silently never run.
+    // That is how `<Card>` shipped dropping every child it was given.
+    include: [
+      "tests/unit/**/*.test.ts",
+      "tests/unit/**/*.test.tsx",
+      "tests/integration/**/*.test.ts",
+    ],
     setupFiles: ["tests/setup.ts"],
     coverage: {
       provider: "v8",
