@@ -33,7 +33,11 @@ export const buttonVariants = cva(
         success: "bg-success text-white hover:opacity-85",
       },
       size: {
-        sm: "h-9 px-4 text-[13px]",
+        // 36px tall, 44px to aim at. A dense list of actions — Done, Confirm,
+        // Reject — cannot be a column of 44px pills without becoming a wall,
+        // but the target minimum is about the finger rather than the ink, so
+        // an invisible pseudo-element carries the difference.
+        sm: "tap-44 h-9 px-4 text-[13px]",
         md: "h-11 px-5 text-[15px]",
         lg: "h-13 px-7 text-[15px]",
         icon: "h-11 w-11 p-0",
