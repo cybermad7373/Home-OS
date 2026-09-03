@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils/cn";
 import type { InsightType } from "@/lib/domain/insights";
 
 /**
@@ -65,7 +66,10 @@ export function FilterBar({
         }))}
       />
 
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Grouping and range share a row, and at 360px that row is 328px wide.
+          Two equal halves truncate every label to "We…" and "1 m…", so the
+          range control takes only the width its three short labels need. */}
+      <div className="flex items-center gap-2">
         <Segmented
           label="Grouping"
           options={GRANULARITIES.map((granularity) => ({
@@ -77,16 +81,17 @@ export function FilterBar({
         />
         <Segmented
           label="Range"
+          grow={false}
           options={[1, 3, 6].map((months) => ({
             key: String(months),
-            label: months === 1 ? "1 month" : `${months} months`,
+            label: `${months}M`,
             href: hrefFor(state, { months }),
             current: state.months === months,
           }))}
         />
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-2">
         {/* Money is the only view a category means anything in. */}
         {state.type === "money" && categories.length > 0 ? (
           <Chips
@@ -127,23 +132,28 @@ export function FilterBar({
 function Segmented({
   label,
   options,
+  grow = true,
 }: {
   label: string;
   options: { key: string; label: string; href: string; current: boolean }[];
+  /** A control with short labels should not be stretched to half the row. */
+  grow?: boolean;
 }) {
   return (
-    <nav aria-label={label} className="min-w-0 flex-1">
-      <ul className="flex gap-1 rounded-[var(--radius-sm)] bg-surface-2 p-1">
+    <nav aria-label={label} className={grow ? "min-w-0 flex-1" : "shrink-0"}>
+      <ul className="flex gap-1 rounded-full border border-border p-1">
         {options.map((option) => (
-          <li key={option.key} className="min-w-0 flex-1">
+          <li key={option.key} className={grow ? "min-w-0 flex-1" : "shrink-0"}>
             <Link
               href={option.href}
               aria-current={option.current ? "page" : undefined}
-              className={
+              className={cn(
+                "flex h-9 items-center justify-center rounded-full text-[14px] transition-colors",
+                grow ? "px-2.5" : "px-3",
                 option.current
-                  ? "touch-target flex items-center justify-center rounded-[var(--radius-xs)] bg-surface px-2 text-[15px] font-medium text-primary"
-                  : "touch-target flex items-center justify-center rounded-[var(--radius-xs)] px-2 text-[15px] text-text-muted"
-              }
+                  ? "bg-primary font-medium text-primary-fg"
+                  : "text-text-muted hover:text-text",
+              )}
             >
               <span className="truncate">{option.label}</span>
             </Link>
@@ -168,14 +178,17 @@ function Chips({
   options: { key: string; label: string; href: string; current: boolean }[];
 }) {
   return (
+    // One scrolling row rather than a wrapping block: eight members wrapped to
+    // four rows of chips, which pushed the figures the screen is about below
+    // the fold on a phone.
     <nav aria-label={label} className="min-w-0">
-      <ul className="flex flex-wrap items-center gap-1.5">
-        <li className="caption-text text-text-muted pr-1">{label}</li>
-        <li>
+      <ul className="scroll-x flex items-center gap-1.5">
+        <li className="eyebrow-text shrink-0 pr-1">{label}</li>
+        <li className="shrink-0">
           <Chip href={allHref} current={allCurrent} label={allLabel} />
         </li>
         {options.map((option) => (
-          <li key={option.key} className="min-w-0">
+          <li key={option.key} className="shrink-0">
             <Chip href={option.href} current={option.current} label={option.label} />
           </li>
         ))}
@@ -191,8 +204,8 @@ function Chip({ href, current, label }: { href: string; current: boolean; label:
       aria-current={current ? "true" : undefined}
       className={
         current
-          ? "block max-w-[10rem] truncate rounded-full border border-primary bg-primary/10 px-3 py-1.5 text-[13px] font-medium text-primary"
-          : "block max-w-[10rem] truncate rounded-full border border-border px-3 py-1.5 text-[13px] text-text-muted"
+          ? "block max-w-[10rem] truncate rounded-full border border-primary bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-fg"
+          : "block max-w-[10rem] truncate rounded-full border border-border px-3 py-1.5 text-[13px] text-text-muted transition-colors hover:border-border-strong hover:text-text"
       }
     >
       {label}

@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Readout } from "@/components/ui/readout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PointsBreakdownButton } from "@/components/chores/points-breakdown";
 import { formatMoney } from "@/lib/utils/money";
@@ -42,11 +43,8 @@ export function BarChart({
         return (
           <div key={bar.key} className="flex min-w-[2.5rem] flex-1 flex-col items-center gap-1">
             <span className="caption-text text-text-muted tabular-nums">{bar.caption}</span>
-            <div className="flex h-20 w-full items-end rounded-t-[4px] bg-surface-2">
-              <div
-                className="w-full rounded-t-[4px] bg-primary"
-                style={{ height: `${height}%` }}
-              />
+            <div className="flex h-20 w-full items-end bg-surface-3">
+              <div className="w-full bg-primary" style={{ height: `${height}%` }} />
             </div>
             <span className="caption-text text-text-muted truncate">{shortKey(bar.key)}</span>
           </div>
@@ -65,12 +63,17 @@ function shortKey(key: string): string {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+/**
+ * One figure and what it is. The value is set in the display face, because a
+ * metric card exists to be read at a glance and a metric card whose number is
+ * the same weight as its label is a paragraph.
+ */
 function Metric({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <Card>
-      <p className="caption-text text-text-muted">{label}</p>
-      <p className="title-text tabular-nums">{value}</p>
-      {hint ? <p className="caption-text text-text-muted">{hint}</p> : null}
+      <p className="eyebrow-text mb-2">{label}</p>
+      <Readout value={value} size="md" />
+      {hint ? <p className="caption-text mt-1.5 text-text-muted">{hint}</p> : null}
     </Card>
   );
 }
@@ -126,13 +129,16 @@ export function MoneyView({
             <li key={category.categoryId} className="flex items-center justify-between gap-3">
               <span className="min-w-0 truncate">{category.name}</span>
               <span className="flex shrink-0 items-center gap-2">
+                {/* A signed percentage says which way it moved. Colouring it
+                    as well would spend the money colours on a change in
+                    spending, and they mean "owes" and "is owed". */}
                 {category.changePct === null ? null : (
-                  <Badge tone={category.changePct > 0 ? "warning" : "success"}>
+                  <span className="tabular caption-text text-text-muted">
                     {category.changePct > 0 ? "+" : ""}
                     {category.changePct}%
-                  </Badge>
+                  </span>
                 )}
-                <span className="tabular-nums">{money(category.totalPaise)}</span>
+                <span className="tabular">{money(category.totalPaise)}</span>
               </span>
             </li>
           ))}

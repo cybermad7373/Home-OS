@@ -90,7 +90,7 @@ export default async function InsightsPage({
       ) : null}
       {result.type === "home" ? <HomeView report={result.home} /> : null}
 
-      <Card className="mt-3">
+      <Card className="mt-8">
         <CardTitle>Take your records with you</CardTitle>
         <CardDescription>
           No tier, no cap, and no waiting period. A spreadsheet reads any of these.
@@ -110,12 +110,12 @@ export default async function InsightsPage({
         </div>
       </Card>
 
-      <p className="caption-text mt-4 text-text-muted">
-        <Link href={hrefFor(state, { type: "home" })} className="text-primary">
+      <p className="caption-text mt-6 text-text-muted">
+        <Link href={hrefFor(state, { type: "home" })} className="underline">
           How the home is doing
         </Link>
         {" · "}
-        <Link href="/settle" className="text-primary">
+        <Link href="/settle" className="underline">
           Settle up
         </Link>
       </p>
@@ -132,7 +132,7 @@ function ExportLink({ href, children }: { href: string; children: string }) {
   return (
     <a
       href={href}
-      className="touch-target inline-flex items-center rounded-[var(--radius-sm)] border border-border px-3 text-[15px] text-text-muted"
+      className="touch-target inline-flex items-center rounded-full border border-border px-3.5 text-[13px] text-text-muted transition-colors hover:border-border-strong hover:text-text"
     >
       {children}
     </a>

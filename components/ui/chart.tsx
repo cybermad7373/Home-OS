@@ -77,9 +77,9 @@ export function BarChart({
               <span className="min-w-0 truncate text-[14px]">{row.label}</span>
               <span className="tabular shrink-0 text-[14px] font-medium">{format(row.value)}</span>
             </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
+            <div className="h-[6px] w-full bg-surface-3">
               <div
-                className="h-full rounded-full"
+                className="h-full"
                 style={{
                   width: `${percent}%`,
                   background: row.color ?? chartColor(index),
@@ -113,7 +113,9 @@ export function ShareBar({
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>
-      <div className="flex h-3 w-full overflow-hidden rounded-full bg-surface-2">
+      {/* A hairline between segments, because two neighbours on a greyscale
+          ramp are two steps apart and a shared edge makes them read as one. */}
+      <div className="flex h-3 w-full gap-px bg-surface-3">
         {rows.map((row, index) => (
           <div
             key={row.label}
@@ -169,7 +171,7 @@ export function ColumnChart({
             </span>
             <div
               className={cn(
-                "w-full rounded-t-[3px]",
+                "w-full",
                 row.tone === "positive"
                   ? "bg-success"
                   : row.tone === "negative"
@@ -210,7 +212,7 @@ export function Legend({
         <li key={item.label} className="flex min-w-0 items-center gap-1.5">
           <span
             aria-hidden
-            className="size-2.5 shrink-0 rounded-[3px]"
+            className="size-2.5 shrink-0 border border-border"
             style={{ background: item.color }}
           />
           <span className="caption-text truncate">{item.label}</span>
