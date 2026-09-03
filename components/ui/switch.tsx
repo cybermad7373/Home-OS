@@ -53,10 +53,9 @@ export function Switch({
         "transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out)]",
         "disabled:pointer-events-none disabled:opacity-40",
         // The control is 26px tall because a 44px pill would be the loudest
-        // thing on a settings screen. The *target* is still 44px: an invisible
-        // pseudo-element carries the difference, which is the whole reason the
-        // minimum exists.
-        "after:absolute after:inset-x-0 after:-inset-y-[9px] after:content-['']",
+        // thing on a settings screen. The *target* is still 44px, carried by
+        // `tap-44`, which is the whole reason the minimum exists.
+        "tap-44",
         checked ? "border-primary bg-primary" : "border-border-strong bg-surface-2",
         className,
       )}

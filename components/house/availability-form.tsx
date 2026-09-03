@@ -154,7 +154,10 @@ export function AvailabilityForm({
   return (
     <form onSubmit={onSubmit} noValidate>
       <Card className="mb-4">
-        <h1 className="title-text mb-1">When are you usually home?</h1>
+        {/* `h2`, not `h1`: the screen's own title is the page header's. In
+            onboarding this card is the whole screen, and there the heading
+            above it is the step's. */}
+        <h2 className="title-text mb-1">When are you usually home?</h2>
         <p className="caption-text mb-4 text-text-muted">
           Roughly is fine — these are averages, not commitments. Being out a lot
           changes <em>which</em> chores you get, never how many points you owe.
@@ -183,7 +186,7 @@ export function AvailabilityForm({
               <li key={day.dayOfWeek} className="border-b border-border pb-3 last:border-0">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <span className="font-medium">{DAY_LABELS[day.dayOfWeek]}</span>
-                  <label className="caption-text flex items-center gap-2 text-text-muted">
+                  <label className="caption-text flex min-h-11 items-center gap-2 text-text-muted">
                     <input
                       type="checkbox"
                       checked={!day.isHome}
@@ -205,7 +208,7 @@ export function AvailabilityForm({
                         onChange={(event) =>
                           update(day.dayOfWeek, { leavesAt: event.target.value || null })
                         }
-                        className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
+                        className="mt-1 block h-11 w-full rounded-[var(--radius-sm)] border border-border bg-surface px-3 text-[15px]"
                         aria-label={`${DAY_LABELS[day.dayOfWeek]}: time you leave`}
                       />
                     </label>
@@ -217,7 +220,7 @@ export function AvailabilityForm({
                         onChange={(event) =>
                           update(day.dayOfWeek, { returnsAt: event.target.value || null })
                         }
-                        className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
+                        className="mt-1 block h-11 w-full rounded-[var(--radius-sm)] border border-border bg-surface px-3 text-[15px]"
                         aria-label={`${DAY_LABELS[day.dayOfWeek]}: time you get back`}
                       />
                     </label>

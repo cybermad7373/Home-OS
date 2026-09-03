@@ -176,7 +176,10 @@ export function Sidebar({
           onClick={() => setAddOpen(true)}
           aria-haspopup="dialog"
           aria-expanded={addOpen}
-          className="flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-[15px] font-medium text-primary-fg transition-colors hover:bg-primary-hover"
+          // `shrink-0`: the sidebar is a scrolling flex column, and without it
+          // a long menu squeezed the button that opens the quick-add down to
+          // 22px — the most-used control in the app, crushed by the least.
+          className="flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-4 text-[15px] font-medium text-primary-fg transition-colors hover:bg-primary-hover"
         >
           <Plus size={18} aria-hidden />
           Add
@@ -258,7 +261,7 @@ function SidebarLink({
       href={item.href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-2.5 rounded-full px-3 py-2 text-[14px] transition-colors",
+        "flex min-h-11 items-center gap-2.5 rounded-full px-3 py-2 text-[14px] transition-colors",
         active
           ? "bg-primary text-primary-fg"
           : "text-text-muted hover:bg-surface-2 hover:text-text",

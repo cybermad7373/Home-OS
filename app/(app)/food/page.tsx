@@ -83,7 +83,7 @@ export default async function FoodPage({
                 <li key={entry.href} className="shrink-0">
                   <Link
                     href={entry.href}
-                    className="flex h-9 items-center rounded-full border border-border px-3.5 text-[13px] text-text-muted transition-colors hover:border-border-strong hover:text-text"
+                    className="tap-44 flex h-9 items-center rounded-full border border-border px-3.5 text-[13px] text-text-muted transition-colors hover:border-border-strong hover:text-text"
                   >
                     {entry.label}
                   </Link>

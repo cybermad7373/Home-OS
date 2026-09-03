@@ -70,7 +70,7 @@ export function AppHeader({
             type="button"
             onClick={() => setSearchOpen(true)}
             className={cn(
-              "hidden items-center gap-2 rounded-full border border-border bg-surface-2 py-1.5 pl-3 pr-2",
+              "hidden h-11 items-center gap-2 rounded-full border border-border bg-surface-2 pl-3 pr-2",
               "text-[13px] text-text-subtle transition-colors hover:border-border-strong hover:text-text-muted sm:flex",
             )}
             aria-label="Search the app"

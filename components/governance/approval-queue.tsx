@@ -177,7 +177,7 @@ export function ApprovalQueue({
                       ) : null}
                       <Link
                         href={`/more/approvals/${decision.id}`}
-                        className="caption-text ml-auto text-text-muted underline transition-colors hover:text-text"
+                        className="tap-44 caption-text ml-auto text-text-muted underline transition-colors hover:text-text"
                       >
                         Details
                       </Link>
@@ -214,7 +214,7 @@ export function ApprovalQueue({
                   <div className="mt-3">
                     <Link
                       href={`/more/approvals/${decision.id}`}
-                      className="caption-text font-medium underline"
+                      className="tap-44 caption-text font-medium underline"
                     >
                       Review
                     </Link>

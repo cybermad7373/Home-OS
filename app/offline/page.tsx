@@ -11,7 +11,7 @@ export default function OfflinePage() {
   return (
     <main className="dot-grid flex min-h-dvh flex-col items-center justify-center gap-2 px-4 text-center">
       <p className="eyebrow-text mb-2">No connection</p>
-      <p className="title-text">You are offline</p>
+      <h1 className="title-text">You are offline</h1>
       <p className="caption-text max-w-[40ch] text-text-muted">
         HouseOS opens without a connection, but it cannot load fresh house data. It will
         catch up as soon as you are back.

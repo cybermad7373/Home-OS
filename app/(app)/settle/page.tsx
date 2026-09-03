@@ -81,7 +81,7 @@ export default async function SettlePage({
           aria-label="Month"
           name="period"
           defaultValue={period}
-          className="h-9 min-w-0 flex-1 text-[13px] sm:w-auto sm:flex-none"
+          className="min-w-0 flex-1 text-[13px] sm:w-auto sm:flex-none"
         >
           {/* "September 2026", not "2026-09". The month picker on Money has
               always said it in words; this one printed the column value. */}

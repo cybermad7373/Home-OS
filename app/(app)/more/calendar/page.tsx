@@ -102,7 +102,7 @@ export default async function CalendarPage({
                 href={`/more/calendar?view=${entry.key}&date=${date}&period=${period}`}
                 aria-current={view === entry.key ? "page" : undefined}
                 className={cn(
-                  "flex h-9 items-center justify-center rounded-full text-[14px] transition-colors",
+                  "tap-44 flex h-9 items-center justify-center rounded-full text-[14px] transition-colors",
                   view === entry.key
                     ? "bg-primary font-medium text-primary-fg"
                     : "text-text-muted hover:text-text",

@@ -229,7 +229,7 @@ export function NotificationFeed({
                           <Link
                             href={item.deepLink}
                             onClick={() => void markOneRead(item.id)}
-                            className="caption-text font-medium underline underline-offset-2"
+                            className="tap-44 caption-text font-medium underline underline-offset-2"
                           >
                             Open
                           </Link>
@@ -250,7 +250,7 @@ export function NotificationFeed({
                           <button
                             type="button"
                             onClick={() => void markOneRead(item.id)}
-                            className="caption-text text-text-muted underline-offset-2 hover:underline"
+                            className="tap-44 caption-text text-text-muted underline-offset-2 hover:underline"
                           >
                             Mark read
                           </button>

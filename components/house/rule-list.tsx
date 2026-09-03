@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
@@ -185,10 +186,11 @@ function RuleRow({
       ) : null}
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <Link href={`/more/rules/${rule.id}/history`}>
-          <Button size="sm" variant="ghost">
-            History
-          </Button>
+        <Link
+          href={`/more/rules/${rule.id}/history`}
+          className={buttonVariants({ variant: "ghost", size: "sm" })}
+        >
+          History
         </Link>
 
         {isLead ? (

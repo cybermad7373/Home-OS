@@ -93,7 +93,7 @@ export function RestrictionsPanel({
                 <button
                   type="button"
                   onClick={() => onRemove(r.id)}
-                  className="caption-text text-danger underline-offset-2 hover:underline"
+                  className="tap-44 caption-text text-danger underline-offset-2 hover:underline"
                 >
                   Remove
                 </button>

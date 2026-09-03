@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BottomSheet } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils/cn";
 import type { PointBreakdown } from "@/lib/domain/insights";
 
 /**
@@ -64,7 +65,13 @@ export function PointsBreakdownButton({
         type="button"
         onClick={load}
         aria-label={`How ${displayName} earned ${points} points`}
-        className={className ?? "tabular text-[13px] font-semibold underline decoration-dotted"}
+        // The figure is the button (EF-12), so it is as small as the figure —
+        // and a 23x22 target is not one. The ink stays the number; an invisible
+        // pseudo-element carries the finger's half of it to 44px.
+        className={cn(
+          "tap-44 px-1",
+          className ?? "tabular text-[13px] font-semibold underline decoration-dotted",
+        )}
       >
         {points}
       </button>

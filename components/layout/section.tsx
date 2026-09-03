@@ -36,7 +36,7 @@ export function Section({
         {href ? (
           <Link
             href={href}
-            className="eyebrow-text group flex shrink-0 items-center gap-1 text-text-muted transition-colors hover:text-text"
+            className="tap-44 eyebrow-text group flex shrink-0 items-center gap-1 text-text-muted transition-colors hover:text-text"
           >
             {linkLabel}
             <ArrowUpRight size={11} className="magnetic-icon" aria-hidden />

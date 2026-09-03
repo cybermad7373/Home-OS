@@ -140,7 +140,7 @@ export function ExpenseList({
         <Select
           aria-label="Month"
           value={period}
-          className="h-9 min-w-0 flex-1 text-[13px] sm:w-auto sm:flex-none"
+          className="min-w-0 flex-1 text-[13px] sm:w-auto sm:flex-none"
           onChange={(event) => {
             window.location.search = `?period=${event.target.value}`;
           }}

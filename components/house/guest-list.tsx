@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
@@ -125,44 +126,46 @@ export function GuestList({
             </div>
           ) : null}
 
-          <label className="caption-text mb-3 block text-text-muted">
-            Name
-            <input
+          {/* The app's own field rather than three hand-rolled ones: they were
+              38px tall against a 44px minimum, and the two dates side by side
+              overflowed a 360px screen by 5px, because a date input has an
+              intrinsic width a `flex-1` cannot argue with unless the item is
+              allowed to shrink. */}
+          <div className="mb-3">
+            <Input
+              label="Name"
               type="text"
               value={name}
               maxLength={50}
               onChange={(event) => setName(event.target.value)}
               placeholder="Arjun"
-              className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
             />
-          </label>
+          </div>
 
           <div className="mb-3 flex gap-2">
-            <label className="caption-text flex-1 text-text-muted">
-              First night
-              <input
+            <div className="min-w-0 flex-1">
+              <Input
+                label="First night"
                 type="date"
                 value={fromDate}
                 onChange={(event) => {
                   setFromDate(event.target.value);
                   if (event.target.value > toDate) setToDate(event.target.value);
                 }}
-                className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
               />
-            </label>
-            <label className="caption-text flex-1 text-text-muted">
-              Last night
-              <input
+            </div>
+            <div className="min-w-0 flex-1">
+              <Input
+                label="Last night"
                 type="date"
                 value={toDate}
                 min={fromDate}
                 onChange={(event) => setToDate(event.target.value)}
-                className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
               />
-            </label>
+            </div>
           </div>
 
-          <label className="caption-text mb-2 flex items-center gap-2 text-text-muted">
+          <label className="caption-text mb-2 flex min-h-11 items-center gap-2 text-text-muted">
             <input
               type="checkbox"
               checked={countsForExpense}
@@ -171,7 +174,7 @@ export function GuestList({
             They eat here — count them in the food split, billed to you
           </label>
 
-          <label className="caption-text mb-4 flex items-center gap-2 text-text-muted">
+          <label className="caption-text mb-4 flex min-h-11 items-center gap-2 text-text-muted">
             <input
               type="checkbox"
               checked={isAssignable}

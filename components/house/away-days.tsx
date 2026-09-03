@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input, Select } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -133,51 +134,50 @@ export function AwayDays({
             </div>
           ) : null}
 
+          {/* The app's own field rather than four hand-rolled ones: they were
+              37 to 38px tall against a 44px minimum, and a `flex-1` around a
+              date input needs `min-w-0` or the pair overflows a 360px screen. */}
           <div className="mb-3 flex gap-2">
-            <label className="caption-text flex-1 text-text-muted">
-              Date
-              <input
+            <div className="min-w-0 flex-1">
+              <Input
+                label="Date"
                 type="date"
                 value={date}
                 min={today}
                 onChange={(event) => setDate(event.target.value)}
-                className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
               />
-            </label>
-            <label className="caption-text flex-1 text-text-muted">
-              What
-              <select
+            </div>
+            <div className="min-w-0 flex-1">
+              <Select
+                label="What"
                 value={type}
                 onChange={(event) => setType(event.target.value as ExceptionItem["type"])}
-                className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
               >
                 <option value="away">Away all day</option>
                 <option value="home_all_day">Home all day</option>
                 <option value="custom_hours">Different hours</option>
-              </select>
-            </label>
+              </Select>
+            </div>
           </div>
 
           {type === "custom_hours" ? (
             <div className="mb-3 flex gap-2">
-              <label className="caption-text flex-1 text-text-muted">
-                Out at
-                <input
+              <div className="min-w-0 flex-1">
+                <Input
+                  label="Out at"
                   type="time"
                   value={leavesAt}
                   onChange={(event) => setLeavesAt(event.target.value)}
-                  className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
                 />
-              </label>
-              <label className="caption-text flex-1 text-text-muted">
-                Back at
-                <input
+              </div>
+              <div className="min-w-0 flex-1">
+                <Input
+                  label="Back at"
                   type="time"
                   value={returnsAt}
                   onChange={(event) => setReturnsAt(event.target.value)}
-                  className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
                 />
-              </label>
+              </div>
             </div>
           ) : null}
 

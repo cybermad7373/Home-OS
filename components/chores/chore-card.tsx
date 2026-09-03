@@ -458,7 +458,7 @@ export function ChoreCard({
           ) : (
             <button
               type="button"
-              className="caption-text mt-1 text-primary"
+              className="tap-44 caption-text mt-1 text-primary"
               onClick={() => setAttaching(true)}
             >
               {chore.photoUrl || chore.note ? "Edit photo or note" : "Add photo or note"}

@@ -160,7 +160,11 @@ test("disabling is a version transition, and the rule stays readable", async ({ 
   await page.getByLabel(/^Why\?/).fill("Everyone does it now without being told");
   await page.getByRole("button", { name: "Ask the home" }).click();
 
-  await expect(page.getByText("Disabled")).toBeVisible();
+  // The sheet closes and the list re-renders from `router.refresh()`, which is
+  // a server round trip on a dev server that may be compiling something else.
+  // Fifteen seconds rather than the default five: what is being asserted is
+  // that the row comes back disabled, not how fast Next recompiled.
+  await expect(page.getByText("Disabled")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(EDITED_TITLE)).toBeVisible();
 });
 

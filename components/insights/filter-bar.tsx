@@ -162,7 +162,7 @@ function Segmented({
               aria-label={option.name}
               aria-current={option.current ? "page" : undefined}
               className={cn(
-                "flex h-9 items-center justify-center rounded-full text-[14px] transition-colors",
+                "tap-44 flex h-9 items-center justify-center rounded-full text-[14px] transition-colors",
                 grow ? "px-2.5" : "px-3",
                 option.current
                   ? "bg-primary font-medium text-primary-fg"
@@ -225,8 +225,8 @@ function Chip({ href, current, label }: { href: string; current: boolean; label:
       aria-current={current ? "true" : undefined}
       className={
         current
-          ? "block max-w-[10rem] truncate rounded-full border border-primary bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-fg"
-          : "block max-w-[10rem] truncate rounded-full border border-border px-3 py-1.5 text-[13px] text-text-muted transition-colors hover:border-border-strong hover:text-text"
+          ? "tap-44 block max-w-[10rem] truncate rounded-full border border-primary bg-primary px-3 py-1.5 text-[13px] font-medium text-primary-fg"
+          : "tap-44 block max-w-[10rem] truncate rounded-full border border-border px-3 py-1.5 text-[13px] text-text-muted transition-colors hover:border-border-strong hover:text-text"
       }
     >
       {label}

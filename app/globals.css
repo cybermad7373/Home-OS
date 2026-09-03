@@ -484,6 +484,32 @@
     min-width: 44px;
   }
 
+  /* The target without the ink.
+
+     A row of actions cannot all be 44px pills without becoming a wall, and a
+     chip that is 44px tall is not a chip. The minimum is about the finger
+     rather than the mark, so this carries the hit area past the box with an
+     invisible pseudo-element and leaves the drawing alone. Use it on any
+     control the sweep in `scripts/audit-ui.mjs` reports under 44px whose size
+     is deliberate: chips, segmented links, inline row actions. */
+  .tap-44 {
+    position: relative;
+  }
+
+  .tap-44::after {
+    content: "";
+    position: absolute;
+    /* A fixed 44px box centred on the control, rather than a negative inset:
+       the pseudo-element's containing block is the padding box, so an inset of
+       "half the difference" lands 2px short on anything with a border — which
+       is how a 26px switch and a 36px button both measured 42. */
+    left: -6px;
+    right: -6px;
+    top: 50%;
+    height: 44px;
+    transform: translateY(-50%);
+  }
+
   /* ---- surfaces ---------------------------------------------------------
      A card is a hairline and some space. The double bezel of 2.0 is gone: two
      nested rounded rectangles on every card was the single biggest reason the

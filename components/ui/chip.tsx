@@ -68,7 +68,9 @@ export function ChipLink({
 
 function chipClass(selected?: boolean) {
   return cn(
-    "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5",
+    // `tap-44`: a chip that is 44px tall is not a chip, but the finger still
+    // needs 44px. The utility carries the target past the ink.
+    "tap-44 inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5",
     "text-[13px] font-medium transition-colors duration-[var(--duration-fast)]",
     selected
       ? "border-primary bg-primary-soft text-primary"
