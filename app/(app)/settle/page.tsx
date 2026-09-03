@@ -11,7 +11,10 @@ import { getPeriodPosition, listSettlements } from "@/lib/data/settlement";
 import { monthLabel } from "@/lib/utils/period";
 import { houseToday } from "@/lib/utils/date";
 
-export const metadata: Metadata = { title: "Settle" };
+export const metadata: Metadata = {
+  title: "Settle",
+  description: "Who pays whom this month, and what has been confirmed.",
+};
 
 function recentPeriods(today: string): string[] {
   const [year, month] = today.split("-").map(Number);

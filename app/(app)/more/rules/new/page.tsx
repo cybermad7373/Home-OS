@@ -4,7 +4,10 @@ import { RuleForm } from "@/components/house/rule-form";
 import { requireSession, getHouseContext } from "@/lib/data/house";
 import { ruleParseContext } from "@/lib/data/rules";
 
-export const metadata: Metadata = { title: "Write a rule" };
+export const metadata: Metadata = {
+  title: "Write a rule",
+  description: "Write a house rule in your own words and put it to the home.",
+};
 
 /**
  * S-41 — `/more/rules/new`.

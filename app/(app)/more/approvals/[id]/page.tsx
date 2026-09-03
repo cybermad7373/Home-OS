@@ -16,7 +16,10 @@ import {
 } from "@/lib/types/domain";
 import { formatDateTime, relativeTime } from "@/lib/utils/date";
 
-export const metadata: Metadata = { title: "Decision" };
+export const metadata: Metadata = {
+  title: "Decision",
+  description: "One decision: what changes, who is needed, and how they answered.",
+};
 
 /**
  * S-36 Decision detail.

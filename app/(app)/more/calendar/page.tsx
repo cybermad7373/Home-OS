@@ -32,7 +32,10 @@ import { formatMoney } from "@/lib/utils/money";
 import { formatDate, houseToday } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
 
-export const metadata: Metadata = { title: "Calendar" };
+export const metadata: Metadata = {
+  title: "Calendar",
+  description: "Chores, money, food and decisions on one timeline.",
+};
 
 type View = "day" | "week" | "month";
 

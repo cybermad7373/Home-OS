@@ -5,7 +5,10 @@ import { RuleForm } from "@/components/house/rule-form";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listRules, ruleParseContext } from "@/lib/data/rules";
 
-export const metadata: Metadata = { title: "Edit a rule" };
+export const metadata: Metadata = {
+  title: "Edit a rule",
+  description: "Change a house rule, and ask the home to agree to it.",
+};
 
 /**
  * S-41, in its editing form.

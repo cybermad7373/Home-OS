@@ -4,6 +4,7 @@ import { Readout } from "@/components/ui/readout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PointsBreakdownButton } from "@/components/chores/points-breakdown";
 import { formatMoney } from "@/lib/utils/money";
+import { cn } from "@/lib/utils/cn";
 import type {
   ChoreInsightsOutput,
   FoodInsightsOutput,
@@ -37,10 +38,10 @@ export function BarChart({
       aria-label={`${label}. ${bars.map((bar) => `${bar.key}: ${bar.caption}`).join(". ")}`}
     >
       {bars.map((bar) => {
-        // A zero bar still gets a sliver, so an empty week reads as a week
-        // with nothing in it rather than as a gap in the chart.
-        const height =
-          peak === 0 ? 2 : Math.max(3, Math.round((bar.value / peak) * 100));
+        // A zero bar gets a sliver, so an empty week reads as a week with
+        // nothing in it rather than as a gap in the chart. A non-zero bar
+        // never falls below 3% for the same reason.
+        const height = bar.value <= 0 || peak <= 0 ? 0 : Math.max(3, Math.round((bar.value / peak) * 100));
         return (
           <div
             key={bar.key}
@@ -49,7 +50,16 @@ export function BarChart({
             <span className="caption-text text-text-muted tabular-nums">
               {bar.caption}
             </span>
-            <div className="flex h-20 w-full items-end bg-surface-3">
+            {/*
+              No filled track. This column used to sit on a `bg-surface-3`
+              block the full height of the plot, so a week with nothing in it
+              drew a full-height grey rectangle — the same size and shape as a
+              week that had spent the peak, distinguishable only by reading the
+              caption. Four quiet weeks next to one busy one read as five busy
+              weeks. The plot area is transparent now and the baseline alone
+              carries the axis, so height means quantity and nothing else.
+            */}
+            <div className="flex h-20 w-full items-end border-b border-border">
               <div
                 className="w-full bg-primary"
                 style={{ height: `${height}%` }}
@@ -194,32 +204,46 @@ export function MoneyView({
         </ul>
       </Card>
 
-      <Card>
+      {/*
+        Full width when nothing follows it. A two-column grid with an odd number
+        of cards always strands the last cell, and on a pot home — which has no
+        "Who owes whom", because a pot nets nothing between members — that
+        stranded cell was a third of the screen of empty page. The card is a
+        three-figure table and would rather have the width anyway.
+      */}
+      <Card className={report.owed.length === 0 ? "lg:col-span-2" : undefined}>
         <CardTitle>Paid against fair share</CardTitle>
         <CardDescription>
           {isPot
             ? "This home shares a pot, so nothing here is a debt."
             : "A positive figure means the home owes them."}
         </CardDescription>
+        {/*
+          Three columns, not one right-aligned sentence. "₹4,544 of ₹1,931.60
+          +₹2,612.40" set as a single run of text put every member's paid,
+          share and net at a different x — so the one comparison the card
+          exists to support, reading a column down, was the one thing it did
+          not let you do.
+        */}
         <ul className="mt-2 flex flex-col gap-2">
           {report.paidVsShare.map((member) => (
             <li
               key={member.memberId}
-              className="flex items-center justify-between gap-3"
+              className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-4"
             >
               <span className="min-w-0 truncate">{member.name}</span>
-              <span className="shrink-0 tabular-nums">
-                {money(member.paidPaise)} of {money(member.fairSharePaise)}
-                <span
-                  className={
-                    member.netPaise >= 0
-                      ? "ml-2 text-success"
-                      : "ml-2 text-text-muted"
-                  }
-                >
-                  {member.netPaise >= 0 ? "+" : ""}
-                  {money(member.netPaise)}
-                </span>
+              <span className="tabular justify-self-end whitespace-nowrap">
+                {money(member.paidPaise)}
+                <span className="text-text-muted"> of {money(member.fairSharePaise)}</span>
+              </span>
+              <span
+                className={cn(
+                  "tabular w-[7.5rem] justify-self-end text-right whitespace-nowrap",
+                  member.netPaise >= 0 ? "text-success" : "text-text-muted",
+                )}
+              >
+                {member.netPaise >= 0 ? "+" : ""}
+                {money(member.netPaise)}
               </span>
             </li>
           ))}

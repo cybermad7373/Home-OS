@@ -3,7 +3,10 @@ import { redirect } from "next/navigation";
 import { ClaimUsername } from "@/components/forms/claim-username";
 import { getOwnProfile, requireSession } from "@/lib/data/house";
 
-export const metadata: Metadata = { title: "Pick a username" };
+export const metadata: Metadata = {
+  title: "Pick a username",
+  description: "Pick the name the house signs you in with.",
+};
 
 /** Suggests a name from the email local part, cleaned to the allowed shape. */
 function suggest(email: string | null, displayName: string | null): string {

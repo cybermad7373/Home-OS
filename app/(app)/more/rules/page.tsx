@@ -4,7 +4,10 @@ import { RuleList } from "@/components/house/rule-list";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listRules } from "@/lib/data/rules";
 
-export const metadata: Metadata = { title: "House rules" };
+export const metadata: Metadata = {
+  title: "House rules",
+  description: "What this home agreed, in its own words — and every version of it.",
+};
 
 /**
  * S-40 — `/more/rules`.

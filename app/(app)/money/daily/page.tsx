@@ -5,7 +5,10 @@ import { getDailyCost } from "@/lib/data/analytics";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { monthLabel } from "@/lib/utils/period";
 
-export const metadata: Metadata = { title: "Running cost" };
+export const metadata: Metadata = {
+  title: "Running cost",
+  description: "What the house costs a day, and whether that is more than it means to.",
+};
 
 /**
  * What the house costs to run, per day.

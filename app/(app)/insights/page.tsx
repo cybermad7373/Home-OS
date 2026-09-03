@@ -11,7 +11,10 @@ import { insightsQuerySchema } from "@/lib/validation/insights";
 import { houseToday } from "@/lib/utils/date";
 import type { Granularity, InsightType } from "@/lib/domain/insights";
 
-export const metadata: Metadata = { title: "Insights" };
+export const metadata: Metadata = {
+  title: "Insights",
+  description: "Money, work, food and the home itself, over any range you choose.",
+};
 
 /**
  * Phase 15 — one screen that answers questions about money, work, food and the

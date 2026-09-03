@@ -4,7 +4,10 @@ import { RuleHistory } from "@/components/house/rule-history";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { ruleHistory } from "@/lib/data/rules";
 
-export const metadata: Metadata = { title: "Rule history" };
+export const metadata: Metadata = {
+  title: "Rule history",
+  description: "Every version of this rule, and who agreed to each.",
+};
 
 /**
  * S-42 — `/more/rules/:id/history`.

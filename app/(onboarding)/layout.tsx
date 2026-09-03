@@ -1,4 +1,11 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
+
+/**
+ * Nothing behind the login is indexable. Onboarding is a signed-in flow.
+ * A search engine that reached one would be reading somebody's ledger.
+ */
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /**
  * Onboarding sits between the sign-in screen and the app, and until 3.0 it

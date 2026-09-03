@@ -11,7 +11,10 @@ import { countDecisionsAwaiting } from "@/lib/data/governance";
 import { getUnreadCount } from "@/lib/data/notifications";
 import { HOME_TYPE_LABEL, RESIDENCY_LABEL } from "@/lib/types/domain";
 
-export const metadata: Metadata = { title: "More" };
+export const metadata: Metadata = {
+  title: "More",
+  description: "Everything that is not one of the five things on the bar.",
+};
 
 /**
  * Everything that is not one of the five things on the bar.

@@ -4,7 +4,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { getAvailability } from "@/lib/data/availability";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 
-export const metadata: Metadata = { title: "My week" };
+export const metadata: Metadata = {
+  title: "My week",
+  description: "When the house can call on you, and when it cannot.",
+};
 
 export default async function AvailabilityPage() {
   const session = await requireSession();

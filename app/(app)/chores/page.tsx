@@ -14,7 +14,10 @@ import {
 import { weekDates } from "@/lib/domain/scheduling/capacity";
 import { houseToday } from "@/lib/utils/date";
 
-export const metadata: Metadata = { title: "Chores" };
+export const metadata: Metadata = {
+  title: "Chores",
+  description: "The house week: every chore, who holds it, and what nobody is holding.",
+};
 
 function shiftWeek(weekStart: string, weeks: number): string {
   const date = new Date(`${weekStart}T12:00:00Z`);

@@ -55,9 +55,18 @@ export function FilterBar({
   members: { memberId: string; displayName: string }[];
 }) {
   return (
-    // Capped on a desktop: a segmented control stretched to 1100px is four
-    // buttons the size of a paragraph.
-    <div className="mb-6 flex max-w-3xl flex-col gap-3">
+    <div className="mb-6 flex flex-col gap-3">
+      {/*
+        The two segmented controls are capped and the chip rows are not, and
+        the difference is deliberate. A segmented control stretched to 1100px is
+        four buttons the size of a paragraph. A chip row is the opposite case:
+        it is a scrolling list of everything the house could filter by, so every
+        pixel it is denied hides an option that would otherwise have fitted.
+        Capping both — which is what this bar used to do — clipped "Utilities"
+        and the last two members mid-word at 1440px with 300px of empty page to
+        their right.
+      */}
+      <div className="flex max-w-3xl flex-col gap-3">
       <Segmented
         label="Insight type"
         options={TYPES.map((type) => ({
@@ -95,6 +104,7 @@ export function FilterBar({
             current: state.months === months,
           }))}
         />
+      </div>
       </div>
 
       <div className="flex flex-col gap-2">

@@ -36,7 +36,7 @@ export function HomeHouseMembers({ active, meId }: { active: Member[]; meId: str
           <li key={member.id} className="shrink-0">
             <Link
               href="/house/members"
-              className="flex w-[76px] flex-col items-center gap-2 rounded-[var(--radius-md)] px-1 py-2 transition-colors hover:bg-surface-2"
+              className="flex w-[84px] flex-col items-center gap-2 rounded-[var(--radius-md)] px-1 py-2 transition-colors hover:bg-surface-2"
             >
               <MemberAvatar
                 name={isMe ? "You" : member.displayName}
@@ -48,7 +48,14 @@ export function HomeHouseMembers({ active, meId }: { active: Member[]; meId: str
                 <span className={cn("block truncate text-[12px]", isMe && "font-medium")}>
                   {isMe ? "You" : member.displayName.split(/\s+/)[0]}
                 </span>
-                <span className="eyebrow-text block truncate">
+                {/*
+                  A room name is data, not a label, and it was being set in the
+                  label style — 10px uppercase at 0.14em tracking. "Guest Room"
+                  came out as "GUEST RO…" in a 76px cell that normal case fits
+                  with room to spare. The eyebrow style stays where it belongs,
+                  on the section headings above.
+                */}
+                <span className="block truncate text-[11px] text-text-subtle">
                   {lead ? "Lead" : (member.room?.name ?? "—")}
                 </span>
               </span>

@@ -5,7 +5,10 @@ import { getDailyCost } from "@/lib/data/analytics";
 import { listCategories } from "@/lib/data/expenses";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 
-export const metadata: Metadata = { title: "Categories" };
+export const metadata: Metadata = {
+  title: "Categories and budgets",
+  description: "What the house buys, and what it means to spend on each.",
+};
 
 /**
  * Categories and their budgets. Everybody can see them; only an admin edits.

@@ -5,7 +5,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { countOpenJoinRequests, listJoinRequests } from "@/lib/data/homes";
 
-export const metadata: Metadata = { title: "Members" };
+export const metadata: Metadata = {
+  title: "Members",
+  description: "Everyone who lives here, accounts and dependents alike.",
+};
 
 export default async function MembersPage() {
   const session = await requireSession();

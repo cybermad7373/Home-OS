@@ -4,7 +4,10 @@ import { ShoppingListClient } from "@/components/food/shopping-list-client";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listShoppingItems } from "@/lib/data/food";
 
-export const metadata: Metadata = { title: "Shopping List" };
+export const metadata: Metadata = {
+  title: "Shopping list",
+  description: "What to buy, and what somebody already picked up.",
+};
 
 /** Shopping List (S-53) — docs/15-FOOD-SPEC.md section 13. */
 export default async function ShoppingListPage() {

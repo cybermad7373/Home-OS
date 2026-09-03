@@ -8,7 +8,10 @@ import {
   requireSession,
 } from "@/lib/data/house";
 
-export const metadata: Metadata = { title: "Your profile" };
+export const metadata: Metadata = {
+  title: "Your profile",
+  description: "Cooking, UPI ID and your room.",
+};
 
 export default async function OnboardingProfilePage() {
   const session = await requireSession();

@@ -3,7 +3,10 @@ import { redirect } from "next/navigation";
 import { EnableNotificationsPrompt } from "@/components/notifications/enable-prompt";
 import { getMembership, requireSession } from "@/lib/data/house";
 
-export const metadata: Metadata = { title: "Notifications" };
+export const metadata: Metadata = {
+  title: "Notifications",
+  description: "Choose what reaches you, and when.",
+};
 
 /**
  * S-07 — the last step of onboarding.

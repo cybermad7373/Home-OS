@@ -4,7 +4,10 @@ import { MealList } from "@/components/food/meal-list";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listMeals } from "@/lib/data/food";
 
-export const metadata: Metadata = { title: "Meal History" };
+export const metadata: Metadata = {
+  title: "Meal history",
+  description: "What was eaten, by whom, and what it cost each of them.",
+};
 
 /** S-42/S-44 — the Home's food history, everyone's, in one list. */
 export default async function MealHistoryPage() {

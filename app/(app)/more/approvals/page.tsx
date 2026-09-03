@@ -4,7 +4,10 @@ import { ApprovalQueue } from "@/components/governance/approval-queue";
 import { requireActiveMembership, requireSession } from "@/lib/data/house";
 import { listDecisions } from "@/lib/data/governance";
 
-export const metadata: Metadata = { title: "Approvals" };
+export const metadata: Metadata = {
+  title: "Approvals",
+  description: "Everything the house is asking you to decide, in one queue.",
+};
 
 /**
  * S-35 Approvals — the single queue, and the screen 2.0 is organised around.

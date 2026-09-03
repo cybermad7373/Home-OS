@@ -4,7 +4,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listPendingApprovals } from "@/lib/data/expenses";
 
-export const metadata: Metadata = { title: "Approvals" };
+export const metadata: Metadata = {
+  title: "Approvals",
+  description: "Expenses waiting on somebody other than the person who paid.",
+};
 
 export default async function ApprovalsPage() {
   const session = await requireSession();

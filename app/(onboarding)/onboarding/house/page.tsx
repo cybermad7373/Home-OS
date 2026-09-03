@@ -3,7 +3,10 @@ import { redirect } from "next/navigation";
 import { JoinOrCreate } from "@/components/forms/join-or-create";
 import { getMembership, getOwnProfile, requireSession } from "@/lib/data/house";
 
-export const metadata: Metadata = { title: "Join or create a house" };
+export const metadata: Metadata = {
+  title: "Join or create a house",
+  description: "Join a home with an invite code, or set one up.",
+};
 
 export default async function OnboardingHousePage() {
   const session = await requireSession();

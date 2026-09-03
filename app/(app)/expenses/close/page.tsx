@@ -4,7 +4,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { houseToday } from "@/lib/utils/date";
 
-export const metadata: Metadata = { title: "Close the month" };
+export const metadata: Metadata = {
+  title: "Close the month",
+  description: "Lock the month and work out who owes whom.",
+};
 
 export default async function ClosePage({
   searchParams,

@@ -30,7 +30,10 @@ import { HomeStanding } from "./HomeStanding";
 import { HomePendingBlock } from "./HomePendingBlock";
 import { HomeHouseMembers } from "./HomeHouseMembers";
 
-export const metadata: Metadata = { title: "Home" };
+export const metadata: Metadata = {
+  title: "Home",
+  description: "Where the home stands: the week's effort, the month's money, and what is waiting on you.",
+};
 
 /**
  * S-51 — the Home overview. Replaces S-08 `/dashboard`, which now redirects

@@ -31,6 +31,9 @@ export function HomeStanding({
   ];
   const concentration = concentrationRatio(ranked);
   const heavy = concentration > 0.45;
+  // Reserved only when somebody actually missed something. A column held open
+  // for a week nobody missed anything in is 72px of nothing on every row.
+  const anyMissed = rows.some(({ row }) => row.choresMissed > 0);
 
   return (
     <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface">
@@ -75,9 +78,16 @@ export function HomeStanding({
                 </div>
                 <Meter value={row.earnedPoints} max={row.targetPoints} className="mt-2" />
               </div>
-              {row.choresMissed > 0 ? (
-                <span className="caption-text tabular shrink-0 text-danger">
-                  {row.choresMissed} missed
+              {/*
+                A fixed column, present whether or not it has anything in it.
+                It used to appear only for a member with a miss, which pulled
+                that member's points fraction 70px left of everybody else's —
+                so the one number the list is read down was the one that did
+                not line up.
+              */}
+              {anyMissed ? (
+                <span className="caption-text tabular w-[4.5rem] shrink-0 text-right text-danger">
+                  {row.choresMissed > 0 ? `${row.choresMissed} missed` : ""}
                 </span>
               ) : null}
             </li>

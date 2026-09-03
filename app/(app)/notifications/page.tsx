@@ -5,7 +5,10 @@ import { getHouseContext, requireSession } from "@/lib/data/house";
 import { getFeed } from "@/lib/data/notifications";
 import { houseToday } from "@/lib/utils/date";
 
-export const metadata: Metadata = { title: "Notifications" };
+export const metadata: Metadata = {
+  title: "Notifications",
+  description: "Everything the house has told you.",
+};
 
 /**
  * The feed — docs/11-NOTIFICATIONS-SPEC.md section 8.

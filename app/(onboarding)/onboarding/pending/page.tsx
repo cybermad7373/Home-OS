@@ -4,7 +4,10 @@ import { PendingApproval } from "@/components/forms/pending-approval";
 import { getMembership, listMemberships, requireSession } from "@/lib/data/house";
 import { listOwnJoinRequests } from "@/lib/data/homes";
 
-export const metadata: Metadata = { title: "Waiting to be let in" };
+export const metadata: Metadata = {
+  title: "Waiting to be let in",
+  description: "Your request is with the home. Nothing is visible until somebody lets you in.",
+};
 
 /**
  * The Requested state's home.

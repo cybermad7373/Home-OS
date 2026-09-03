@@ -4,7 +4,10 @@ import { RestrictionsPanel } from "@/components/food/restrictions-panel";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listMyRestrictions } from "@/lib/data/food";
 
-export const metadata: Metadata = { title: "Food Preferences" };
+export const metadata: Metadata = {
+  title: "Preferences",
+  description: "What you like, and what you cannot eat.",
+};
 
 /**
  * Preferences — docs/15-FOOD-SPEC.md sections 5 and 5.2a. Ratings live inline

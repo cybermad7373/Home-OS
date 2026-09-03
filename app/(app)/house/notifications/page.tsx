@@ -4,7 +4,10 @@ import { NotificationPrefsForm } from "@/components/notifications/prefs-form";
 import { requireActiveMembership, requireSession } from "@/lib/data/house";
 import { getPrefs, listDevices } from "@/lib/data/notifications";
 
-export const metadata: Metadata = { title: "Notifications" };
+export const metadata: Metadata = {
+  title: "Notification settings",
+  description: "What reaches you, quiet hours, and which devices.",
+};
 
 /**
  * S — notification settings, NT-05.

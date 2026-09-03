@@ -4,7 +4,10 @@ import { DecisionLog } from "@/components/governance/decision-log";
 import { listDecisions } from "@/lib/data/governance";
 import { requireActiveMembership, requireSession } from "@/lib/data/house";
 
-export const metadata: Metadata = { title: "Decisions" };
+export const metadata: Metadata = {
+  title: "Decisions",
+  description: "Everything the house has been asked, and how it answered.",
+};
 
 /**
  * The decision record — everything the house has decided, open or settled.

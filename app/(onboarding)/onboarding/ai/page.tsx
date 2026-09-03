@@ -4,7 +4,10 @@ import { OnboardingAi } from "@/components/house/onboarding-ai";
 import { getMembership, requireSession } from "@/lib/data/house";
 import { getLlmConfig } from "@/lib/data/llm";
 
-export const metadata: Metadata = { title: "AI features" };
+export const metadata: Metadata = {
+  title: "AI features",
+  description: "Optional. With a provider key the home gets a written weekly summary and plain-English entry.",
+};
 
 /**
  * S-06b — the optional AI step of the house wizard.

@@ -5,7 +5,10 @@ import { listHomes } from "@/lib/data/homes";
 import { requireSession } from "@/lib/data/house";
 import { readSelectedHouseId } from "@/lib/infra/supabase/selected-house";
 
-export const metadata: Metadata = { title: "My homes" };
+export const metadata: Metadata = {
+  title: "My homes",
+  description: "Every home you belong to, and the requests you have out.",
+};
 
 /**
  * My Homes — a person belongs to several, and one of them is selected.

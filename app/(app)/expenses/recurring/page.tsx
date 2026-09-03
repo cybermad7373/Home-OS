@@ -4,7 +4,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listCategories, listRecurring } from "@/lib/data/expenses";
 
-export const metadata: Metadata = { title: "Recurring expenses" };
+export const metadata: Metadata = {
+  title: "Recurring expenses",
+  description: "Rent, the bill and the maid, posted automatically.",
+};
 
 export default async function RecurringPage() {
   const session = await requireSession();

@@ -3,7 +3,10 @@ import type { Metadata } from "next";
 import { AuthForm } from "@/components/forms/auth-form";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export const metadata: Metadata = { title: "Sign in" };
+export const metadata: Metadata = {
+  title: "Sign in",
+  description: "Sign in to HouseOS.",
+};
 
 export default function SignInPage() {
   return (

@@ -19,6 +19,7 @@ import { Field, Label } from "@/components/ui/label";
 import { List, Section } from "@/components/layout/section";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { Readout } from "@/components/ui/readout";
+import { BarChart } from "@/components/insights/views";
 
 /**
  * The test the repository did not have.
@@ -158,4 +159,78 @@ describe("every primitive that takes children renders them", () => {
       expect(renderToStaticMarkup(render("content"))).toContain("content");
     });
   }
+});
+
+/**
+ * The chart drew a lie.
+ *
+ * Every column in the insights bar chart sat on a `bg-surface-3` plot block the
+ * full height of the chart. A week with nothing in it therefore rendered a
+ * full-height grey rectangle — identical in size and shape to a week that had
+ * spent the peak, and separable from it only by reading the caption above. On
+ * the seeded family home, four ₹0 weeks next to one ₹9,658 week read as five
+ * comparable weeks of spending.
+ *
+ * So: height encodes quantity, and nothing else draws at a height it has not
+ * earned.
+ */
+describe("the insights bar chart encodes quantity as height", () => {
+  const heights = (html: string) =>
+    [...html.matchAll(/height:\s*([\d.]+)%/g)].map((match) => Number(match[1]));
+
+  it("gives a zero bucket no height at all", () => {
+    const html = renderToStaticMarkup(
+      createElement(BarChart, {
+        label: "Spending over time",
+        bars: [
+          { key: "2026-08-31", value: 965_800, caption: "₹9,658" },
+          { key: "2026-09-07", value: 0, caption: "₹0" },
+          { key: "2026-09-14", value: 0, caption: "₹0" },
+        ],
+      }),
+    );
+
+    expect(heights(html)).toEqual([100, 0, 0]);
+  });
+
+  it("draws no filled plot block behind a column", () => {
+    const html = renderToStaticMarkup(
+      createElement(BarChart, {
+        label: "Spending over time",
+        bars: [{ key: "2026-09-07", value: 0, caption: "₹0" }],
+      }),
+    );
+
+    // The grey block is what made an empty week look like a full one.
+    expect(html).not.toContain("bg-surface-3");
+  });
+
+  it("keeps a small non-zero bucket visible", () => {
+    const html = renderToStaticMarkup(
+      createElement(BarChart, {
+        label: "Spending over time",
+        bars: [
+          { key: "2026-08-31", value: 1_000_000, caption: "₹10,000" },
+          { key: "2026-09-07", value: 100, caption: "₹1" },
+        ],
+      }),
+    );
+
+    // 0.01% of the peak, floored at 3% so a rupee is still a mark on the page.
+    expect(heights(html)).toEqual([100, 3]);
+  });
+
+  it("survives a period in which nothing was spent at all", () => {
+    const html = renderToStaticMarkup(
+      createElement(BarChart, {
+        label: "Spending over time",
+        bars: [
+          { key: "2026-09-07", value: 0, caption: "₹0" },
+          { key: "2026-09-14", value: 0, caption: "₹0" },
+        ],
+      }),
+    );
+
+    expect(heights(html)).toEqual([0, 0]);
+  });
 });

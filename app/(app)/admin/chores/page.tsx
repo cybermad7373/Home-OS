@@ -6,7 +6,10 @@ import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listTemplates, nextWeekStart } from "@/lib/data/chores";
 import { houseToday } from "@/lib/utils/date";
 
-export const metadata: Metadata = { title: "Chore list" };
+export const metadata: Metadata = {
+  title: "Chore list",
+  description: "What the house has decided needs doing, and what each job is worth.",
+};
 
 export default async function ChoreTemplatesPage() {
   const session = await requireSession();

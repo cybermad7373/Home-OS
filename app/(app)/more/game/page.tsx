@@ -12,7 +12,10 @@ import { badgesFor } from "@/lib/domain/game";
 import { houseToday } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
 
-export const metadata: Metadata = { title: "Game layer" };
+export const metadata: Metadata = {
+  title: "Game layer",
+  description: "Streaks, badges and game points.",
+};
 
 /**
  * S-54 — the game layer. Shown only when `game_layer_enabled` is true.

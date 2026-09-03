@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Offline" };
+export const metadata: Metadata = {
+  title: "Offline",
+  description: "HouseOS opens without a connection, but it cannot load fresh house data.",
+};
 
 /**
  * The shell the service worker falls back to when a navigation cannot reach the

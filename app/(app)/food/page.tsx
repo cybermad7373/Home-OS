@@ -10,7 +10,10 @@ import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listMeals, listMealPlans } from "@/lib/data/food";
 import { houseToday } from "@/lib/utils/date";
 
-export const metadata: Metadata = { title: "Food" };
+export const metadata: Metadata = {
+  title: "Food",
+  description: "What the home ate, what it cost, and whether anybody liked it.",
+};
 
 /**
  * Food — docs/15-FOOD-SPEC.md section 8. Today's "what did you eat?", the

@@ -7,7 +7,10 @@ import { getScheduleRuns, nextWeekStart } from "@/lib/data/chores";
 import { getScheduleRunSummary } from "@/lib/data/llm";
 import { houseToday } from "@/lib/utils/date";
 
-export const metadata: Metadata = { title: "Schedule runs" };
+export const metadata: Metadata = {
+  title: "Schedule runs",
+  description: "How each week was produced, and what it cost each person.",
+};
 
 export default async function SchedulePage() {
   const session = await requireSession();

@@ -5,7 +5,10 @@ import { listExceptions } from "@/lib/data/availability";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { houseToday } from "@/lib/utils/date";
 
-export const metadata: Metadata = { title: "Away days" };
+export const metadata: Metadata = {
+  title: "Away days",
+  description: "Declare a day off — the schedule moves, and so does your target.",
+};
 
 export default async function AwayDaysPage() {
   const session = await requireSession();

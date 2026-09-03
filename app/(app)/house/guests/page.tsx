@@ -5,7 +5,10 @@ import { listGuests } from "@/lib/data/guests";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { houseToday } from "@/lib/utils/date";
 
-export const metadata: Metadata = { title: "Guests" };
+export const metadata: Metadata = {
+  title: "Guests",
+  description: "Who is staying, and whose bill and chores they are.",
+};
 
 export default async function GuestsPage() {
   const session = await requireSession();

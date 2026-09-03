@@ -6,7 +6,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { getLlmConfig } from "@/lib/data/llm";
 
-export const metadata: Metadata = { title: "AI features" };
+export const metadata: Metadata = {
+  title: "AI features",
+  description: "The provider key this home uses, and which features may use it.",
+};
 
 /**
  * The same panel as onboarding's, for later entry, replacement or removal.

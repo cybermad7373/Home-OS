@@ -4,7 +4,10 @@ import { AvailabilityForm } from "@/components/house/availability-form";
 import { getAvailability } from "@/lib/data/availability";
 import { getMembership, requireSession } from "@/lib/data/house";
 
-export const metadata: Metadata = { title: "Your week" };
+export const metadata: Metadata = {
+  title: "Your week",
+  description: "Tell the house when it can call on you.",
+};
 
 /**
  * S-07 — the availability step of onboarding.

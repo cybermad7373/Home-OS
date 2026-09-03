@@ -8,7 +8,10 @@ import { listAssignments, weekStartOf } from "@/lib/data/chores";
 import { weekDates } from "@/lib/domain/scheduling/capacity";
 import { formatDate, houseToday } from "@/lib/utils/date";
 
-export const metadata: Metadata = { title: "Their chores" };
+export const metadata: Metadata = {
+  title: "Their chores",
+  description: "The chores of anybody in your care, and how to mark them done.",
+};
 
 /**
  * "Meera's jobs today", in one place.

@@ -133,7 +133,7 @@ codes of their UUID modulo 500. It ships behind an admin switch, so a house
 that turned the game layer on was shown fabricated progress for real people.
 
 It is derived from confirmed chores now (`lib/domain/game.ts`,
-`lib/data/game.ts`), with no new table — see D-74. Fifteen unit cases including
+`lib/data/game.ts`), with no new table — see D-77. Fifteen unit cases including
 three properties cover it.
 
 ---

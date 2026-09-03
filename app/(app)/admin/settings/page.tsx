@@ -6,7 +6,10 @@ import { getHouseContext, requireSession } from "@/lib/data/house";
 import { getLlmConfig } from "@/lib/data/llm";
 import { getLiveInvitation, inviteUrl } from "@/lib/data/homes";
 
-export const metadata: Metadata = { title: "House settings" };
+export const metadata: Metadata = {
+  title: "House settings",
+  description: "Penalty rate, thresholds, invite code and how money works here.",
+};
 
 export default async function SettingsPage() {
   const session = await requireSession();

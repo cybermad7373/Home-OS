@@ -7,7 +7,10 @@ import { listCategories, listExpenses, listPendingApprovals } from "@/lib/data/e
 import { getLlmConfig } from "@/lib/data/llm";
 import { houseToday } from "@/lib/utils/date";
 
-export const metadata: Metadata = { title: "Money" };
+export const metadata: Metadata = {
+  title: "Money",
+  description: "The ledger: what the house spent, what you paid, and where you stand.",
+};
 
 /** The last twelve months, newest first, for the month picker. */
 function recentPeriods(today: string): string[] {

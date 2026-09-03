@@ -15,7 +15,10 @@ import {
 import { weekDates } from "@/lib/domain/scheduling/capacity";
 import { formatDate, houseToday } from "@/lib/utils/date";
 
-export const metadata: Metadata = { title: "My chores" };
+export const metadata: Metadata = {
+  title: "My chores",
+  description: "Only your chores, today first, with what is waiting on your confirmation.",
+};
 
 /**
  * S-10 — my chores, plus the two queues that need the caller specifically:

@@ -172,14 +172,20 @@ export function Meter({
 }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (
+    // Rounded ends, and a track dark enough to see. A 3px square-ended black
+    // bar sitting two pixels under a name is not read as a meter — it is read
+    // as an underline on the name, which is exactly what the standing list
+    // looked like: four underlined members and no visible progress anywhere.
+    // A pill has no such reading, and a visible track gives the fill something
+    // to be a fraction of.
     <div
-      className={cn("mt-4 h-[3px] w-full bg-surface-3", className)}
+      className={cn("mt-4 h-[4px] w-full overflow-hidden rounded-full bg-border", className)}
       role="progressbar"
       aria-valuenow={value}
       aria-valuemin={0}
       aria-valuemax={max}
     >
-      <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+      <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
     </div>
   );
 }

@@ -6,7 +6,10 @@ import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listFoodPreferences, listFoods } from "@/lib/data/food";
 import { houseToday } from "@/lib/utils/date";
 
-export const metadata: Metadata = { title: "Food Library" };
+export const metadata: Metadata = {
+  title: "Library",
+  description: "Every dish the home has recorded, and how often it eats them.",
+};
 
 /** S-45 — every distinct dish the Home has eaten, deduplicated (FD-09). */
 export default async function FoodLibraryPage() {

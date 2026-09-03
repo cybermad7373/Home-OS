@@ -14,7 +14,10 @@ import { formatMoney } from "@/lib/utils/money";
 import { formatDate } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
 
-export const metadata: Metadata = { title: "Today" };
+export const metadata: Metadata = {
+  title: "Today",
+  description: "Who is home, what work is yours, what money moved, and what is waiting on you.",
+};
 
 /**
  * S-50 — Today. The screen the product is used from.

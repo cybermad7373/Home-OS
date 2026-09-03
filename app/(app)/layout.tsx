@@ -10,6 +10,13 @@ import { countDecisionsAwaiting } from "@/lib/data/governance";
 import { getUnreadCount } from "@/lib/data/notifications";
 import { getStanding, weekStartOf } from "@/lib/data/chores";
 import { houseToday } from "@/lib/utils/date";
+import type { Metadata } from "next";
+
+/**
+ * Nothing behind the login is indexable. Every screen in this shell is a private household record.
+ * A search engine that reached one would be reading somebody's ledger.
+ */
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /**
  * The app shell. Everything inside it requires an active membership; a signed-in

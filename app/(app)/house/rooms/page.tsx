@@ -4,7 +4,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { formatMoney } from "@/lib/utils/money";
 
-export const metadata: Metadata = { title: "Rooms" };
+export const metadata: Metadata = {
+  title: "Rooms",
+  description: "Rooms, rent and who sleeps where.",
+};
 
 export default async function RoomsPage() {
   const session = await requireSession();

@@ -7,7 +7,10 @@ import { getStanding } from "@/lib/data/chores";
 import { concentrationRatio, rankStanding } from "@/lib/domain/fairness/targets";
 import { houseToday } from "@/lib/utils/date";
 
-export const metadata: Metadata = { title: "House standing" };
+export const metadata: Metadata = {
+  title: "House standing",
+  description: "Points earned against what each person owed, and who is carrying the house.",
+};
 
 export default async function StandingPage() {
   const session = await requireSession();

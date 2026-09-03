@@ -298,7 +298,7 @@ re-verified.
 | 11 | Try Today could hold the screen for the better part of a minute | The library half and the model half are two requests |
 | 12 | An empty food library said nothing in it was safe for anybody | The two states now say which they are |
 | 13 | The PWA's "Add expense" shortcut pointed at a route that has never existed | It opens the ledger's add sheet |
-| 14 | `/more/game` showed every member invented numbers | Derived from confirmed chores; no new table (D-74) |
+| 14 | `/more/game` showed every member invented numbers | Derived from confirmed chores; no new table (D-77) |
 | 15 | The insights range control's accessible name was "6M" | Still "6M" on screen, "6 months" to a screen reader |
 | 16 | Every one of the six end-to-end journeys was broken at its first step | The onboarding walk lives in one helper |
 

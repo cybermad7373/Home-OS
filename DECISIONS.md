@@ -1638,87 +1638,157 @@ is the case the worker exists for.
 
 ---
 
-## D-71 — the interface is monochrome, and the only colour in it is money
+## D-71 — the interface is monochrome, and colour means money
 
-Version 2.0 of the UI specification spent colour freely: a teal brand, a blue
-info tone, seven chore-category hues, and an amber badge on anything that was
-merely waiting. By the time a screen needed to say something urgent about money
-it had no colour left that meant anything, because everything on it was already
-coloured.
+2.0 had a teal brand, a blue info tone, seven chore hues and an amber badge on
+anything that was merely waiting. By the time a screen needed to say something
+urgent about money, it had no colour left that meant anything: a pending expense,
+a proposed rule and an unbalanced week were all amber, and none of them was more
+urgent than the others.
 
-So the palette is ink and paper, and the two semantic hues are reserved:
-**green means the house owes you, red means you owe the house.** That mapping
-never inverts, on any screen or chart. The accent red is spent on two things
-only — the live dot, and a count that means somebody else is blocked on you.
+So the palette is ink and paper. The brand is black on white and white on black.
+Navigation is ink. Emphasis is weight, scale and a hairline.
 
-The rule has a consequence worth stating, because it was got wrong first: it is
-**not** used for effort. Being behind on chores is not a financial state, and a
-red points total on a Monday morning is a scold rather than a fact.
+Two hues survive, and they mean exactly one thing each: **green — the house owes
+you; red — you owe the house.** That mapping never inverts. It is deliberately
+*not* extended to effort: being behind on chores is not a financial state, and a
+red points total on a Monday morning is a scold rather than information. The
+leaderboard's carry is a signed number in ink; the only colour on that row is
+the count of chores somebody missed, because a missed chore charges them.
 
-Everything else that used to be carried by hue is carried by weight, scale and
-a hairline. Chart series are a greyscale ramp; the chore-category rail encodes
-weight rather than kind; a card is a hairline and some space rather than a
-shadow; and the focus ring is 2px of ink at 2px offset, deliberately thicker
-than the usual, because it cannot rely on being a different hue from anything
-around it.
+One accent red is allowed outside money, and it is spent on two things: the
+count of decisions blocked on you, and the live dot on the sign-in screen.
 
----
+Everything hue used to carry is carried by weight, scale and a hairline
+instead. One consequence is easy to get wrong and was: the focus ring is 2px of
+ink at 2px offset, deliberately thicker than the usual, because it cannot rely
+on being a different colour from anything around it.
 
-## D-72 — every destination exists once, in one file
+Charts are a greyscale ramp. A monochrome chart forces the label to do the work,
+which is the right outcome — eight hues let a designer skip the legend and the
+reader pays for it.
 
-The app had three navigations that did not agree: a bottom tab bar, a desktop
-sidebar of thirty plain links in seven groups, and `/more` as a single
-ungrouped column of twenty-two cards. Food was a tab, a sidebar group and a
-More card — three routes to the same screen, which teaches people that the menu
-is not worth reading.
+## D-72 — figures are set in a dot-matrix face, and only figures
 
-The bar, the sidebar, `/more` and the command palette all render from
-`components/layout/destinations.ts`. A destination cannot appear in two of them
-under different words, or be missing from one by accident, and a screen added
-without a row there does not silently exist off-menu.
+Doto is the display voice. Every number a person came to read — what the house
+owes, what the week scored, how many days are left — is set in it at 28–44 px.
+Body text never is: set a sentence in a dot matrix and it becomes unreadable,
+which is a useful constraint rather than a limitation.
 
-Two rules follow from it and are part of the decision:
+The face has no rupee glyph. Setting `₹1,24,850` in it welds a heavy grotesk ₹
+onto a dot-matrix number, and that appeared at 44 px on the one element the
+whole product is about. `<Readout>` splits the symbol out and sets it in the
+mono face at 0.62em, on the same baseline and in the same colour.
 
-- **The bar never changes shape.** 2.0 promoted Approvals *into the tab bar*
-  when something was pending, which moved every control under the caller's
-  thumb depending on the state of the house. Approvals lives in the header at
-  every width instead, next to notifications, because those are the two things
-  that can be waiting on you.
-- **The header carries the Home switcher.** It was rendered only inside the
-  desktop sidebar, so a member of more than one home had no way to switch on a
-  phone — a defect that could not appear until somebody belonged to two homes,
-  and did the moment the seed put one account in three.
+The corollary is that figures do not animate. A count-up is a number you cannot
+read for 400 ms, and page-load reveals make the first thing you see the last
+thing to arrive. Both were removed along with the components that provided them.
 
----
+## D-73 — one navigation, from one source of truth
 
-## D-73 — a screen declares what sits beside it, not how wide it gets
+There were three, and they disagreed. A bottom bar; a sidebar of thirty plain
+links in seven groups; `/more` as a single ungrouped column of twenty-two cards.
+Food was a tab, a sidebar group and a More card — three routes to one screen,
+which teaches people the menu is not worth reading.
 
-The build was responsive only in the sense that it widened. At 1280px every
+`components/layout/destinations.ts` now holds every destination once, with the
+predicate that decides whether this home's shape and this member's role should
+see it. The bar, the sidebar, More and the command palette all render from it,
+so a destination cannot appear in two of them with different words or go missing
+from one by accident.
+
+Two consequences worth naming:
+
+**The bar never changes.** Five fixed slots and a raised Add. 2.0 swapped
+Insights out for Approvals whenever something was pending (D-67), which moved
+the control under your thumb depending on the state of the house. Approvals now
+lives in the header with notifications, where "waiting on you" belongs — and
+where its count is visible from every screen rather than only from the one
+showing the tab. **This supersedes D-67.**
+
+**Groups answer questions, not module boundaries.** "When am I around" and "who
+is staying" are the same question to a person, so availability and guests sit
+together even though one is scheduling and one is guests.
+
+**The header carries the Home switcher.** It used to be rendered only inside the
+desktop sidebar, so a member of more than one home had no way to switch on a
+phone — a defect that could not appear until somebody belonged to two homes, and
+did the moment the seed put one account in three.
+
+## D-74 — the desktop is a different composition, not a wider phone
+
+The app was responsive only in the sense that it widened. At 1280 px every
 screen was the phone layout with seven hundred pixels of air in the middle of
 each row: a label on the far left, a value on the far right, nothing between
-them.
+them. That is the standard failure of a build that only ever adds width.
 
-So a screen declares two things instead of one — what it is *about*, and what
-sits *beside* it. `Columns` stacks them on a phone in that order and turns the
-second into a sticky 340px rail above `lg`.
+A screen now declares two things: what it is *about*, and what belongs *beside*
+it. `<Columns>` stacks them on a phone in that screen's own reading order and,
+above `lg`, turns the second into a sticky 340 px rail.
 
-What belongs in the rail is what a person glances at: counts, standing, who is
-here, the figures a ledger is read against, and the control that commits what
-the main column is for. What stays in the main column is what they came to
-read. `asideFirst` puts the rail above the main column when they stack, for the
-screens whose rail holds the thing the screen opens with.
+The rail is not a dumping ground. What goes in it is what a person glances at —
+counts, standing, who is here, the figures a ledger is read against. What stays
+in the main column is what they came to read. Where the rail holds the thing the
+screen opens with, `asideFirst` puts it above the main column when they stack.
 
-The same decision covers the primitives the screens kept hand-rolling —
-`Section`, `List`, `CardGrid`, `Stepper`, `Readout`, and `Switch`. A switch is
-the case worth naming: there were four different on/off controls in the app,
-including a `Button` labelled with the word "On", which made the control read
-as an action — pressing a button labelled "On" to turn something *off* is the
-wrong sentence. A switch shows a state, so it is a fill: ink when on, paper
-with a hairline when off.
+Collections of objects — homes, rooms, guests — are card grids rather than
+full-width rows, because a card 1100 px wide holding two lines of text is a
+banner.
 
----
+The same decision covers the primitives the screens kept hand-rolling:
+`Section`, `List`, `CardGrid`, `Stepper`, `Readout` and `Switch`. The switch is
+the case worth naming, because there were four different on/off controls in the
+app and one of them was a `Button` labelled with the word "On" — which makes the
+control read as an action, and pressing a button labelled "On" to turn something
+*off* is the wrong sentence. A switch shows a state, so it is a fill: ink when
+on, paper with a hairline when off.
 
-## D-74 — a streak is derived from confirmed chores, never stored
+## D-75 — a component that is handed children renders them, and there is a test
+
+Three of the app's most-used primitives shipped throwing away what they were
+given, all in the same way: `{...props}` spreads `children`, and a JSX child
+declared on the same element overrides it.
+
+- `<Card>` rendered an empty rounded rectangle. 128 call sites, 47 files.
+- `<Select>` discarded every `<option>` any caller passed. 36 selects: the month
+  pickers on Money and Settle, the category and member filters, the recurrence
+  pickers, an announcement's severity and expiry.
+- The motion `Sheet` and `Drawer` headed every sheet in the app with the literal
+  words "Sheet" and "Drawer", above the real title the wrapper drew underneath.
+
+`<Input>` was a variant of the same disease: it set `placeholder:text-transparent`
+for a floating label that was never positioned, so no placeholder anywhere in
+the app was visible — including the one on the natural-language expense field,
+whose placeholder is the only instruction telling you what to type.
+
+None of it was caught, and the reason is structural: the Vitest `include` globs
+matched `*.test.ts` only, so the repository had never run a component render
+test and would have ignored one if it existed. The Playwright journeys click
+links, and the links were outside the cards.
+
+`tests/unit/components.render.test.tsx` now asserts the least interesting thing
+a component can do — given children, render them — across every primitive that
+takes them, plus that a caller's `p-0` beats the default padding through
+tailwind-merge rather than losing a stylesheet-order coin toss.
+
+## D-76 — a dependent's name lives on the membership, not on a user
+
+A dependent has no login and therefore no `users` row; their name is on
+`house_members.display_name`. Six reads joined only `users(display_name)` and
+fell through to a hardcoded "Someone": meal participants, chore assignees and
+confirmers, expense payers and split rows, away days, guest hosts, announcement
+authors.
+
+In the seeded family home that produced a meal everybody ate reading "Rajesh
+Sharma, Meena Sharma, Anil Sharma, Someone, Someone" — the two children in the
+house, unnamed, on a screen whose entire subject is who was there.
+
+Every read that resolves a member's name coalesces in this order:
+`users.display_name`, then `house_members.display_name`, then the fallback. The
+reads that already did this — analytics, governance, insights — are what the
+rest were measured against.
+
+## D-77 — a streak is derived from confirmed chores, never stored
 
 The game layer shipped behind an admin switch with every figure on it invented:
 the same 7-day streak for everybody, a best streak of 14, 412 points, and a

@@ -77,7 +77,7 @@ test("every primary destination is one tap from anywhere", async ({ page }) => {
     // The bar, not an entry-point grid on one screen. The Home overview used
     // to carry its own "Go to" list of links, which meant the claim held from
     // that screen and nowhere else; the bar renders from `destinations.ts` and
-    // is on every screen at every width (D-72).
+    // is on every screen at every width (D-73).
     await page
       .getByRole("navigation", { name: "Primary" })
       .getByRole("link", { name: label, exact: true })

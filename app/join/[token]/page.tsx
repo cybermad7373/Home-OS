@@ -7,7 +7,10 @@ import { getSession } from "@/lib/data/house";
 import { inviteTokenSchema } from "@/lib/validation/common";
 import { HOME_TYPE_LABEL } from "@/lib/types/domain";
 
-export const metadata: Metadata = { title: "Join a home" };
+export const metadata: Metadata = {
+  title: "Join a home",
+  description: "You have been invited to a home on HouseOS.",
+};
 
 /**
  * The public invite-link landing page.
