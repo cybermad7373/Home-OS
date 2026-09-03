@@ -15,6 +15,7 @@ import { ExpenseFilters } from "./expense-filters";
 import { ExpenseDetailSheet } from "./expense-detail-sheet";
 import { formatDate } from "@/lib/utils/date";
 import { formatMoney } from "@/lib/utils/money";
+import { positionTile } from "@/lib/domain/expenses/position";
 import { monthLabel } from "@/lib/utils/period";
 import type { ExpenseCategoryRow, MoneyMode } from "@/lib/types/database";
 import type { MemberView } from "@/lib/types/domain";
@@ -79,7 +80,8 @@ export function ExpenseList({
   const [prefill, setPrefill] = useState<ExpensePrefill | null>(null);
 
   const byDate = groupByDate(expenses);
-  const yourNetPaise = totals.yourPaidPaise - totals.yourSharePaise;
+  const isPot = moneyMode === "pot";
+  const position = positionTile(moneyMode, totals);
 
   /*
    * The ledger is what this screen is about, so the ledger is the main column
@@ -108,30 +110,41 @@ export function ExpenseList({
             </span>
           </p>
         </div>
+        {/*
+          The label, the figure and whether there is any colour on it are one
+          domain rule, in `positionTile`. See it for why a pot home's tile is
+          never a debt and never red.
+        */}
         <div className="bg-surface p-4">
-          <p className="eyebrow-text mb-3">
-            {yourNetPaise === 0
-              ? "Your position"
-              : yourNetPaise > 0
-                ? "You are owed"
-                : "You owe"}
-          </p>
+          <p className="eyebrow-text mb-3">{position.label}</p>
           <Readout
-            value={formatMoney(Math.abs(yourNetPaise), { currency })}
+            value={formatMoney(position.paise, { currency })}
             size="lg"
             className={
-              yourNetPaise === 0
+              position.tone === "ink"
                 ? "text-text"
-                : yourNetPaise > 0
+                : position.tone === "owed-to-you"
                   ? "text-success"
                   : "text-danger"
             }
           />
           <p className="caption-text mt-2 text-text-muted">
-            your share{" "}
-            <span className="tabular">
-              {formatMoney(totals.yourSharePaise, { currency })}
-            </span>
+            {isPot ? (
+              <>
+                you paid{" "}
+                <span className="tabular">
+                  {formatMoney(totals.yourPaidPaise, { currency })}
+                </span>{" "}
+                of it
+              </>
+            ) : (
+              <>
+                your share{" "}
+                <span className="tabular">
+                  {formatMoney(totals.yourSharePaise, { currency })}
+                </span>
+              </>
+            )}
           </p>
         </div>
       </div>
