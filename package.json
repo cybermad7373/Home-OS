@@ -25,7 +25,8 @@
     "seed": "node scripts/seed-demo.mjs",
     "seed:reset": "node scripts/seed-demo.mjs --reset",
     "seed:verify": "node scripts/seed-demo.mjs --verify",
-    "seed:ai": "node scripts/seed-ai.mjs"
+    "seed:ai": "node scripts/seed-ai.mjs",
+    "audit:ui": "node scripts/audit-ui.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
