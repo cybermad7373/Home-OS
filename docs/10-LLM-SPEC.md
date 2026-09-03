@@ -37,7 +37,7 @@ export type Capability =
   | 'natural_language'     // call site 3
   | 'rule_parsing'         // call site 4
   | 'food_ideas'           // call site 5
-  | 'food_normalise';      // call site 6 — declared, not yet routed
+  | 'food_normalise';      // call site 6
 
 /**
  * The single entry point. Returns null when this Home cannot or should not
@@ -314,11 +314,11 @@ administrative fact, not house news.
 ### 3.6a Capabilities — **new in 3.0**
 
 A Home with a key still decides which of the six call sites may use it (AI-02).
-**Five of the six are implemented.** `food_normalise` is in this vocabulary, in
-the `llm_purpose` enum and in the settings panel, and no code routes it — so its
-switch currently controls nothing. It is left in rather than deleted because
-whether to build the call site or drop the capability is a product decision;
-until it is taken, do not read "six call sites" as six implementations.
+**All six are implemented.** `food_normalise` was the last, and it is the
+narrowest: it is consulted only where section 4.1's deterministic matcher found
+no candidate at all, it can return nothing but an entry the Home already has,
+and what it returns is a suggestion a person confirms rather than a merge (see
+FD-10 and section 4.1 of the food specification).
 
 ```sql
 -- part of migration 0xx, alongside governance

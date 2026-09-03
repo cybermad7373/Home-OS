@@ -131,9 +131,8 @@ applied to a database. Product phase 2 is native Android/iOS (engineering phase
 17) and is not started.
 
 Before touching AI code, read `docs/10-LLM-SPEC.md` (version 3.0: six declared
-call sites behind an AI Router with per-Home capability switches, five of them
-implemented — `food_normalise` has a switch and no route, see the gap list in
-`PROGRESS.md`): credentials are house-owned and encrypted, never
+call sites behind an AI Router with per-Home capability switches, all six
+implemented): credentials are house-owned and encrypted, never
 deployment-wide environment keys. Before
 starting any 2.0 phase, read `docs/14-GOVERNANCE-SPEC.md` — the property the
 version exists to protect is that no single member's responses can complete a

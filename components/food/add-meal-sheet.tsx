@@ -52,7 +52,12 @@ export function AddMealSheet({
 
   const [name, setName] = useState("");
   const [foodId, setFoodId] = useState<string | null>(null);
-  const [match, setMatch] = useState<{ exact: MatchCandidate | null; suggestions: MatchCandidate[] } | null>(null);
+  const [match, setMatch] = useState<{
+    exact: MatchCandidate | null;
+    suggestions: MatchCandidate[];
+    /** Present only when this Home has a key with `food_normalise` on (FD-10). */
+    aiSuggestion?: MatchCandidate | null;
+  } | null>(null);
   const [participantIds, setParticipantIds] = useState<string[]>(activeMembers.map((m) => m.id));
   const [source, setSource] = useState<Source>("home_cooked");
   const [mealDate, setMealDate] = useState(today);
@@ -197,6 +202,37 @@ export function AddMealSheet({
                 {s.name} <span className="text-text-subtle">({s.timesEaten} eaten)</span>
               </button>
             ))}
+          </div>
+        ) : null}
+        {/*
+          Call site 6 (FD-10). Shown only where edit distance found nothing at
+          all, and kept visibly separate from the "Did you mean" list above:
+          that one is arithmetic on the spelling, this one is a guess about the
+          dish, and a person deciding whether to merge two foods is entitled to
+          know which they are looking at. Choosing it fills the field exactly as
+          a deterministic suggestion does — nothing merges until the meal is
+          saved, and nothing here renames an existing entry.
+        */}
+        {match && !match.exact && match.suggestions.length === 0 && match.aiSuggestion ? (
+          <div className="mt-2 rounded-[var(--radius-sm)] border border-border bg-surface-2 p-2">
+            <p className="caption-text mb-1 text-text-muted">
+              Is this the same as one you already have?
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setName(match.aiSuggestion!.name);
+                setFoodId(match.aiSuggestion!.id);
+                setMatch(null);
+              }}
+              className="block w-full rounded-[var(--radius-xs)] px-2 py-1.5 text-left text-[14px] hover:bg-surface"
+            >
+              {match.aiSuggestion.name}{" "}
+              <span className="text-text-subtle">({match.aiSuggestion.timesEaten} eaten)</span>
+            </button>
+            <p className="caption-text mt-1 text-text-subtle">
+              Suggested by the model. Keep your spelling by ignoring this.
+            </p>
           </div>
         ) : null}
         {match?.exact ? (

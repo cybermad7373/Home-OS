@@ -19,6 +19,15 @@ export interface MatchResult {
   suggestions: LibraryCandidate[];
   /** True when neither an exact match nor a suggestion was found. */
   isNew: boolean;
+  /**
+   * One candidate a model thought was the same dish written differently, for
+   * the case edit distance cannot reach — "Parupu Rice" is seven edits from
+   * "Paruppu Sadham" and is the same food. Kept in its own field rather than
+   * mixed into `suggestions` so that the deterministic result stays exactly
+   * what it was, and so the screen can say where the suggestion came from.
+   * Absent unless this Home has a key with `food_normalise` switched on.
+   */
+  aiSuggestion?: LibraryCandidate | null;
 }
 
 /** Lowercase, strip punctuation, collapse whitespace (section 4.1 step 1). */

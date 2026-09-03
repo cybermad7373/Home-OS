@@ -77,10 +77,11 @@ each entry.
   silently vanish. The bounds are sent now; the local validator still has the
   last word, because a prompt is a request and a filter is a guarantee.
 
-**Reported, not changed:** `food_normalise` is declared in the capability
-vocabulary, in the `llm_purpose` enum and as a switch in the settings panel,
-and no code anywhere routes it. Five of the six documented call sites are
-implemented. Whether to build it or drop it is a product call, not a cleanup.
+**Since built:** `food_normalise` was declared in the capability vocabulary,
+in the `llm_purpose` enum and as a switch in the settings panel, with no code
+routing it. It is call site 6 now — `lib/domain/llm/food-normalise.ts` and
+`lib/data/food-normalise.ts` — and all six documented call sites are
+implemented.
 
 ### The demo data
 
@@ -1622,16 +1623,20 @@ Three things the pass established that were not previously written down:
   monitoring, backups, and a real-device smoke test — still need to be completed
   before calling product phase 1 launched. Specification 2.0 widens what phase 1
   contains; it does not change that gate.
-- **`food_normalise` is a capability with no call site.** It is in the
-  capability vocabulary, in the `llm_purpose` enum and as a switch an admin can
-  toggle in the AI panel, and no code anywhere routes it — five of the six
-  documented call sites are implemented. Reported rather than quietly deleted:
-  whether to build it or drop the switch is a product call.
+- **`food_normalise` is built**, and all six documented call sites are now
+  implemented. It is consulted only where the deterministic matcher in food
+  specification section 4.1 found no candidate at all — the case a
+  transliteration hides in, because "Parupu Rice" is seven edits from "Paruppu
+  Sadham" and is the same dish. It can return nothing but an entry the Home
+  already has, and what it returns is a suggestion somebody confirms, never a
+  merge: a duplicate can be merged later and a merge cannot be unpicked.
+  Fifteen unit cases cover the validation, which is where the guarantee lives.
 - **Every screen has been through the 3.0 pass**, and the design decisions are
-  D-71 to D-74. What is *not* done is a screenshot set: the before-and-after
-  comparison the overhaul plan called for was never captured, so visual
-  regressions are caught by `/dev/kitchen-sink` and by reading, not by
-  diffing.
+  D-71 to D-74. `npm run shoot:ui` captures the screenshot set the overhaul
+  plan called for — a full-page PNG of all 38 screens at a given width and
+  theme — so a visual regression can be seen rather than only reasoned about.
+  What is still not automated is the comparison: the images are evidence a
+  person reads, not a diff a run fails on.
 - **Native mobile is a separate product phase.** It must not be described as a
   wrapper with “no backend change”: native push uses a provider adapter and
   platform token lifecycle, while the shared API and device model remain the
