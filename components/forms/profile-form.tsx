@@ -54,7 +54,10 @@ export function ProfileForm({
     toast("Saved.", "success");
     // Onboarding continues to the availability step: a member whose first
     // generated week ignores their hours learns to ignore the schedule.
-    router.push(isOnboarding ? "/onboarding/availability" : "/more");
+    // The last required step. Availability and notifications used to follow;
+    // both are now offered from Home once there is something on screen to
+    // make sense of them.
+    router.push(isOnboarding ? "/home" : "/more");
     router.refresh();
   }
 

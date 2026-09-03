@@ -4,8 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardShell, CardCore, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { MemberAvatar } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/layout/page-header";
+import { SetupNudges, type Nudge } from "@/components/layout/setup-nudges";
 import { Leaderboard } from "@/components/chores/leaderboard";
 import { getDailyCost } from "@/lib/data/analytics";
+import { hasAvailability } from "@/lib/data/availability";
+import { getLlmConfig } from "@/lib/data/llm";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listExpenses, listPendingApprovals } from "@/lib/data/expenses";
 import { countDecisionsAwaiting } from "@/lib/data/governance";
@@ -72,6 +75,32 @@ export default async function HomeOverviewPage() {
       : getPeriodPosition(session, context.house.id, period),
   ]);
 
+  // Onboarding no longer forces availability, notifications or the AI key —
+  // asking somebody their usual hours before they have seen a single chore is
+  // asking them to guess. These are what is left, surfaced where it can be
+  // acted on and dismissed for good.
+  const [availabilitySet, llm] = await Promise.all([
+    hasAvailability(session, context.house.id, context.me.id),
+    context.isAdmin
+      ? getLlmConfig(session, context.house.id)
+      : Promise.resolve({ configured: true as const }),
+  ]);
+
+  const nudges: Nudge[] = [
+    !availabilitySet && {
+      id: "availability",
+      href: "/house/availability",
+      title: "Tell the house when you are around",
+      body: "The scheduler will stop giving you Tuesday's cooking when you are never home on a Tuesday.",
+    },
+    !llm.configured && {
+      id: "ai",
+      href: "/admin/settings/ai",
+      title: "Add an AI key for this home",
+      body: "Optional and free on most providers. Without one, every AI feature quietly uses its ordinary path.",
+    },
+  ].filter(Boolean) as Nudge[];
+
   const joinRequests = context.members.filter((member) => member.status === "requested");
   const active = context.members.filter((member) => member.status === "active");
 
@@ -111,6 +140,8 @@ export default async function HomeOverviewPage() {
           month: "long",
         })} · ${active.length} ${active.length === 1 ? "member" : "members"}`}
       />
+
+      <SetupNudges nudges={nudges} />
 
       {/* Pending Block - unified card with urgency gradient */}
       <HomePendingBlock pending={pending} />

@@ -213,7 +213,10 @@ function CreateForm({ onBack, router }: { onBack: () => void; router: Router }) 
     }
 
     // S-06b next: the optional AI step, which the admin may skip in one tap.
-    router.push("/onboarding/ai");
+    // Straight to the profile. The AI key is configuration an admin has no
+    // basis for deciding on before they have seen the app, and it is offered
+    // again from Home and from house settings.
+    router.push("/onboarding/profile");
     router.refresh();
   }
 
