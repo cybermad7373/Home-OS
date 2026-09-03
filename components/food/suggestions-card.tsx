@@ -32,19 +32,42 @@ interface SuggestionsResponse {
  * (section 9.5).
  */
 export function SuggestionsCard({ currency, today }: { currency: string; today: string }) {
-  const [data, setData] = useState<SuggestionsResponse | null>(null);
+  const [data, setData] = useState<SuggestionsResponse["library"] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [ai, setAi] = useState<AiIdea[] | null>(null);
+  const [aiPending, setAiPending] = useState(true);
 
+  // Two requests, because they are two answers with very different costs. The
+  // library half is a database read; the AI half is a provider round trip the
+  // adapter allows 20 seconds and one retry for. Awaiting them together — which
+  // is what this did — meant a slow or rate-limited model could keep the
+  // home's own history off the screen for the better part of a minute, for a
+  // half of the card that is explicitly optional.
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/food/suggestions")
+
+    fetch("/api/food/suggestions?half=library")
       .then((r) => r.json())
       .then((body) => {
-        if (!cancelled) setData(body);
+        if (!cancelled) setData(body?.library ?? null);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+
+    fetch("/api/food/suggestions?half=ai")
+      .then((r) => r.json())
+      .then((body) => {
+        if (!cancelled) setAi(body?.ai ?? null);
+      })
+      .catch(() => {
+        // A failed AI half is the documented outcome, not an error state
+        // (section 9.5): the card renders its other half and says nothing.
+      })
+      .finally(() => {
+        if (!cancelled) setAiPending(false);
+      });
+
     return () => {
       cancelled = true;
     };
@@ -60,7 +83,7 @@ export function SuggestionsCard({ currency, today }: { currency: string; today: 
     );
   }
 
-  if (!data) return null;
+  if (!data && !ai) return null;
 
   return (
     <Card>
@@ -71,12 +94,12 @@ export function SuggestionsCard({ currency, today }: { currency: string; today: 
         {/* Cold start shows both: the honest message and the most recently
             eaten in place of a fabricated score (section 6.1). An empty
             candidate set shows only the message — there is nothing to list. */}
-        {data.library.message ? (
-          <p className="caption-text mb-1.5 text-text-muted">{data.library.message}</p>
+        {data?.message ? (
+          <p className="caption-text mb-1.5 text-text-muted">{data.message}</p>
         ) : null}
-        {data.library.suggestions.length > 0 ? (
+        {data && data.suggestions.length > 0 ? (
           <ul className="flex flex-col gap-2">
-            {data.library.suggestions.map((s) => (
+            {data.suggestions.map((s) => (
               <li
                 key={s.foodId}
                 className="flex items-center justify-between gap-3 rounded-[var(--radius-sm)] bg-surface-2 px-3 py-2"
@@ -101,14 +124,21 @@ export function SuggestionsCard({ currency, today }: { currency: string; today: 
         ) : null}
       </div>
 
-      {data.ai && data.ai.length > 0 ? (
+      {aiPending ? (
+        <div>
+          <p className="rule-label eyebrow-text mb-2">Ideas from the model</p>
+          <div className="shimmer h-4 w-1/2 rounded-full" />
+        </div>
+      ) : null}
+
+      {ai && ai.length > 0 ? (
         <div>
           {/* The dashed edge is the whole point: the reader can see at a
               glance which half is the home's own history and which half is
               invention (spec section 6). */}
           <p className="rule-label eyebrow-text mb-2">Ideas from the model</p>
           <ul className="flex flex-col gap-2">
-            {data.ai.map((idea) => (
+            {ai.map((idea) => (
               <li key={idea.name} className="rounded-[var(--radius-sm)] border border-dashed border-border px-3 py-2">
                 <div className="flex items-center justify-between">
                   <p className="text-[15px] text-text">{idea.name}</p>

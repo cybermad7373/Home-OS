@@ -87,6 +87,10 @@ export function FilterBar({
           options={[1, 3, 6].map((months) => ({
             key: String(months),
             label: `${months}M`,
+            // "6M" is what fits at 360px; "6 months" is what it means. A
+            // control whose accessible name is an abbreviation is a control a
+            // screen reader cannot describe.
+            name: `${months} ${months === 1 ? "month" : "months"}`,
             href: hrefFor(state, { months }),
             current: state.months === months,
           }))}
@@ -137,7 +141,14 @@ function Segmented({
   grow = true,
 }: {
   label: string;
-  options: { key: string; label: string; href: string; current: boolean }[];
+  options: {
+    key: string;
+    label: string;
+    /** The accessible name, where the visible label is an abbreviation. */
+    name?: string;
+    href: string;
+    current: boolean;
+  }[];
   /** A control with short labels should not be stretched to half the row. */
   grow?: boolean;
 }) {
@@ -148,6 +159,7 @@ function Segmented({
           <li key={option.key} className={grow ? "min-w-0 flex-1" : "shrink-0"}>
             <Link
               href={option.href}
+              aria-label={option.name}
               aria-current={option.current ? "page" : undefined}
               className={cn(
                 "flex h-9 items-center justify-center rounded-full text-[14px] transition-colors",
@@ -177,7 +189,14 @@ function Chips({
   allLabel: string;
   allHref: string;
   allCurrent: boolean;
-  options: { key: string; label: string; href: string; current: boolean }[];
+  options: {
+    key: string;
+    label: string;
+    /** The accessible name, where the visible label is an abbreviation. */
+    name?: string;
+    href: string;
+    current: boolean;
+  }[];
 }) {
   return (
     // One scrolling row rather than a wrapping block: eight members wrapped to

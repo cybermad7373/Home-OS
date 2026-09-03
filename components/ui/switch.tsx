@@ -52,6 +52,11 @@ export function Switch({
         "relative inline-flex h-[26px] w-[46px] shrink-0 items-center rounded-full border",
         "transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out)]",
         "disabled:pointer-events-none disabled:opacity-40",
+        // The control is 26px tall because a 44px pill would be the loudest
+        // thing on a settings screen. The *target* is still 44px: an invisible
+        // pseudo-element carries the difference, which is the whole reason the
+        // minimum exists.
+        "after:absolute after:inset-x-0 after:-inset-y-[9px] after:content-['']",
         checked ? "border-primary bg-primary" : "border-border-strong bg-surface-2",
         className,
       )}

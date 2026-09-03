@@ -2,7 +2,7 @@
 
 import { motion, type HTMLMotionProps } from "motion/react";
 import { useReducedMotion } from "motion/react";
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 
 interface PageTransitionProps {
@@ -67,6 +67,10 @@ export function Sheet({
 }: SheetProps) {
   const reduce = useReducedMotion();
   const offsets = sideOffsets[side];
+  // A sheet is a modal surface, and until 3.0 it said so to nobody: no role,
+  // no `aria-modal`, and a title rendered as an ordinary heading the dialog was
+  // not named by. A screen reader announced the page it was covering.
+  const titleId = useId();
 
   if (!open) return null;
 
@@ -89,6 +93,9 @@ export function Sheet({
         {...props}
       >
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
           className={cn(
             sizeClasses[size],
             "w-full overflow-hidden rounded-t-[2rem] bg-surface shadow-[var(--elev-4)] ring-1 ring-border lg:w-[440px] lg:rounded-l-[2rem]",
@@ -96,7 +103,9 @@ export function Sheet({
           )}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-border">
-            <h2 className="heading-text">{title}</h2>
+            <h2 id={titleId} className="heading-text">
+              {title}
+            </h2>
             <button
               type="button"
               onClick={onClose}
@@ -126,6 +135,7 @@ interface DrawerProps
 
 export function Drawer({ open, onClose, children, title, className, ...props }: DrawerProps) {
   const reduce = useReducedMotion();
+  const titleId = useId();
 
   if (!open) return null;
 
@@ -139,6 +149,9 @@ export function Drawer({ open, onClose, children, title, className, ...props }: 
       onClick={onClose}
     >
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         className={cn(
           "h-full w-full max-w-[480px] overflow-hidden bg-surface shadow-[var(--elev-4)] ring-1 ring-border",
           className,
@@ -151,7 +164,9 @@ export function Drawer({ open, onClose, children, title, className, ...props }: 
         {...props}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-border">
-          <h2 className="heading-text">{title}</h2>
+          <h2 id={titleId} className="heading-text">
+            {title}
+          </h2>
           <button
             type="button"
             onClick={onClose}

@@ -849,7 +849,18 @@ export async function getSuggestions(
 
   const candidateFoods = foods ?? [];
   if (candidateFoods.length === 0) {
-    return { suggestions: [], message: "Nothing in the library is safe for everyone eating tonight", coldStart: (totalMeals ?? 0) < 5 };
+    // An empty library is not an unsafe one. This branch used to return the
+    // restriction message — so a Home that had recorded nothing at all was told
+    // that nothing in its library was safe for anybody, which is alarming and
+    // false. The two states are different and the copy has to say which it is.
+    return {
+      suggestions: [],
+      message:
+        (totalMeals ?? 0) < 5
+          ? "Not enough history yet — record a few meals and this fills in"
+          : "Nothing in the library yet — save a meal to it and this fills in",
+      coldStart: (totalMeals ?? 0) < 5,
+    };
   }
 
   const foodIds = candidateFoods.map((f) => f.id);

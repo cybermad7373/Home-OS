@@ -22,8 +22,12 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "maskable",
       },
     ],
+    // A shortcut is a long-press on the installed icon, so a wrong URL here is
+    // a 404 nobody sees until the app is on a home screen. `/expenses/new` has
+    // never existed: adding an expense is the sheet the ledger opens with
+    // `?add=1`, which is also what the universal quick-add links to.
     shortcuts: [
-      { name: "Add expense", url: "/expenses/new" },
+      { name: "Add expense", url: "/expenses?add=1" },
       { name: "My chores", url: "/chores/mine" },
     ],
   };

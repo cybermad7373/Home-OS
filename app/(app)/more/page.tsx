@@ -117,7 +117,11 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="mb-6">
+    // `min-w-0`: a grid item's default `min-width: auto` floors it at its own
+    // min-content width, and every label in the list below carries `truncate`,
+    // which is `white-space: nowrap` — so one long entry widened the whole page
+    // and the truncation meant to prevent exactly that never got to run.
+    <section className="mb-6 min-w-0">
       <p className="eyebrow-text mb-1">{heading}</p>
       {note ? <p className="caption-text mb-2 text-text-subtle">{note}</p> : null}
       {/* One hairline-divided list per group rather than one card per link.
