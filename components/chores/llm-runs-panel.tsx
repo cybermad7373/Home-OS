@@ -1,4 +1,5 @@
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription } from "@/components/ui/card";
+import { Readout } from "@/components/ui/readout";
 import type { LlmRunSummary } from "@/lib/data/llm";
 
 /**
@@ -16,15 +17,16 @@ export function LlmRunsPanel({ summary }: { summary: LlmRunSummary | null }) {
 
   return (
     <Card className="mb-3">
-      <CardTitle>The model&apos;s schedules</CardTitle>
-      <CardDescription>
+      <p className="eyebrow-text mb-3">The model&apos;s schedules</p>
+      <Readout value={`${rate}%`} size="lg" />
+      <CardDescription className="mt-2">
         {summary.accepted} of the last {summary.total} proposals were published;{" "}
         {summary.total - summary.accepted} were discarded and the engine&apos;s schedule
         used instead. Average round trip {summary.avgLatencyMs} ms.
       </CardDescription>
 
       {rate < 50 ? (
-        <p className="caption-text mt-2 text-warning">
+        <p className="caption-text mt-2 text-text">
           Below half accepted. That is the documented point at which the prompt or the
           model needs changing — not the constraints.
         </p>

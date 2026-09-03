@@ -18,7 +18,7 @@ import { rankStanding } from "@/lib/domain/fairness/targets";
 import { ownRowsFirst, owesRows, pendingItems } from "@/lib/domain/home/overview";
 import { weekDates } from "@/lib/domain/scheduling/capacity";
 import { formatDate, houseToday } from "@/lib/utils/date";
-import { Section } from "./Section";
+import { Section } from "@/components/layout/section";
 import { HomeFigures } from "./HomeFigures";
 import { HomeOwesWhom } from "./HomeOwesWhom";
 import { HomeStanding } from "./HomeStanding";

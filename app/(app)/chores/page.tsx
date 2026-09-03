@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { WeekView } from "@/components/chores/week-view";
 import { PageHeader } from "@/components/layout/page-header";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { getHouseContext, requireSession } from "@/lib/data/house";
@@ -68,22 +67,20 @@ export default async function ChoresPage({
     <>
       <PageHeader
         title="Chores"
+        subtitle={
+          awaiting.length > 0
+            ? `${awaiting.length} ${awaiting.length === 1 ? "chore is" : "chores are"} waiting on your confirmation`
+            : undefined
+        }
         action={
-          <div className="flex items-center gap-2">
-            {awaiting.length > 0 ? (
-              <Link href="/chores/mine">
-                <Badge tone="warning">{awaiting.length} to confirm</Badge>
-              </Link>
-            ) : null}
-            {context.isAdmin ? (
-              <Link
-                href="/admin/schedule"
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                Generate
-              </Link>
-            ) : null}
-          </div>
+          context.isAdmin ? (
+            <Link
+              href="/admin/schedule"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              Generate
+            </Link>
+          ) : undefined
         }
       />
 

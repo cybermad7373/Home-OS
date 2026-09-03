@@ -1,4 +1,4 @@
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { List } from "@/components/layout/section";
 import { MemberAvatar } from "@/components/ui/avatar";
 import { PointsBreakdownButton } from "@/components/chores/points-breakdown";
 import { cn } from "@/lib/utils/cn";
@@ -19,8 +19,13 @@ export interface StandingRow {
  * S-15 — the house standing.
  *
  * The whole product in one screen: who is carrying the house and who is
- * coasting, with the numbers behind it. Green means ahead of target, red means
- * behind. That mapping never inverts anywhere in the app.
+ * coasting, with the numbers behind it.
+ *
+ * Being behind on chores is not a financial state, so it is not drawn in one:
+ * the carry is a signed number in ink, and the only colour on the row is the
+ * count of chores somebody missed. Green and red belong to money — the house
+ * owes you, or you owe the house — and spending them on effort as well would
+ * leave the ledger with nothing to say.
  *
  * The caller's own row is always shown, even when they are outside the top
  * three, so nobody has to scroll to find themselves.
@@ -53,8 +58,18 @@ export function Leaderboard({
   const percent = Math.round(concentrationRatio * 100);
 
   return (
-    <Card className="p-0">
-      <ul className="divide-y divide-border">
+    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface">
+      {standing.some((row) => row.earnedPoints > 0) ? (
+        <p className="caption-text border-b border-border px-4 py-2.5 text-text-muted">
+          The top three are doing{" "}
+          <span className="tabular font-medium text-text">{percent}%</span> of the work
+          {percent > 45
+            ? " — the house is leaning on a few people. The target is under 45 percent."
+            : " — under the 45 percent target, so the load is spread."}
+        </p>
+      ) : null}
+
+      <List className="rounded-none border-0">
         {rows.map((row) => (
           <li
             key={row.memberId}
@@ -63,7 +78,7 @@ export function Leaderboard({
               row.memberId === myMemberId && "bg-surface-2",
             )}
           >
-            <span className="tabular w-5 shrink-0 text-[13px] text-text-muted">
+            <span className="readout w-5 shrink-0 text-[15px] leading-none text-text-subtle">
               {row.rank}
             </span>
 
@@ -88,27 +103,21 @@ export function Leaderboard({
                 </span>
               </span>
 
-              <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-surface-2">
+              <span className="mb-1.5 mt-2 block h-[3px] bg-surface-3">
                 <span
                   className="block h-full bg-primary"
                   style={{ width: `${(row.earnedPoints / maxPoints) * 100}%` }}
                 />
               </span>
 
-              <span className="caption-text mt-1 flex justify-between text-text-muted">
+              <span className="caption-text flex justify-between text-text-muted">
                 <span>
                   {row.choresDone} done
-                  {row.choresMissed > 0 ? ` · ${row.choresMissed} missed` : ""}
+                  {row.choresMissed > 0 ? (
+                    <span className="text-danger"> · {row.choresMissed} missed</span>
+                  ) : null}
                 </span>
-                <span
-                  className={
-                    row.carry > 0
-                      ? "text-success"
-                      : row.carry < 0
-                        ? "text-danger"
-                        : undefined
-                  }
-                >
+                <span className="tabular">
                   {row.carry > 0 ? "+" : ""}
                   {row.carry} against target
                 </span>
@@ -116,18 +125,7 @@ export function Leaderboard({
             </span>
           </li>
         ))}
-      </ul>
-
-      {standing.some((row) => row.earnedPoints > 0) ? (
-        <div className="border-t border-border px-4 py-3">
-          <CardTitle>Top three did {percent}% of the work</CardTitle>
-          <CardDescription>
-            {percent > 45
-              ? "The house is still leaning on a few people. The target is under 45 percent."
-              : "Under the 45 percent target — the load is spread."}
-          </CardDescription>
-        </div>
-      ) : null}
-    </Card>
+      </List>
+    </div>
   );
 }

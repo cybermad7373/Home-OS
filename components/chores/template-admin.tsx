@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription } from "@/components/ui/card";
+import { List, Section } from "@/components/layout/section";
+import { Readout } from "@/components/ui/readout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/label";
 import { Input, Select } from "@/components/ui/input";
@@ -133,10 +135,10 @@ export function TemplateAdmin({
       {error ? <Alert tone="danger">{error}</Alert> : null}
 
       <Card>
-        <CardTitle>
-          {load.points} points a week, across {load.instances} chores
-        </CardTitle>
-        <CardDescription>
+        <p className="eyebrow-text mb-3">The weekly load</p>
+        <Readout value={String(load.points)} size="lg" />
+        <CardDescription className="mt-2">
+          points a week, across {load.instances} chores.{" "}
           For {memberCount} {memberCount === 1 ? "person" : "people"}, that is about{" "}
           <span className="font-medium text-text">{load.perMember} points each</span> —
           roughly one substantial chore a day. If that looks wrong for your house, adjust
@@ -165,12 +167,11 @@ export function TemplateAdmin({
       ) : null}
 
       {[...byCategory.entries()].map(([category, list]) => (
-        <section key={category}>
-          <h2 className="label-text mb-1.5 text-text-muted">
-            {CATEGORIES.find((entry) => entry.value === category)?.label ?? category}
-          </h2>
-          <Card className="p-0">
-            <ul className="divide-y divide-border">
+        <Section
+          key={category}
+          label={CATEGORIES.find((entry) => entry.value === category)?.label ?? category}
+        >
+          <List>
               {list.map((template) => (
                 <li
                   key={template.id}
@@ -179,10 +180,8 @@ export function TemplateAdmin({
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-2 truncate font-medium">
                       {template.name}
-                      {template.is_heavy ? <Badge tone="warning">Heavy</Badge> : null}
-                      {template.requires_cooking_skill ? (
-                        <Badge tone="info">Cooks only</Badge>
-                      ) : null}
+                      {template.is_heavy ? <Badge>Heavy</Badge> : null}
+                      {template.requires_cooking_skill ? <Badge>Cooks only</Badge> : null}
                       {template.active ? null : <Badge tone="neutral">Off</Badge>}
                     </p>
                     <p className="caption-text text-text-muted">
@@ -203,10 +202,9 @@ export function TemplateAdmin({
                     </Button>
                   ) : null}
                 </li>
-              ))}
-            </ul>
-          </Card>
-        </section>
+            ))}
+          </List>
+        </Section>
       ))}
 
       {editing ? (

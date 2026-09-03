@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 
 /**
  * A section on Home is a labelled hairline, not a card with a heading inside
@@ -42,5 +43,30 @@ export function Section({
       </div>
       {children}
     </section>
+  );
+}
+
+/**
+ * The app's one list surface: a hairline box with hairline dividers.
+ *
+ * Every screen was writing this class string out by hand, and they had drifted
+ * — some rounded to `--radius-lg`, some to a literal `10px`, some wrapped in a
+ * `<Card className="p-0">` that put a second border around the first.
+ */
+export function List({
+  children,
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLUListElement>) {
+  return (
+    <ul
+      className={cn(
+        "divide-y divide-border overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </ul>
   );
 }

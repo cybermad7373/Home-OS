@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { ChoreCard } from "@/components/chores/chore-card";
 import { PageHeader } from "@/components/layout/page-header";
-import { Card } from "@/components/ui/card";
+import { List, Section } from "@/components/layout/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import {
@@ -66,43 +67,41 @@ export default async function MyChoresPage() {
       />
 
       {dependents.length > 0 ? (
-        <Link href="/chores/dependents" className="mb-4 block">
-          <Card className="transition-colors hover:border-primary">
-            <p className="font-medium">
+        <Link
+          href="/chores/dependents"
+          className="mb-6 flex items-center gap-3 rounded-[var(--radius-lg)] border border-border bg-surface p-4 transition-colors hover:bg-surface-2"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium">
               {dependents.map((dependent) => dependent.displayName.split(" ")[0]).join(" and ")}
-              {dependents.length === 1 ? "'s chores" : "'s chores"}
-            </p>
-            <p className="caption-text text-text-muted">
+              &apos;s chores
+            </span>
+            <span className="caption-text block text-text-muted">
               Mark them done on their behalf — somebody else confirms them.
-            </p>
-          </Card>
+            </span>
+          </span>
+          <ChevronRight size={16} className="shrink-0 text-text-subtle" aria-hidden />
         </Link>
       ) : null}
 
       {awaiting.length > 0 ? (
-        <section className="mb-6">
-          <h2 className="heading-text mb-2">Needs your confirmation</h2>
-          <p className="caption-text mb-2 text-text-muted">
+        <Section label={`Needs your confirmation · ${awaiting.length}`}>
+          <p className="caption-text mb-3 text-text-muted">
             Somebody says they have done these. Until one of you confirms, they earn
             nothing — and after the house&apos;s auto-confirm window, silence counts as
             approval.
           </p>
-          <Card className="p-0">
-            <ul className="divide-y divide-border">
-              {awaiting.map((chore) => (
-                <li key={chore.id}>
-                  <ChoreCard chore={chore} myMemberId={context.me.id} houseId={context.house.id} />
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </section>
+          <List>
+            {awaiting.map((chore) => (
+              <li key={chore.id}>
+                <ChoreCard chore={chore} myMemberId={context.me.id} houseId={context.house.id} />
+              </li>
+            ))}
+          </List>
+        </Section>
       ) : null}
 
-      <section className="mb-6">
-        <h2 className="heading-text mb-2">
-          Today · {formatDate(today, context.house.timezone)}
-        </h2>
+      <Section label={`Today · ${formatDate(today, context.house.timezone)}`}>
         {todays.length === 0 ? (
           <EmptyState
             title="Nothing assigned today"
@@ -113,49 +112,46 @@ export default async function MyChoresPage() {
             }
           />
         ) : (
-          <Card className="p-0">
-            <ul className="divide-y divide-border">
-              {todays.map((chore) => (
-                <li key={chore.id}>
-                  <ChoreCard chore={chore} myMemberId={context.me.id} houseId={context.house.id} />
-                </li>
-              ))}
-            </ul>
-          </Card>
+          <List>
+            {todays.map((chore) => (
+              <li key={chore.id}>
+                <ChoreCard chore={chore} myMemberId={context.me.id} houseId={context.house.id} />
+              </li>
+            ))}
+          </List>
         )}
-      </section>
+      </Section>
 
       {rest.length > 0 ? (
-        <section className="mb-6">
-          <h2 className="heading-text mb-2">Rest of the week</h2>
-          <Card className="p-0">
-            <ul className="divide-y divide-border">
-              {rest.map((chore) => (
-                <li key={chore.id}>
-                  <ChoreCard chore={chore} myMemberId={context.me.id} houseId={context.house.id} variant="compact" />
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </section>
+        <Section label="Rest of the week">
+          <List>
+            {rest.map((chore) => (
+              <li key={chore.id}>
+                <ChoreCard
+                  chore={chore}
+                  myMemberId={context.me.id}
+                  houseId={context.house.id}
+                  variant="compact"
+                />
+              </li>
+            ))}
+          </List>
+        </Section>
       ) : null}
 
       {pool.length > 0 ? (
-        <section>
-          <h2 className="heading-text mb-2">Up for grabs</h2>
-          <p className="caption-text mb-2 text-text-muted">
+        <Section label={`Up for grabs · ${pool.length}`}>
+          <p className="caption-text mb-3 text-text-muted">
             Nobody is holding these. Claiming one is the fastest way to close a deficit.
           </p>
-          <Card className="p-0">
-            <ul className="divide-y divide-border">
-              {pool.map((chore) => (
-                <li key={chore.id}>
-                  <ChoreCard chore={chore} myMemberId={context.me.id} houseId={context.house.id} />
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </section>
+          <List>
+            {pool.map((chore) => (
+              <li key={chore.id}>
+                <ChoreCard chore={chore} myMemberId={context.me.id} houseId={context.house.id} />
+              </li>
+            ))}
+          </List>
+        </Section>
       ) : null}
     </>
   );

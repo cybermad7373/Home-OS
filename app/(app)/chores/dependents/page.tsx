@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ChoreCard } from "@/components/chores/chore-card";
 import { PageHeader } from "@/components/layout/page-header";
-import { Card } from "@/components/ui/card";
+import { List, Section } from "@/components/layout/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listAssignments, weekStartOf } from "@/lib/data/chores";
@@ -76,13 +76,10 @@ export default async function DependentChoresPage() {
         const waiting = chores.filter((chore) => chore.status === "done_pending").length;
 
         return (
-          <section key={dependent.id} className="mb-6">
-            <h2 className="heading-text mb-1">{dependent.displayName}</h2>
-            <p className="caption-text mb-2 text-text-muted">
+          <Section key={dependent.id} label={dependent.displayName}>
+            <p className="caption-text mb-3 text-text-muted">
               {earned} points confirmed this week
-              {waiting > 0
-                ? ` · ${waiting} waiting on somebody else to confirm`
-                : ""}
+              {waiting > 0 ? ` · ${waiting} waiting on somebody else to confirm` : ""}
             </p>
 
             {todays.length === 0 ? (
@@ -95,8 +92,7 @@ export default async function DependentChoresPage() {
                 }
               />
             ) : (
-              <Card className="p-0">
-                <ul className="divide-y divide-border">
+              <List>
                   {todays.map((chore) => (
                     <li key={chore.id}>
                       <ChoreCard
@@ -110,13 +106,11 @@ export default async function DependentChoresPage() {
                       />
                     </li>
                   ))}
-                </ul>
-              </Card>
+              </List>
             )}
 
             {rest.length > 0 ? (
-              <Card className="mt-2 p-0">
-                <ul className="divide-y divide-border">
+              <List className="mt-2">
                   {rest.map((chore) => (
                     <li key={chore.id}>
                       <ChoreCard
@@ -131,10 +125,9 @@ export default async function DependentChoresPage() {
                       />
                     </li>
                   ))}
-                </ul>
-              </Card>
+              </List>
             ) : null}
-          </section>
+          </Section>
         );
       })}
     </>

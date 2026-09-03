@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight, TriangleAlert } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
-import { Section } from "@/app/(app)/home/Section";
+import { List, Section } from "@/components/layout/section";
 import { Readout } from "@/components/ui/readout";
 import { ChoreCard } from "@/components/chores/chore-card";
 import { AnnouncementsBlock } from "@/components/announcements/announcements-block";
@@ -84,13 +84,13 @@ export default async function TodayPage() {
       */}
       {openChores.length > 0 ? (
         <Section label="My chores" href="/chores/mine" linkLabel="All mine">
-          <ul className="divide-y divide-border overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface">
+          <List>
             {openChores.map((chore) => (
               <li key={chore.id}>
                 <ChoreCard chore={chore} myMemberId={context.me.id} houseId={context.house.id} />
               </li>
             ))}
-          </ul>
+          </List>
         </Section>
       ) : null}
 
@@ -101,7 +101,7 @@ export default async function TodayPage() {
       */}
       {today.needsYou.length > 0 ? (
         <Section label={`Needs you · ${today.needsYou.length}`}>
-          <ul className="divide-y divide-border overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface">
+          <List>
             {today.needsYou.map((item) => (
               <li key={`${item.kind}-${item.id}`}>
                 <Link
@@ -131,7 +131,7 @@ export default async function TodayPage() {
                 </Link>
               </li>
             ))}
-          </ul>
+          </List>
         </Section>
       ) : null}
 

@@ -6,6 +6,7 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { List, Section } from "@/components/layout/section";
 import { useToast } from "@/components/ui/toast";
 import type { ScheduleRunRow } from "@/lib/types/database";
 
@@ -148,15 +149,11 @@ export function GeneratePanel({
         </Card>
       ) : null}
 
-      <section>
-        <h2 className="heading-text mb-2">Past runs</h2>
+      <Section label="Past runs">
         {runs.length === 0 ? (
-          <p className="caption-text text-text-muted">
-            No week has been generated yet.
-          </p>
+          <p className="caption-text text-text-muted">No week has been generated yet.</p>
         ) : (
-          <Card className="p-0">
-            <ul className="divide-y divide-border">
+          <List>
               {runs.map((runRow) => (
                 <li
                   key={runRow.id}
@@ -177,7 +174,7 @@ export function GeneratePanel({
                       </p>
                     ) : null}
                   </div>
-                  <Badge tone={runRow.generator === "llm" ? "info" : "neutral"}>
+                  <Badge tone="neutral">
                     {runRow.generator === "llm"
                       ? runRow.llm_accepted
                         ? "AI accepted"
@@ -185,11 +182,10 @@ export function GeneratePanel({
                       : "Rule engine"}
                   </Badge>
                 </li>
-              ))}
-            </ul>
-          </Card>
+            ))}
+          </List>
         )}
-      </section>
+      </Section>
     </div>
   );
 }

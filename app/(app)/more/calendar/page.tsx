@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, TriangleAlert } from "lucide-react";
+import { ChevronRight, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { Readout } from "@/components/ui/readout";
-import { Section } from "@/app/(app)/home/Section";
+import { List, Section } from "@/components/layout/section";
+import { Stepper } from "@/components/layout/stepper";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { getCalendarDay, getCalendarMonth, getCalendarWeek } from "@/lib/data/calendar";
 import { boundsOfMonth, weekStartOfDate, type DayDensity } from "@/lib/domain/home/calendar";
@@ -148,28 +149,6 @@ function weekdayIndex(date: string): number {
   return (new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7;
 }
 
-function Stepper({ back, forward, label }: { back: string; forward: string; label: string }) {
-  return (
-    <div className="mb-4 flex items-center justify-between gap-3">
-      <Link
-        href={back}
-        aria-label="Earlier"
-        className="touch-target flex items-center justify-center rounded-full border border-border text-text-muted transition-colors hover:border-border-strong hover:text-text"
-      >
-        <ChevronLeft size={17} aria-hidden />
-      </Link>
-      <span className="text-[15px] font-medium">{label}</span>
-      <Link
-        href={forward}
-        aria-label="Later"
-        className="touch-target flex items-center justify-center rounded-full border border-border text-text-muted transition-colors hover:border-border-strong hover:text-text"
-      >
-        <ChevronRight size={17} aria-hidden />
-      </Link>
-    </div>
-  );
-}
-
 /**
  * A figure with a label under it, on a hairline grid. Used wherever a view
  * opens with two or three numbers.
@@ -189,20 +168,6 @@ function Figure({ label, value, note }: { label: string; value: string; note?: s
       <Readout value={value} size="lg" />
       {note ? <p className="caption-text mt-2 text-text-muted">{note}</p> : null}
     </div>
-  );
-}
-
-/** A hairline list, the app's one list surface. */
-function List({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <ul
-      className={cn(
-        "divide-y divide-border overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface",
-        className,
-      )}
-    >
-      {children}
-    </ul>
   );
 }
 
