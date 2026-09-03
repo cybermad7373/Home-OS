@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/input";
+import { Input, Select, Textarea } from "@/components/ui/input";
 import { Field } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { BottomSheet } from "@/components/ui/sheet";
@@ -179,14 +179,13 @@ export function AnnouncementsBlock({
             />
           </Field>
           <Field label="What is happening" htmlFor="announcement-body">
-            <textarea
+            <Textarea
               id="announcement-body"
               value={body}
               onChange={(event) => setBody(event.target.value)}
               maxLength={1000}
               rows={4}
               placeholder="Water is off from 10 AM to 2 PM."
-              className="w-full rounded-[10px] border border-border bg-surface-2 p-3 text-[15px] text-text placeholder:text-text-subtle focus:bg-surface"
             />
           </Field>
           <Field label="How much it matters" htmlFor="announcement-severity">

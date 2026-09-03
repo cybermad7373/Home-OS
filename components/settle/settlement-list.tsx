@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription } from "@/components/ui/card";
+import { List, Section } from "@/components/layout/section";
+import { Readout } from "@/components/ui/readout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { formatMoney } from "@/lib/utils/money";
@@ -105,11 +107,15 @@ export function SettlementList({
       {error ? <Alert tone="danger">{error}</Alert> : null}
 
       <Card>
-        <CardTitle>
-          {confirmed} of {settlements.length} payments confirmed
-        </CardTitle>
+        <p className="eyebrow-text mb-3">Payments confirmed</p>
+        <div className="flex items-baseline gap-2">
+          <Readout value={String(confirmed)} size="lg" />
+          <span className="readout text-[18px] leading-none text-text-subtle">
+            /{settlements.length}
+          </span>
+        </div>
         <div
-          className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2"
+          className="mt-4 h-[3px] bg-surface-3"
           role="progressbar"
           aria-valuenow={confirmed}
           aria-valuemin={0}
@@ -120,15 +126,13 @@ export function SettlementList({
             style={{ width: `${(confirmed / settlements.length) * 100}%` }}
           />
         </div>
-        <CardDescription className="mt-2">
-          {monthLabel(period)} locks when every payment is confirmed by whoever received
-          it.
+        <CardDescription className="mt-3">
+          {monthLabel(period)} locks when every payment is confirmed by whoever received it.
         </CardDescription>
       </Card>
 
       {iOwe.length > 0 ? (
-        <section>
-          <h2 className="heading-text mb-2">You owe</h2>
+        <Section label="You owe">
           <div className="flex flex-col gap-2">
             {iOwe.map((settlement) => (
               <Card key={settlement.id}>
@@ -136,12 +140,14 @@ export function SettlementList({
                   <div>
                     <p className="font-medium">Pay {settlement.toName}</p>
                     {settlement.isDelta ? (
-                      <Badge tone="info">Adjustment after a reopen</Badge>
+                      <Badge>Adjustment after a reopen</Badge>
                     ) : null}
                   </div>
-                  <p className="tabular text-[22px] font-semibold text-danger">
-                    {formatMoney(settlement.amountPaise, { currency })}
-                  </p>
+                  <Readout
+                    value={formatMoney(settlement.amountPaise, { currency })}
+                    size="md"
+                    className="text-danger"
+                  />
                 </div>
 
                 {settlement.status === "confirmed" ? (
@@ -187,20 +193,21 @@ export function SettlementList({
               </Card>
             ))}
           </div>
-        </section>
+        </Section>
       ) : null}
 
       {owedToMe.length > 0 ? (
-        <section>
-          <h2 className="heading-text mb-2">You are owed</h2>
+        <Section label="You are owed">
           <div className="flex flex-col gap-2">
             {owedToMe.map((settlement) => (
               <Card key={settlement.id}>
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <p className="font-medium">{settlement.fromName} pays you</p>
-                  <p className="tabular text-[22px] font-semibold text-success">
-                    {formatMoney(settlement.amountPaise, { currency })}
-                  </p>
+                  <Readout
+                    value={formatMoney(settlement.amountPaise, { currency })}
+                    size="md"
+                    className="text-success"
+                  />
                 </div>
 
                 {settlement.status === "confirmed" ? (
@@ -220,14 +227,12 @@ export function SettlementList({
               </Card>
             ))}
           </div>
-        </section>
+        </Section>
       ) : null}
 
       {others.length > 0 ? (
-        <section>
-          <h2 className="heading-text mb-2">Everybody else</h2>
-          <Card className="p-0">
-            <ul className="divide-y divide-border">
+        <Section label="Everybody else">
+          <List>
               {others.map((settlement) => (
                 <li
                   key={settlement.id}
@@ -257,10 +262,9 @@ export function SettlementList({
                     </Badge>
                   </span>
                 </li>
-              ))}
-            </ul>
-          </Card>
-        </section>
+            ))}
+          </List>
+        </Section>
       ) : null}
     </div>
   );

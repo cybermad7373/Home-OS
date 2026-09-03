@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ExpenseList } from "@/components/expenses/expense-list";
 import { PageHeader } from "@/components/layout/page-header";
-import { Badge } from "@/components/ui/badge";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listCategories, listExpenses, listPendingApprovals } from "@/lib/data/expenses";
 import { getLlmConfig } from "@/lib/data/llm";
@@ -71,8 +70,11 @@ export default async function ExpensesPage({
         }`}
         action={
           pending.length > 0 ? (
-            <Link href="/expenses/approvals">
-              <Badge tone="warning">{pending.length} to approve</Badge>
+            <Link
+              href="/expenses/approvals"
+              className="touch-target flex items-center rounded-full border border-border px-3 text-[13px] transition-colors hover:border-border-strong hover:bg-surface-2"
+            >
+              {pending.length} to approve
             </Link>
           ) : null
         }

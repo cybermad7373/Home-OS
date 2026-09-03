@@ -261,7 +261,7 @@ export function CloseWizard({
 
           <Alert tone={preview.checks.nets_to_zero ? "success" : "danger"}>
             {preview.checks.nets_to_zero
-              ? "Balances net to zero ✓"
+              ? "Balances net to zero."
               : "Balances do NOT net to zero. This is a defect and closing is blocked."}
           </Alert>
         </>

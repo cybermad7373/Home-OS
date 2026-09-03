@@ -55,11 +55,19 @@ export function Readout({
   );
 }
 
+/**
+ * The sizes are fluid above `sm`, because the thing being set is a rupee
+ * amount and a rupee amount has no maximum width. `₹1,931.60` at a flat 36px
+ * is 210px wide, which is wider than half a 360px phone — so the first version
+ * of the two-up money panels ran the balance straight off the side of its own
+ * card. `clamp` lets the figure give way on a narrow screen and stay at full
+ * size everywhere else.
+ */
 const SIZE = {
-  sm: "text-[20px] leading-none",
-  md: "text-[28px] leading-none",
-  lg: "text-[36px] leading-none",
-  xl: "text-[44px] leading-none",
+  sm: "text-[clamp(16px,4.5vw,20px)] leading-none",
+  md: "text-[clamp(20px,6vw,28px)] leading-none",
+  lg: "text-[clamp(24px,7.5vw,36px)] leading-none",
+  xl: "text-[clamp(30px,9vw,44px)] leading-none",
 } as const;
 
 /**

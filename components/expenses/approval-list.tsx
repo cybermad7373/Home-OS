@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Readout } from "@/components/ui/readout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { MemberAvatar } from "@/components/ui/avatar";
@@ -97,9 +98,7 @@ export function ApprovalList({
                 {formatDate(expense.expenseDate, timezone)}
               </p>
             </div>
-            <p className="tabular text-[20px] font-semibold">
-              {formatMoney(expense.amountPaise, { currency })}
-            </p>
+            <Readout value={formatMoney(expense.amountPaise, { currency })} size="md" />
           </div>
 
           <p className="caption-text mb-3 text-text-muted">

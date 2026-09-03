@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/input";
 import { Field } from "@/components/ui/label";
 import { ProposeSheet, type ProposalOutcome } from "@/components/governance/propose-sheet";
 import {
@@ -161,7 +162,7 @@ export function RuleForm({
           htmlFor="rule-text"
           hint="kept exactly as you write it"
         >
-          <textarea
+          <Textarea
             id="rule-text"
             rows={4}
             maxLength={1000}
@@ -170,7 +171,6 @@ export function RuleForm({
             onChange={(event) =>
               setDraft((current) => ({ ...current, originalText: event.target.value }))
             }
-            className="w-full rounded-[10px] border border-border bg-surface-2 p-3 text-[15px] text-text placeholder:text-text-subtle focus:bg-surface"
           />
         </Field>
 

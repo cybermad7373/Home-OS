@@ -72,11 +72,7 @@ export default async function SettlePage({
       <PageHeader
         title="Settle"
         subtitle={statusLabel[view.status] ?? view.status}
-        action={
-          view.reopenCount > 0 ? (
-            <Badge tone="info">Reopened {view.reopenCount}×</Badge>
-          ) : null
-        }
+        action={view.reopenCount > 0 ? <Badge>Reopened {view.reopenCount}×</Badge> : null}
       />
 
       <form className="mb-3 flex items-center gap-2">

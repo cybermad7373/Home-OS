@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Card, CardShell, CardCore } from "@/components/ui/card";
+import { Input, Select, Textarea } from "@/components/ui/input";
 import { Readout } from "@/components/ui/readout";
 
 /**
@@ -53,5 +54,57 @@ describe("Readout", () => {
   it("leaves a bare number alone", () => {
     const html = renderToStaticMarkup(createElement(Readout, { value: "48" }));
     expect(html).not.toContain("font-mono");
+  });
+});
+
+/**
+ * `Select` shipped with the same defect `Card` had — a hard-coded JSX child
+ * overriding the spread `children` — so every `<option>` any caller passed was
+ * discarded and thirty-six selects across the app rendered as empty boxes. And
+ * `Input` set `placeholder:text-transparent` for a floating label that was
+ * never positioned, so no placeholder in the app was visible.
+ */
+describe("form controls", () => {
+  it("Select renders the options it was given", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        Select,
+        { defaultValue: "2026-09", "aria-label": "Month" },
+        createElement("option", { value: "2026-09" }, "September 2026"),
+        createElement("option", { value: "2026-08" }, "August 2026"),
+      ),
+    );
+    expect(html).toContain("September 2026");
+    expect(html).toContain("August 2026");
+  });
+
+  it("Input shows its placeholder", () => {
+    const html = renderToStaticMarkup(
+      createElement(Input, { placeholder: "paid 840 for vegetables yesterday" }),
+    );
+    expect(html).toContain("paid 840 for vegetables yesterday");
+    expect(html).not.toContain("placeholder:text-transparent");
+  });
+
+  it("a caller's size beats the default", () => {
+    const html = renderToStaticMarkup(createElement(Input, { className: "h-9" }));
+    expect(html).toContain("h-9");
+    expect(html).not.toContain("h-11");
+  });
+
+  it("renders nothing around a bare control", () => {
+    // A wrapper div would break every caller that sizes the control inside a
+    // flex row.
+    const html = renderToStaticMarkup(createElement(Input, { "aria-label": "Amount" }));
+    expect(html.startsWith("<input")).toBe(true);
+  });
+
+  it("labels the control when asked, and links the two", () => {
+    const html = renderToStaticMarkup(
+      createElement(Textarea, { label: "Note", error: "Say something" }),
+    );
+    expect(html).toContain("Note");
+    expect(html).toContain("Say something");
+    expect(html).toMatch(/for="([^"]+)"[^]*id="\1"/);
   });
 });

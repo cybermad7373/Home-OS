@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription } from "@/components/ui/card";
+import { Readout } from "@/components/ui/readout";
 import { formatMoney } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
 import type {
@@ -38,12 +39,10 @@ export function DailyCostPanel({
       <Card>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardDescription>Costing you, per day</CardDescription>
-            <p className="mt-0.5 text-[32px] font-semibold leading-tight tabular-nums">
-              {money(summary.averagePerDayPaise)}
-            </p>
+            <p className="eyebrow-text mb-3">Costing you, per day</p>
+            <Readout value={money(summary.averagePerDayPaise)} size="xl" />
             {showPerHead ? (
-              <p className="caption-text text-text-muted">
+              <p className="caption-text mt-2 text-text-muted">
                 {money(summary.averagePerDayPerHeadPaise)} each
               </p>
             ) : null}
@@ -79,7 +78,7 @@ export function DailyCostPanel({
       <SpendChart summary={summary} currency={currency} />
 
       <Card>
-        <CardTitle>Where it went</CardTitle>
+        <p className="eyebrow-text">Where it went</p>
         {summary.categories.some((row) => row.spentPaise > 0) ? (
           <ul className="mt-3 flex flex-col gap-3">
             {summary.categories
@@ -174,8 +173,8 @@ function SpendChart({
 
   return (
     <Card>
-      <CardTitle>Day by day</CardTitle>
-      <CardDescription>
+      <p className="eyebrow-text">Day by day</p>
+      <CardDescription className="mt-1">
         Biggest day was {formatMoney(peak, { currency })} on{" "}
         {dayLabel(summary.biggestDay!.date)}.
       </CardDescription>
@@ -196,7 +195,7 @@ function SpendChart({
           return (
             <div
               key={day.date}
-              className="flex-1 rounded-t-[2px]"
+              className="flex-1"
               style={{ height: `${height}%` }}
               // The bars carry a title for a pointer and are summarised in the
               // group's aria-label for a screen reader; neither is the only way
@@ -205,7 +204,7 @@ function SpendChart({
             >
               <div
                 className={cn(
-                  "h-full w-full rounded-t-[2px]",
+                  "h-full w-full",
                   day.amountPaise === 0
                     ? "bg-surface-2"
                     : overBudget
@@ -233,7 +232,7 @@ function CategoryRow({ row, currency }: { row: CategorySpend; currency: string }
     <li>
       <div className="flex items-baseline justify-between gap-3">
         <span className="min-w-0 truncate">
-          {row.icon ? <span aria-hidden>{row.icon} </span> : null}
+          {row.icon ? <span aria-hidden className="grayscale">{row.icon} </span> : null}
           {row.name}
         </span>
         <span className="shrink-0 font-medium tabular-nums">
@@ -244,7 +243,7 @@ function CategoryRow({ row, currency }: { row: CategorySpend; currency: string }
       {row.budgetPaise !== null ? (
         <>
           <div
-            className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-2"
+            className="mt-1.5 h-[3px] bg-surface-3"
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={row.budgetPaise}
@@ -252,11 +251,11 @@ function CategoryRow({ row, currency }: { row: CategorySpend; currency: string }
             aria-label={`${row.name} budget`}
           >
             <div
-              className={cn("h-full rounded-full", row.over ? "bg-danger" : "bg-primary")}
+              className={cn("h-full", row.over ? "bg-danger" : "bg-primary")}
               style={{ width: `${Math.round((fraction ?? 0) * 100)}%` }}
             />
           </div>
-          <p className="caption-text mt-0.5 text-text-muted">
+          <p className="caption-text mt-1 text-text-muted">
             {row.over
               ? `${formatMoney(row.spentPaise - row.budgetPaise, { currency })} over the ${formatMoney(row.budgetPaise, { currency })} budget`
               : `${formatMoney(row.budgetPaise - row.spentPaise, { currency })} left of ${formatMoney(row.budgetPaise, { currency })}`}

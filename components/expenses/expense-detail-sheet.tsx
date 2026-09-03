@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Readout } from "@/components/ui/readout";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { BottomSheet } from "@/components/ui/sheet";
@@ -199,9 +200,13 @@ export function ExpenseDetailSheet({
         </div>
       ) : null}
 
-      <p className="display-number">{formatMoney(expense.amountPaise, { currency })}</p>
-      <p className="caption-text mb-4 text-text-muted">
-        {expense.category.icon ? `${expense.category.icon} ` : ""}
+      <Readout value={formatMoney(expense.amountPaise, { currency })} size="xl" />
+      <p className="caption-text mb-4 mt-2 text-text-muted">
+        {expense.category.icon ? (
+          <span aria-hidden className="grayscale">
+            {expense.category.icon}{" "}
+          </span>
+        ) : null}
         {expense.category.name} ·{" "}
         {formatDate(expense.expenseDate, timezone, {
           weekday: "short",
@@ -213,7 +218,7 @@ export function ExpenseDetailSheet({
 
       <div className="mb-4 flex flex-wrap gap-2">
         {expense.status === "pending_approval" ? (
-          <Badge tone="warning">Waiting for approval</Badge>
+          <Badge>Waiting for approval</Badge>
         ) : null}
         {expense.status === "approved" ? <Badge tone="success">Approved</Badge> : null}
         {expense.status === "rejected" ? <Badge tone="danger">Rejected</Badge> : null}

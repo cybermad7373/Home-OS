@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { List, Section } from "@/components/layout/section";
+import { Readout } from "@/components/ui/readout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MemberAvatar } from "@/components/ui/avatar";
 import { Select } from "@/components/ui/input";
@@ -89,40 +90,40 @@ export function ExpenseList({
         />
       ) : null}
 
-      <Card className="mb-3">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="label-text text-text-muted">House spent</p>
-            <p className="display-number">
-              {formatMoney(totals.totalPaise, { currency })}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="label-text text-text-muted">
-              {yourNetPaise >= 0 ? "You are owed" : "You owe"}
-            </p>
-            <p
-              className={
-                yourNetPaise >= 0
-                  ? "display-number text-success"
-                  : "display-number text-danger"
-              }
-            >
-              {formatMoney(Math.abs(yourNetPaise), { currency })}
-            </p>
-          </div>
+      {/* The two questions this screen exists to answer, as the only two
+          numbers on it set in the display face. */}
+      <div className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-lg)] border border-border bg-border">
+        <div className="bg-surface p-4">
+          <p className="eyebrow-text mb-3">House spent</p>
+          <Readout value={formatMoney(totals.totalPaise, { currency })} size="lg" />
+          <p className="caption-text mt-2 text-text-muted">
+            you paid{" "}
+            <span className="tabular">{formatMoney(totals.yourPaidPaise, { currency })}</span>
+          </p>
         </div>
-        <p className="caption-text mt-2 text-text-muted">
-          You paid {formatMoney(totals.yourPaidPaise, { currency })} · your share{" "}
-          {formatMoney(totals.yourSharePaise, { currency })}
-        </p>
-      </Card>
+        <div className="bg-surface p-4">
+          <p className="eyebrow-text mb-3">
+            {yourNetPaise === 0 ? "Your position" : yourNetPaise > 0 ? "You are owed" : "You owe"}
+          </p>
+          <Readout
+            value={formatMoney(Math.abs(yourNetPaise), { currency })}
+            size="lg"
+            className={
+              yourNetPaise === 0 ? "text-text" : yourNetPaise > 0 ? "text-success" : "text-danger"
+            }
+          />
+          <p className="caption-text mt-2 text-text-muted">
+            your share{" "}
+            <span className="tabular">{formatMoney(totals.yourSharePaise, { currency })}</span>
+          </p>
+        </div>
+      </div>
 
-      <div className="mb-3 flex items-center gap-2">
+      <div className="mb-6 flex items-center gap-2">
         <Select
           aria-label="Month"
           value={period}
-          className="h-9 w-auto text-[13px]"
+          className="h-9 min-w-0 flex-1 text-[13px] sm:w-auto sm:flex-none"
           onChange={(event) => {
             window.location.search = `?period=${event.target.value}`;
           }}
@@ -134,8 +135,8 @@ export function ExpenseList({
           ))}
         </Select>
         <ExpenseFilters categories={categories} members={members} />
-        <Button className="ml-auto" onClick={() => setAdding(true)}>
-          Add expense
+        <Button className="ml-auto whitespace-nowrap" onClick={() => setAdding(true)}>
+          Add
         </Button>
       </div>
 
@@ -148,12 +149,11 @@ export function ExpenseList({
       ) : null}
 
       {byDate.map(([date, items]) => (
-        <section key={date} className="mb-4">
-          <h2 className="label-text mb-2 text-text-muted">
-            {formatDate(date, timezone, { weekday: "short", day: "numeric", month: "short" })}
-          </h2>
-          <Card className="p-0">
-            <ul className="divide-y divide-border">
+        <Section
+          key={date}
+          label={formatDate(date, timezone, { weekday: "short", day: "numeric", month: "short" })}
+        >
+          <List>
               {items.map((expense) => (
                 <li key={expense.id}>
                   <button
@@ -161,8 +161,21 @@ export function ExpenseList({
                     onClick={() => setOpenExpenseId(expense.id)}
                     className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-surface-2"
                   >
-                    <span aria-hidden className="text-[20px]">
-                      {expense.category.icon ?? "📦"}
+                    {/* The category's mark, in a box. A house that set an
+                        emoji keeps it, desaturated — full-colour emoji is the
+                        loudest thing on a monochrome screen and it would be
+                        the loudest thing on every row. A house that set none
+                        gets the first two letters of the category, which is
+                        enough to scan a column by. */}
+                    <span
+                      aria-hidden
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-xs)] border border-border text-[12px] font-medium uppercase text-text-muted"
+                    >
+                      {expense.category.icon ? (
+                        <span className="text-[15px] grayscale">{expense.category.icon}</span>
+                      ) : (
+                        expense.category.name.slice(0, 2)
+                      )}
                     </span>
 
                     <span className="min-w-0 flex-1">
@@ -171,12 +184,10 @@ export function ExpenseList({
                           {expense.description || expense.category.name}
                         </span>
                         {expense.status === "pending_approval" ? (
-                          <Badge tone="warning">Needs approval</Badge>
+                          <Badge>Needs approval</Badge>
                         ) : null}
                         {expense.isAdjustment && expense.adjustmentForPeriod ? (
-                          <Badge tone="info">
-                            for {monthLabel(expense.adjustmentForPeriod)}
-                          </Badge>
+                          <Badge>for {monthLabel(expense.adjustmentForPeriod)}</Badge>
                         ) : null}
                       </span>
                       <span className="caption-text flex items-center gap-1.5 text-text-muted">
@@ -201,10 +212,9 @@ export function ExpenseList({
                     </span>
                   </button>
                 </li>
-              ))}
-            </ul>
-          </Card>
-        </section>
+            ))}
+          </List>
+        </Section>
       ))}
 
       <AddExpenseSheet
