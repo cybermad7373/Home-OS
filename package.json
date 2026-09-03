@@ -21,7 +21,10 @@
     "gen:types:hosted": "supabase gen types typescript --linked > lib/types/supabase.hosted.ts",
     "gen:icons": "node scripts/generate-icons.mjs",
     "gen:vapid": "node scripts/generate-vapid.mjs",
-    "gen:llmkey": "node scripts/generate-llmkey.mjs"
+    "gen:llmkey": "node scripts/generate-llmkey.mjs",
+    "seed": "node scripts/seed-demo.mjs",
+    "seed:reset": "node scripts/seed-demo.mjs --reset",
+    "seed:verify": "node scripts/seed-demo.mjs --verify"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
