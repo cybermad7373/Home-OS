@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { createHome, signIn as signInAs, signUp } from "./onboarding";
 
 /**
  * Phase-12 acceptance, run rather than read (docs/07-ROADMAP.md phase 12):
@@ -23,7 +24,6 @@ import { expect, test } from "@playwright/test";
  */
 
 const stamp = Date.now();
-const PASSWORD = "test-password-1";
 
 const admin = {
   name: "Rules Admin",
@@ -44,43 +44,13 @@ test.describe.configure({ mode: "serial" });
  * and it means any one of these can be run on its own after the first.
  */
 async function signIn(page: import("@playwright/test").Page) {
-  await page.goto("/signin");
-  await page.getByLabel("Username or email").fill(admin.username);
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await signInAs(page, admin.username);
   await page.waitForURL("**/home");
 }
 
 test("an admin creates a home", async ({ page }) => {
-  await page.goto("/signup");
-  await page.getByLabel("Display name").fill(admin.name);
-  await page.getByLabel("Username").fill(admin.username);
-  await page.getByLabel("Email").fill(admin.email);
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL("**/onboarding/house");
-
-  await page.getByText("Set up a new home").click();
-  await page.getByLabel("Home name").fill(`Rules Home ${stamp}`);
-  await page.getByRole("button", { name: "Create home" }).click();
-
-  // The AI step comes first and skipping is the expected path — a Home with no
-  // key writes the same rules through the same form (RL-08), which is exactly
-  // what the rest of this journey walks.
-  await page.waitForURL("**/onboarding/ai");
-  await page.getByRole("button", { name: "Skip — set it up later" }).click();
-
-  await page.waitForURL("**/onboarding/profile");
-  await page.getByRole("button", { name: "Yes" }).click();
-  await page.getByRole("button", { name: "Finish" }).click();
-
-  await page.waitForURL("**/onboarding/availability");
-  await page.getByRole("button", { name: "Save and continue" }).click();
-
-  await page.waitForURL("**/onboarding/notify");
-  await page.getByRole("button", { name: "Skip for now" }).click();
-
-  await page.waitForURL("**/home");
+  await signUp(page, admin);
+  await createHome(page, `Rules Home ${stamp}`);
 });
 
 test("the rules screen is reachable from More, and starts empty", async ({ page }) => {

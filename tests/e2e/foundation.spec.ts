@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { signIn as signInAs, signUp } from "./onboarding";
 
 /**
  * Phase-1 and phase-10 acceptance, run rather than read
@@ -15,7 +16,6 @@ import { expect, test } from "@playwright/test";
  */
 
 const stamp = Date.now();
-const PASSWORD = "test-password-1";
 
 const admin = {
   name: "Ravi Admin",
@@ -29,43 +29,8 @@ const joiner = {
   email: `kumar-${stamp}@houseos.test`,
 };
 
-type Account = { name: string; username: string; email: string };
-
-async function signUp(page: import("@playwright/test").Page, account: Account) {
-  await page.goto("/signup");
-  await page.getByLabel("Display name").fill(account.name);
-  await page.getByLabel("Username").fill(account.username);
-  await page.getByLabel("Email").fill(account.email);
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL("**/onboarding/**", { timeout: 30000 });
-
-  // A Google-less sign-up sometimes lands on the username step first.
-  if (page.url().includes("/onboarding/username")) {
-    await page.getByLabel("Username").fill(account.username);
-    // The availability check enables the button; waiting on that rather than on
-    // a fixed delay is both faster and not a guess about network time.
-    const claimBtn = page.getByRole("button", { name: "Claim it" });
-    await expect(claimBtn).toBeEnabled({ timeout: 15000 });
-    await claimBtn.click();
-    await page.waitForURL("**/onboarding/house", { timeout: 30000 });
-  }
-
-  // Wait for the JoinOrCreate component to render, by content rather than a
-  // fixed delay — React hydration time is not something a test should guess.
-  await page.waitForFunction(() => {
-    const body = document.body.textContent || "";
-    return body.includes("Set up a new home") || body.includes("Get started");
-  }, { timeout: 30000 });
-
-  await page.waitForSelector('button:has-text("Set up a new home")', { timeout: 15000 });
-}
-
 async function signIn(page: import("@playwright/test").Page, identifier: string) {
-  await page.goto("/signin");
-  await page.getByLabel("Username or email").fill(identifier);
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await signInAs(page, identifier);
 }
 
 test.describe.configure({ mode: "serial" });
@@ -79,23 +44,15 @@ test("an admin creates a home", async ({ page }) => {
   await page.getByLabel("Home name").fill(`Anna Nagar ${stamp}`);
   await page.getByRole("button", { name: "Create home" }).click();
 
-  // The AI step comes before profile and skipping is the expected path for a
-  // Home with no key (RL-08's shape, exercised the same way in rules.spec.ts).
-  await page.waitForURL("**/onboarding/ai");
-  await page.getByRole("button", { name: "Skip — set it up later" }).click();
-
+  // Onboarding is three steps: the Home, the two questions about you, the
+  // app. Availability, notifications and the AI key are asked for where
+  // they first matter instead.
   await page.waitForURL("**/onboarding/profile");
   await page.getByRole("button", { name: "Yes" }).click();
   await page.getByRole("button", { name: "Finish" }).click();
 
-  await page.waitForURL("**/onboarding/availability");
-  await page.getByRole("button", { name: "Save and continue" }).click();
-
-  await page.waitForURL("**/onboarding/notify");
-  await page.getByRole("button", { name: "Skip for now" }).click();
-
   await page.waitForURL("**/home");
-  await expect(page.getByRole("heading", { name: `Anna Nagar ${stamp}` })).toBeVisible();
+  await expect(page.getByRole("banner").getByText(`Anna Nagar ${stamp}`)).toBeVisible();
 
   // The link is what a person is sent. It exists from the moment the Home does.
   await page.goto("/admin/settings");

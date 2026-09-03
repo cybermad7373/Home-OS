@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { createHome, signIn as signInAs, signUp } from "./onboarding";
 
 /**
  * Phase-15 acceptance, run rather than read (docs/07-ROADMAP.md phase 15).
@@ -25,7 +26,6 @@ import { expect, test } from "@playwright/test";
  */
 
 const stamp = Date.now();
-const PASSWORD = "test-password-1";
 
 const resident = {
   name: "Insight Resident",
@@ -39,40 +39,13 @@ const FORMULA_CATEGORY = `=1+1 Utilities ${stamp}`.slice(0, 40);
 test.describe.configure({ mode: "serial" });
 
 async function signIn(page: import("@playwright/test").Page) {
-  await page.goto("/signin");
-  await page.getByLabel("Username or email").fill(resident.username);
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await signInAs(page, resident.username);
   await page.waitForURL("**/home");
 }
 
 test("a resident creates a home", async ({ page }) => {
-  await page.goto("/signup");
-  await page.getByLabel("Display name").fill(resident.name);
-  await page.getByLabel("Username").fill(resident.username);
-  await page.getByLabel("Email").fill(resident.email);
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL("**/onboarding/house");
-
-  await page.getByText("Set up a new home").click();
-  await page.getByLabel("Home name").fill(`Insight Home ${stamp}`);
-  await page.getByRole("button", { name: "Create home" }).click();
-
-  await page.waitForURL("**/onboarding/ai");
-  await page.getByRole("button", { name: "Skip — set it up later" }).click();
-
-  await page.waitForURL("**/onboarding/profile");
-  await page.getByRole("button", { name: "Yes" }).click();
-  await page.getByRole("button", { name: "Finish" }).click();
-
-  await page.waitForURL("**/onboarding/availability");
-  await page.getByRole("button", { name: "Save and continue" }).click();
-
-  await page.waitForURL("**/onboarding/notify");
-  await page.getByRole("button", { name: "Skip for now" }).click();
-
-  await page.waitForURL("**/home");
+  await signUp(page, resident);
+  await createHome(page, `Insight Home ${stamp}`);
 });
 
 test("the retired /analytics lands on Insights", async ({ page }) => {

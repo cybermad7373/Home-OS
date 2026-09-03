@@ -1,4 +1,10 @@
 import { expect, test } from "@playwright/test";
+import {
+  createHome,
+  hideDevOverlay,
+  signIn as signInAs,
+  signUp,
+} from "./onboarding";
 
 /**
  * Phase-14 acceptance, run rather than read (docs/07-ROADMAP.md phase 14):
@@ -26,7 +32,6 @@ import { expect, test } from "@playwright/test";
  */
 
 const stamp = Date.now();
-const PASSWORD = "test-password-1";
 
 const resident = {
   name: "Today Resident",
@@ -39,41 +44,14 @@ const ANNOUNCEMENT_TITLE = `Water off ${stamp}`;
 test.describe.configure({ mode: "serial" });
 
 async function signIn(page: import("@playwright/test").Page) {
-  await page.goto("/signin");
-  await page.getByLabel("Username or email").fill(resident.username);
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await signInAs(page, resident.username);
   await page.waitForURL("**/home");
 }
 
 test("a resident creates a home and lands on the Home overview", async ({ page }) => {
-  await page.goto("/signup");
-  await page.getByLabel("Display name").fill(resident.name);
-  await page.getByLabel("Username").fill(resident.username);
-  await page.getByLabel("Email").fill(resident.email);
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL("**/onboarding/house");
-
-  await page.getByText("Set up a new home").click();
-  await page.getByLabel("Home name").fill(`Today Home ${stamp}`);
-  await page.getByRole("button", { name: "Create home" }).click();
-
-  await page.waitForURL("**/onboarding/ai");
-  await page.getByRole("button", { name: "Skip — set it up later" }).click();
-
-  await page.waitForURL("**/onboarding/profile");
-  await page.getByRole("button", { name: "Yes" }).click();
-  await page.getByRole("button", { name: "Finish" }).click();
-
-  await page.waitForURL("**/onboarding/availability");
-  await page.getByRole("button", { name: "Save and continue" }).click();
-
-  await page.waitForURL("**/onboarding/notify");
-  await page.getByRole("button", { name: "Skip for now" }).click();
-
-  await page.waitForURL("**/home");
-  await expect(page.getByRole("heading", { name: "Go to" })).toBeVisible();
+  await signUp(page, resident);
+  await createHome(page, `Today Home ${stamp}`);
+  await expect(page.getByRole("heading", { name: "The house" })).toBeVisible();
 });
 
 test("the retired /dashboard lands on the Home overview", async ({ page }) => {
@@ -81,31 +59,36 @@ test("the retired /dashboard lands on the Home overview", async ({ page }) => {
 
   await page.goto("/dashboard");
   await page.waitForURL("**/home");
-  await expect(page.getByRole("heading", { name: "Go to" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "The house" })).toBeVisible();
 });
 
-test("every primary destination is one tap from the Home overview", async ({ page }) => {
+test("every primary destination is one tap from anywhere", async ({ page }) => {
+  await hideDevOverlay(page);
   await signIn(page);
-  await page.goto("/home");
 
   for (const [label, path] of [
     ["Today", "/today"],
     ["Chores", "/chores"],
     ["Money", "/expenses"],
     ["Food", "/food"],
-    ["Calendar", "/more/calendar"],
-    ["More", "/more"],
+    ["Home", "/home"],
   ] as const) {
     await page.goto("/home");
-    // The entry-point grid, not the tab bar: this is the claim that no screen
-    // in the app is reachable only from a URL.
-    await page.getByRole("heading", { name: "Go to" }).scrollIntoViewIfNeeded();
+    // The bar, not an entry-point grid on one screen. The Home overview used
+    // to carry its own "Go to" list of links, which meant the claim held from
+    // that screen and nowhere else; the bar renders from `destinations.ts` and
+    // is on every screen at every width (D-72).
     await page
-      .getByRole("main")
+      .getByRole("navigation", { name: "Primary" })
       .getByRole("link", { name: label, exact: true })
       .click();
     await page.waitForURL(`**${path}`);
   }
+
+  // The two that are not on the bar are one tap from More, which is.
+  await page.goto("/more");
+  await page.getByRole("link", { name: /Calendar/ }).first().click();
+  await page.waitForURL("**/more/calendar");
 });
 
 test("Today answers what is happening now", async ({ page }) => {
@@ -124,7 +107,7 @@ test("the calendar link reaches all three views", async ({ page }) => {
   await signIn(page);
   await page.goto("/today");
 
-  await page.getByRole("link", { name: "View calendar →" }).click();
+  await page.getByRole("link", { name: /The week ahead/ }).click();
   await page.waitForURL("**/more/calendar**");
   await expect(page.getByRole("heading", { name: "Calendar" })).toBeVisible();
 
@@ -132,10 +115,10 @@ test("the calendar link reaches all three views", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "People" })).toBeVisible();
 
   await page.getByRole("link", { name: "Week", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "The week" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Day by day" })).toBeVisible();
 
   await page.getByRole("link", { name: "Month", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Chores done" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Food" })).toBeVisible();
 });
 
 test("the quick-add offers an Admin exactly the seven actions they may take", async ({
@@ -168,7 +151,7 @@ test("a lead posts an announcement, and it shows on Today", async ({ page }) => 
   await signIn(page);
   await page.goto("/today");
 
-  await page.getByRole("button", { name: "+ Post one" }).click();
+  await page.getByRole("button", { name: "Post one" }).click();
   await page.getByLabel("Title").fill(ANNOUNCEMENT_TITLE);
   await page.getByLabel("What is happening").fill("Water is off from 10 AM to 2 PM.");
   await page.getByLabel("How much it matters").selectOption("important");

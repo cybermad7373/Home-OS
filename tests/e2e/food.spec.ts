@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { createHome, signIn as signInAs, signUp } from "./onboarding";
 
 /**
  * Phase-13 acceptance, run rather than read (docs/07-ROADMAP.md phase 13):
@@ -20,7 +21,6 @@ import { expect, test } from "@playwright/test";
  */
 
 const stamp = Date.now();
-const PASSWORD = "test-password-1";
 
 const cook = {
   name: "Food Cook",
@@ -35,47 +35,20 @@ const RESTRICTION_ITEM = "Peanut";
 test.describe.configure({ mode: "serial" });
 
 async function signIn(page: import("@playwright/test").Page) {
-  await page.goto("/signin");
-  await page.getByLabel("Username or email").fill(cook.username);
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await signInAs(page, cook.username);
   await page.waitForURL("**/home");
 }
 
 test("a cook creates a home", async ({ page }) => {
-  await page.goto("/signup");
-  await page.getByLabel("Display name").fill(cook.name);
-  await page.getByLabel("Username").fill(cook.username);
-  await page.getByLabel("Email").fill(cook.email);
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL("**/onboarding/house");
-
-  await page.getByText("Set up a new home").click();
-  await page.getByLabel("Home name").fill(`Food Home ${stamp}`);
-  await page.getByRole("button", { name: "Create home" }).click();
-
-  await page.waitForURL("**/onboarding/ai");
-  await page.getByRole("button", { name: "Skip — set it up later" }).click();
-
-  await page.waitForURL("**/onboarding/profile");
-  await page.getByRole("button", { name: "Yes" }).click();
-  await page.getByRole("button", { name: "Finish" }).click();
-
-  await page.waitForURL("**/onboarding/availability");
-  await page.getByRole("button", { name: "Save and continue" }).click();
-
-  await page.waitForURL("**/onboarding/notify");
-  await page.getByRole("button", { name: "Skip for now" }).click();
-
-  await page.waitForURL("**/home");
+  await signUp(page, cook);
+  await createHome(page, `Food Home ${stamp}`);
 });
 
 test("a meal with only a name and a date is a valid meal", async ({ page }) => {
   await signIn(page);
   await page.goto("/food");
 
-  await page.getByRole("button", { name: "Add Meal" }).click();
+  await page.getByRole("button", { name: "Record a meal" }).click();
   await page.getByLabel("Name").fill(BARE_MEAL_NAME);
   // Deselect no one — the only member defaults to selected — and leave every
   // other field at its default. Save should still succeed.
@@ -88,7 +61,7 @@ test("a fuller meal splits its cost, and saves to the library", async ({ page })
   await signIn(page);
   await page.goto("/food");
 
-  await page.getByRole("button", { name: "Add Meal" }).click();
+  await page.getByRole("button", { name: "Record a meal" }).click();
   await page.getByLabel("Name").fill(COSTED_MEAL_NAME);
   await page.getByText("Tap to enter a cost (optional)").click();
   await page.getByLabel("Base").fill("180");
@@ -133,10 +106,14 @@ test("the Food screen renders Try Today's suggestions without erroring", async (
   await signIn(page);
   await page.goto("/food");
 
-  await expect(page.getByText("Suggestions")).toBeVisible();
+  await expect(page.getByText("Try today")).toBeVisible();
   // Fewer than five recorded meals: the honest cold-start message, not a
-  // fabricated score (section 6.1).
-  await expect(page.getByText(/not enough history yet/i)).toBeVisible();
+  // fabricated score (section 6.1). The wait is long because the endpoint asks
+  // a model for the other half of the card, and a provider round trip is not
+  // something a five-second default should be holding a journey to.
+  await expect(page.getByText(/not enough history yet/i)).toBeVisible({
+    timeout: 25000,
+  });
 });
 
 test("a library food can be planned, and appears under Planned", async ({ page }) => {

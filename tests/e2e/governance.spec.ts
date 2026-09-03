@@ -15,10 +15,14 @@
  */
 
 import { expect, test } from "@playwright/test";
+import {
+  createHome,
+  signIn as signInAs,
+  signOut as signOutOf,
+  signUp,
+} from "./onboarding";
 
 const stamp = Date.now();
-// Use dev login for the lead (bypasses signup), create real accounts for co-lead and member
-const PASSWORD = "test-password-1";
 
 const lead = {
   name: "Ravi Lead",
@@ -38,49 +42,13 @@ const member = {
   email: `arjunl-${stamp}@houseos.test`,
 };
 
-type Account = { name: string; username: string; email: string };
-
-async function signUp(page: import("@playwright/test").Page, account: Account) {
-  await page.goto("/signup");
-  await page.getByLabel("Display name").fill(account.name);
-  await page.getByLabel("Username").fill(account.username);
-  await page.getByLabel("Email").fill(account.email);
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL("**/onboarding/house");
-}
-
 async function signIn(page: import("@playwright/test").Page, identifier: string) {
-  await page.goto("/signin");
-  await page.getByLabel("Username or email").fill(identifier);
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await signInAs(page, identifier);
   await page.waitForURL("**/home");
 }
 
 async function signOut(page: import("@playwright/test").Page) {
-  // Clearing the cookies is the sign-out: the proxy treats a caller with no
-  // session as signed out on the very next request.
-  await page.context().clearCookies();
-  await page.goto("/signin");
-  await expect(page.getByLabel("Username or email")).toBeVisible();
-}
-
-async function createHome(page: import("@playwright/test").Page, name: string) {
-  await page.waitForSelector('h1:has-text("Get started"), button:has-text("Set up a new home")', { timeout: 30000 });
-  await page.getByText("Set up a new home", { exact: true }).click();
-  await page.getByLabel("Home name").fill(name);
-  await page.getByRole("button", { name: "Create home" }).click();
-  await page.waitForURL("**/onboarding/ai");
-  await page.getByRole("button", { name: "Skip" }).click();
-  await page.waitForURL("**/onboarding/profile");
-  await page.getByRole("button", { name: "Yes" }).click();
-  await page.getByRole("button", { name: "Finish" }).click();
-  await page.waitForURL("**/onboarding/availability");
-  await page.getByRole("button", { name: "Save and continue" }).click();
-  await page.waitForURL("**/onboarding/notify");
-  await page.getByRole("button", { name: "Skip for now" }).click();
-  await page.waitForURL("**/home");
+  await signOutOf(page);
 }
 
 test.describe.configure({ mode: "serial" });
