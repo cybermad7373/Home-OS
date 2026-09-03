@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardTitle } from "@/components/ui/card";
+import { Section } from "@/components/layout/section";
 import { PageHeader } from "@/components/layout/page-header";
 import { DecisionActions } from "@/components/governance/decision-actions";
 import { ApiError } from "@/lib/api/errors";
@@ -58,13 +58,11 @@ export default async function DecisionPage({
         action={
           <Badge
             tone={
-              decision.status === "waiting"
-                ? "info"
-                : decision.status === "rejected"
-                  ? "danger"
-                  : decision.status === "applied" || decision.status === "approved"
-                    ? "success"
-                    : "neutral"
+              decision.status === "rejected"
+                ? "danger"
+                : decision.status === "applied"
+                  ? "success"
+                  : "neutral"
             }
           >
             {DECISION_STATUS_LABEL[decision.status]}
@@ -72,21 +70,19 @@ export default async function DecisionPage({
         }
       />
 
-      <div className="flex flex-col gap-4">
-        <Card>
-          <CardTitle>What changes if this happens</CardTitle>
-          <p className="mt-1 text-[15px]">{DECISION_EFFECT[decision.type]}</p>
+      <div>
+        <Section label="What changes if this happens">
+          <p className="text-[15px]">{DECISION_EFFECT[decision.type]}</p>
           <p className="caption-text mt-2 text-text-muted">
             {DECISION_LEVEL_LABEL[decision.level]} decision
             {decision.autoApproved
               ? " · approved on the spot: there was nobody else to ask"
               : ""}
           </p>
-        </Card>
+        </Section>
 
-        <Card>
-          <CardTitle>Who proposed it</CardTitle>
-          <p className="mt-1 text-[15px]">{decision.requestedBy.displayName}</p>
+        <Section label="Who proposed it">
+          <p className="text-[15px]">{decision.requestedBy.displayName}</p>
           <p className="caption-text text-text-muted">
             {formatDateTime(decision.createdAt, timezone)} ·{" "}
             {relativeTime(decision.createdAt)}
@@ -94,11 +90,10 @@ export default async function DecisionPage({
           {decision.reason ? (
             <p className="mt-2 text-[15px]">&ldquo;{decision.reason}&rdquo;</p>
           ) : null}
-        </Card>
+        </Section>
 
-        <Card>
-          <CardTitle>Who is needed</CardTitle>
-          <ul className="mt-2 flex flex-col gap-2">
+        <Section label="Who is needed">
+          <ul className="flex flex-col gap-3">
             {decision.participants.map((participant) => (
               <li
                 key={`${participant.memberId}:${participant.capacity}`}
@@ -157,24 +152,24 @@ export default async function DecisionPage({
               ? ` · still needed from ${outstanding.join(", ")}`
               : ""}
           </p>
-        </Card>
+        </Section>
 
         {decision.deadline ? (
-          <Card>
-            <CardTitle>Deadline</CardTitle>
-            <p className="mt-1 text-[15px]">{relativeTime(decision.deadline)}</p>
+          <Section label="Deadline">
+            <p className="text-[15px]">{relativeTime(decision.deadline)}</p>
             <p className="caption-text text-text-muted">
               {formatDateTime(decision.deadline, timezone)}
             </p>
-          </Card>
+          </Section>
         ) : null}
 
         {decision.status === "waiting" ? (
-          <DecisionActions decision={decision} />
+          <div className="mt-8">
+            <DecisionActions decision={decision} />
+          </div>
         ) : (
-          <Card>
-            <CardTitle>{DECISION_STATUS_LABEL[decision.status]}</CardTitle>
-            <p className="caption-text mt-1 text-text-muted">
+          <Section label={DECISION_STATUS_LABEL[decision.status]}>
+            <p className="caption-text text-text-muted">
               {decision.status === "lapsed"
                 ? "Nobody responded in time. Nothing changed."
                 : decision.status === "cancelled"
@@ -185,10 +180,13 @@ export default async function DecisionPage({
                       ? `Applied ${relativeTime(decision.appliedAt)}.`
                       : "Approved. The effect has not run yet."}
             </p>
-          </Card>
+          </Section>
         )}
 
-        <Link href="/more/approvals" className="caption-text text-primary">
+        <Link
+          href="/more/approvals"
+          className="caption-text mt-8 inline-block text-text-muted underline transition-colors hover:text-text"
+        >
           Back to approvals
         </Link>
       </div>

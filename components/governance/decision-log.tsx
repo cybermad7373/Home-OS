@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { List } from "@/components/layout/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { DecisionView } from "@/lib/data/governance";
 import {
@@ -35,12 +35,14 @@ export function DecisionLog({
   }
 
   return (
-    <ul className="flex flex-col gap-3">
+    <List>
       {decisions.map((decision) => (
         <li key={decision.id}>
-          <Link href={`/more/approvals/${decision.id}`}>
-            <Card className="transition-colors hover:border-primary">
-              <div className="flex items-start justify-between gap-3">
+          <Link
+            href={`/more/approvals/${decision.id}`}
+            className="block px-4 py-3 transition-colors hover:bg-surface-2"
+          >
+            <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-medium">
                     {DECISION_TYPE_LABEL[decision.type]}
@@ -61,15 +63,13 @@ export function DecisionLog({
                 </div>
                 <Badge
                   tone={
-                    decision.status === "waiting"
-                      ? "info"
-                      : decision.status === "rejected"
-                        ? "danger"
-                        : decision.status === "applied" ||
-                            decision.status === "approved"
-                          ? "success"
-                          : "neutral"
+                    decision.status === "rejected"
+                      ? "danger"
+                      : decision.status === "applied"
+                        ? "success"
+                        : "neutral"
                   }
+                  className="shrink-0"
                 >
                   {DECISION_STATUS_LABEL[decision.status]}
                 </Badge>
@@ -82,10 +82,9 @@ export function DecisionLog({
                   Approved, and not yet carried out.
                 </p>
               ) : null}
-            </Card>
           </Link>
         </li>
       ))}
-    </ul>
+    </List>
   );
 }

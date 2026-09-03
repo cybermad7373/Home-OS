@@ -8,6 +8,7 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Section } from "@/components/layout/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { RejectForm } from "./reject-form";
@@ -137,16 +138,10 @@ export function ApprovalQueue({
       ) : null}
 
       {split.sections.map((section) => (
-        <section key={section.group} aria-labelledby={`group-${section.group}`}>
-          <div className="mb-2 flex items-baseline justify-between">
-            <h2 id={`group-${section.group}`} className="heading-text">
-              {QUEUE_GROUP_LABEL[section.group]}
-            </h2>
-            <span className="caption-text tabular text-text-muted">
-              {section.items.length}
-            </span>
-          </div>
-
+        <Section
+          key={section.group}
+          label={`${QUEUE_GROUP_LABEL[section.group]} · ${section.items.length}`}
+        >
           <ul className="flex flex-col gap-3">
             {section.items.map(({ decision }) => (
               <li key={decision.id}>
@@ -182,7 +177,7 @@ export function ApprovalQueue({
                       ) : null}
                       <Link
                         href={`/more/approvals/${decision.id}`}
-                        className="caption-text ml-auto text-primary"
+                        className="caption-text ml-auto text-text-muted underline transition-colors hover:text-text"
                       >
                         Details
                       </Link>
@@ -192,14 +187,11 @@ export function ApprovalQueue({
               </li>
             ))}
           </ul>
-        </section>
+        </Section>
       ))}
 
       {split.deliberate.length > 0 ? (
-        <section aria-labelledby="group-deliberate">
-          <h2 id="group-deliberate" className="heading-text mb-2">
-            Needs a deliberate decision
-          </h2>
+        <Section label="Needs a deliberate decision">
           <p className="caption-text mb-3 text-text-muted">
             Approve all leaves these alone. Each one finishes the moment you
             answer it, so it is answered on its own screen.
@@ -208,9 +200,12 @@ export function ApprovalQueue({
           <ul className="flex flex-col gap-3">
             {split.deliberate.map(({ decision }) => (
               <li key={decision.id}>
-                <Card className="border-warning/40">
-                  <div className="mb-1 flex items-center gap-2 text-warning">
-                    <AlertTriangle size={16} aria-hidden />
+                {/* The accent rule, not an amber border round the whole
+                    card: the point is that this one decision finishes the
+                    moment you answer, not that the card is a warning. */}
+                <Card className="overflow-hidden pl-4 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-accent">
+                  <div className="mb-1.5 flex items-center gap-2 text-accent">
+                    <AlertTriangle size={14} aria-hidden />
                     <span className="caption-text font-medium">
                       Approving completes this.
                     </span>
@@ -219,7 +214,7 @@ export function ApprovalQueue({
                   <div className="mt-3">
                     <Link
                       href={`/more/approvals/${decision.id}`}
-                      className="caption-text font-medium text-primary"
+                      className="caption-text font-medium underline"
                     >
                       Review
                     </Link>
@@ -228,7 +223,7 @@ export function ApprovalQueue({
               </li>
             ))}
           </ul>
-        </section>
+        </Section>
       ) : null}
     </div>
   );
@@ -244,9 +239,9 @@ function DecisionSummary({ decision }: { decision: DecisionView }) {
           {decision.subjectMember ? ` — ${decision.subjectMember.displayName}` : ""}
         </p>
         {decision.level === "critical" ? (
-          <Badge tone="warning">Critical</Badge>
+          <Badge tone="danger">Critical</Badge>
         ) : decision.level === "important" ? (
-          <Badge tone="info">Important</Badge>
+          <Badge>Important</Badge>
         ) : null}
       </div>
 

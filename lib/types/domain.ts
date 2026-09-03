@@ -319,10 +319,16 @@ export const RULE_STATUS_LABEL: Record<RuleStatus, string> = {
   superseded: "Replaced",
 };
 
+/**
+ * A rule in force is the ordinary case, and the ordinary case is the quietest
+ * thing on the screen: it is a plain chip, and the rule's own dashed edge is
+ * what marks the ones that are not in force. Amber for "proposed" said the
+ * house had a problem, when what it had was a proposal.
+ */
 export const RULE_STATUS_TONE: Record<RuleStatus, "neutral" | "success" | "warning"> = {
   draft: "neutral",
-  proposed: "warning",
-  active: "success",
+  proposed: "neutral",
+  active: "neutral",
   disabled: "neutral",
   superseded: "neutral",
 };

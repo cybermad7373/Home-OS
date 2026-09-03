@@ -139,15 +139,13 @@ function RuleRow({
   const live = rule.status === "active";
 
   return (
-    <Card>
+    <Card className={live ? undefined : "border-dashed"}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-medium">
-            <span aria-hidden className="mr-1.5">
-              {live ? "✓" : "○"}
-            </span>
-            {rule.title}
-          </p>
+          {/* A rule that is not in force is drawn on a dashed edge rather than
+              prefixed with a tick or an empty circle — the same mark a planned
+              meal gets, for the same reason: it is an intention, not a fact. */}
+          <p className="font-medium">{rule.title}</p>
           <p className="caption-text text-text-muted">
             {version
               ? `v${version.versionNo}${
@@ -163,7 +161,7 @@ function RuleRow({
           <Badge tone={RULE_STATUS_TONE[rule.status]}>{RULE_STATUS_LABEL[rule.status]}</Badge>
           {rule.pending ? (
             <Link href={`/more/approvals/${rule.pending.decisionId}`}>
-              <Badge tone="warning">Waiting for the house</Badge>
+              <Badge>Waiting for the house</Badge>
             </Link>
           ) : null}
         </div>
