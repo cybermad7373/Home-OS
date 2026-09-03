@@ -62,7 +62,7 @@ export function MergeDuplicates({ foods }: { foods: FoodView[] }) {
   }
 
   return (
-    <div className="mb-4 rounded-[14px] border border-border bg-surface-2 p-3">
+    <div className="mb-4 rounded-[var(--radius-md)] border border-border bg-surface-2 p-3">
       <div className="grid grid-cols-2 gap-2">
         <Field label="Merge this" htmlFor="merge-source">
           <Select id="merge-source" value={sourceId} onChange={(e) => setSourceId(e.target.value)}>

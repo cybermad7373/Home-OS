@@ -191,7 +191,7 @@ export function ProposeSheet({
 
       {preview ? (
         <>
-          <section className="mb-3 rounded-[10px] bg-surface-2 p-3">
+          <section className="mb-3 rounded-[var(--radius-sm)] bg-surface-2 p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <p className="label-text">Who will be asked</p>
               <Badge tone={preview.level === "critical" ? "warning" : "neutral"}>

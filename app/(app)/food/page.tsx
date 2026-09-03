@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
+import { Section } from "@/components/layout/section";
 import { MealList } from "@/components/food/meal-list";
 import { FoodHomeClient } from "@/components/food/food-home-client";
 import { PlannedMeals } from "@/components/food/planned-meals";
@@ -12,8 +13,20 @@ export const metadata: Metadata = { title: "Food" };
 
 /**
  * Food — docs/15-FOOD-SPEC.md section 8. Today's "what did you eat?", the
- * two-and-two suggestion card, and the three destinations underneath.
+ * two-and-two suggestion card, and the rest of the module underneath.
+ *
+ * The four sub-screens used to be a row of 12px links in brand colour above a
+ * hairline, which read as a tab bar that was not one: they navigate away
+ * rather than switching what is below them. They are chips now, which is what
+ * a set of sideways destinations looks like everywhere else in this app.
  */
+const ELSEWHERE = [
+  { href: "/food/library", label: "Library" },
+  { href: "/food/shopping", label: "Shopping list" },
+  { href: "/food/history", label: "History" },
+  { href: "/food/preferences", label: "Preferences" },
+];
+
 export default async function FoodPage({
   searchParams,
 }: {
@@ -24,12 +37,17 @@ export default async function FoodPage({
   const { add } = await searchParams;
 
   const today = houseToday(context.house.timezone);
-  const recentMeals = await listMeals(session, context.house.id, { limit: 5 });
-  const plans = await listMealPlans(session, context.house.id, { from: today });
+  const [recentMeals, plans] = await Promise.all([
+    listMeals(session, context.house.id, { limit: 5 }),
+    listMealPlans(session, context.house.id, { from: today }),
+  ]);
 
   return (
-    <div>
-      <PageHeader title="Food" subtitle="What the Home ate, what it cost, whether anyone liked it" />
+    <>
+      <PageHeader
+        title="Food"
+        subtitle="What the home ate, what it cost, whether anybody liked it"
+      />
 
       <FoodHomeClient
         members={context.members}
@@ -38,26 +56,26 @@ export default async function FoodPage({
         openAddOnMount={add === "1"}
       />
 
-      <div className="my-4 flex gap-4 border-b border-border pb-2">
-        <Link href="/food/library" className="caption-text text-primary">
-          Food Library
-        </Link>
-        <Link href="/food/history" className="caption-text text-primary">
-          Meal History
-        </Link>
-        <Link href="/food/preferences" className="caption-text text-primary">
-          Preferences
-        </Link>
-        <Link href="/food/shopping" className="caption-text text-primary">
-          Shopping List
-        </Link>
-      </div>
+      <ul className="scroll-x mt-6 flex gap-2">
+        {ELSEWHERE.map((entry) => (
+          <li key={entry.href} className="shrink-0">
+            <Link
+              href={entry.href}
+              className="flex h-9 items-center rounded-full border border-border px-3.5 text-[13px] text-text-muted transition-colors hover:border-border-strong hover:text-text"
+            >
+              {entry.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
 
-      <h2 className="heading-text mb-2">Planned</h2>
-      <PlannedMeals plans={plans} members={context.members} />
+      <Section label="Planned">
+        <PlannedMeals plans={plans} members={context.members} />
+      </Section>
 
-      <h2 className="heading-text mb-2 mt-4">Recent</h2>
-      <MealList meals={recentMeals} currency={context.house.currency} />
-    </div>
+      <Section label="Recently eaten" href="/food/history" linkLabel="History">
+        <MealList meals={recentMeals} currency={context.house.currency} />
+      </Section>
+    </>
   );
 }

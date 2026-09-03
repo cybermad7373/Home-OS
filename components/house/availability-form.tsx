@@ -205,7 +205,7 @@ export function AvailabilityForm({
                         onChange={(event) =>
                           update(day.dayOfWeek, { leavesAt: event.target.value || null })
                         }
-                        className="mt-1 block w-full rounded-[10px] border border-border bg-surface px-2 py-1.5 text-base"
+                        className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
                         aria-label={`${DAY_LABELS[day.dayOfWeek]}: time you leave`}
                       />
                     </label>
@@ -217,7 +217,7 @@ export function AvailabilityForm({
                         onChange={(event) =>
                           update(day.dayOfWeek, { returnsAt: event.target.value || null })
                         }
-                        className="mt-1 block w-full rounded-[10px] border border-border bg-surface px-2 py-1.5 text-base"
+                        className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
                         aria-label={`${DAY_LABELS[day.dayOfWeek]}: time you get back`}
                       />
                     </label>
@@ -247,7 +247,7 @@ export function AvailabilityForm({
           {days.map((day, index) => (
             <li
               key={day.dayOfWeek}
-              className={`caption-text rounded-[8px] px-2 py-1 ${
+              className={`caption-text rounded-[var(--radius-xs)] px-2 py-1 ${
                 derived[index].length === 0
                   ? "bg-danger/10 text-danger"
                   : "bg-primary/10 text-primary"

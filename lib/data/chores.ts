@@ -107,14 +107,14 @@ const ASSIGNMENT_SELECT = `
   shared_with,
   chore_templates ( id, name, category ),
   assignee:house_members!chore_assignments_assignee_member_id_fkey (
-    id, member_kind, guardian_member_id, users ( display_name, avatar_url )
+    id, member_kind, guardian_member_id, display_name, users ( display_name, avatar_url )
   ),
   confirmer:house_members!chore_assignments_confirmed_by_fkey (
-    id, users ( display_name )
+    id, display_name, users ( display_name )
   ),
   chore_confirmations (
     member_id, is_lead, created_at,
-    house_members ( users ( display_name ) )
+    house_members ( display_name, users ( display_name ) )
   )
 `;
 
@@ -125,14 +125,19 @@ type RawAssignment = ChoreAssignmentRow & {
     id: string;
     member_kind: MemberKind;
     guardian_member_id: string | null;
+    display_name: string | null;
     users: { display_name: string; avatar_url: string | null } | null;
   } | null;
-  confirmer: { id: string; users: { display_name: string } | null } | null;
+  confirmer:
+    | { id: string; display_name: string | null; users: { display_name: string } | null }
+    | null;
   chore_confirmations: {
     member_id: string;
     is_lead: boolean;
     created_at: string;
-    house_members: { users: { display_name: string } | null } | null;
+    house_members:
+      | { display_name: string | null; users: { display_name: string } | null }
+      | null;
   }[];
 };
 
@@ -163,7 +168,7 @@ function toAssignmentView(
     assignee: row.assignee
       ? {
           memberId: row.assignee.id,
-          displayName: row.assignee.users?.display_name ?? "Someone",
+          displayName: row.assignee.users?.display_name ?? row.assignee.display_name ?? "Someone",
           avatarUrl: row.assignee.users?.avatar_url ?? null,
           kind: row.assignee.member_kind,
           guardianMemberId: row.assignee.guardian_member_id,
@@ -173,7 +178,8 @@ function toAssignmentView(
     confirmedBy: row.confirmer
       ? {
           memberId: row.confirmer.id,
-          displayName: row.confirmer.users?.display_name ?? "Someone",
+          displayName:
+            row.confirmer.users?.display_name ?? row.confirmer.display_name ?? "Someone",
         }
       : null,
     quorum: {
@@ -182,7 +188,10 @@ function toAssignmentView(
       leadRequired: row.requires_lead_confirmer,
       confirmations: (row.chore_confirmations ?? []).map((entry) => ({
         memberId: entry.member_id,
-        displayName: entry.house_members?.users?.display_name ?? "Someone",
+        displayName:
+          entry.house_members?.users?.display_name ??
+          entry.house_members?.display_name ??
+          "Someone",
         isLead: entry.is_lead,
         at: entry.created_at,
       })),

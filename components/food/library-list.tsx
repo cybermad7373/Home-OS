@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/ui/empty-state";
+import { List } from "@/components/layout/section";
 import { RatingButtons } from "./rating-buttons";
 import { PlanItButton } from "./plan-it-button";
 import { formatDate } from "@/lib/utils/date";
@@ -29,9 +30,9 @@ export function LibraryList({
   }
 
   return (
-    <ul className="flex flex-col gap-2">
+    <List>
       {foods.map((food) => (
-        <li key={food.id} className="rounded-[14px] border border-border bg-surface p-3">
+        <li key={food.id} className="px-4 py-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <p className="text-[15px] font-medium text-text">{food.name}</p>
@@ -45,7 +46,7 @@ export function LibraryList({
             </div>
             <div className="flex flex-col items-end gap-1">
               {food.typicalCostPaise !== null ? (
-                <span className="caption-text text-text-muted">
+                <span className="caption-text tabular text-text-muted">
                   ~{formatMoney(food.typicalCostPaise, { currency })}
                 </span>
               ) : null}
@@ -57,6 +58,6 @@ export function LibraryList({
           </div>
         </li>
       ))}
-    </ul>
+    </List>
   );
 }

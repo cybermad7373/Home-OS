@@ -86,7 +86,7 @@ export function RuleHistory({
               ) : null}
 
               {/* RL-09. Verbatim, every version, forever. */}
-              <blockquote className="mt-3 rounded-[10px] bg-surface-2 p-3 text-[14px]">
+              <blockquote className="mt-3 rounded-[var(--radius-sm)] bg-surface-2 p-3 text-[14px]">
                 {version.originalText}
               </blockquote>
 

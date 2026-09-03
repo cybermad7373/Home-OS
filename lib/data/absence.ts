@@ -48,19 +48,22 @@ export interface AbsenceView {
 }
 
 type AbsenceRow = AbsenceRequestRow & {
-  house_members: { id: string; users: { display_name: string } | null } | null;
+  house_members:
+    | { id: string; display_name: string | null; users: { display_name: string } | null }
+    | null;
 };
 
 const ABSENCE_SELECT = `
   *,
-  house_members ( id, users ( display_name ) )
+  house_members ( id, display_name, users ( display_name ) )
 `;
 
 function toView(row: AbsenceRow, decisionId: string | null): AbsenceView {
   return {
     id: row.id,
     memberId: row.member_id,
-    memberName: row.house_members?.users?.display_name ?? "Someone",
+    memberName:
+      row.house_members?.users?.display_name ?? row.house_members?.display_name ?? "Someone",
     fromDate: row.from_date,
     toDate: row.to_date,
     reason: row.reason,

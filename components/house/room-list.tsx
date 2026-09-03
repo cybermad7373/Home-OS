@@ -242,7 +242,7 @@ function RoomSheet({
 
       {onDelete ? (
         confirmingDelete ? (
-          <div className="mt-3 rounded-[10px] bg-danger-bg p-3">
+          <div className="mt-3 rounded-[var(--radius-sm)] bg-danger-bg p-3">
             <p className="caption-text mb-2 text-danger">
               Delete {room?.name}? Past rent splits keep it; it just stops being offered.
             </p>

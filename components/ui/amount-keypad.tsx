@@ -74,7 +74,7 @@ export function AmountKeypad({
             onClick={() => press(key)}
             aria-label={key === "⌫" ? "Delete" : key}
             className={cn(
-              "touch-target h-14 rounded-[10px] bg-surface-2 text-[20px] font-medium",
+              "touch-target h-14 rounded-[var(--radius-sm)] bg-surface-2 text-[20px] font-medium",
               "transition-transform duration-75 ease-out active:scale-[0.95] hover:bg-border",
               key === "⌫" && "text-text-muted"
             )}

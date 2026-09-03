@@ -32,7 +32,9 @@ interface AnnouncementRow {
   author_member_id: string;
   created_at: string;
   expires_at: string;
-  house_members: { users: { display_name: string } | null } | null;
+  house_members:
+    | { display_name: string | null; users: { display_name: string } | null }
+    | null;
 }
 
 function toView(row: AnnouncementRow): AnnouncementView {
@@ -44,13 +46,14 @@ function toView(row: AnnouncementRow): AnnouncementView {
     // SQL branches on them. Anything else would be a constraint violation.
     severity: row.severity as AnnouncementView["severity"],
     authorMemberId: row.author_member_id,
-    authorName: row.house_members?.users?.display_name ?? "Someone",
+    authorName:
+      row.house_members?.users?.display_name ?? row.house_members?.display_name ?? "Someone",
     createdAt: row.created_at,
     expiresAt: row.expires_at,
   };
 }
 
-const SELECT = "id, title, body, severity, author_member_id, created_at, expires_at, house_members!house_announcements_author_member_id_fkey(users(display_name))";
+const SELECT = "id, title, body, severity, author_member_id, created_at, expires_at, house_members!house_announcements_author_member_id_fkey(display_name, users(display_name))";
 
 /**
  * The live ones, newest first. An expired announcement is not deleted — it is

@@ -62,7 +62,7 @@ export function Alert({
     <motion.div
       role={tone === "danger" ? "alert" : "status"}
       className={cn(
-        "flex items-start gap-3 rounded-[12px] border px-4 py-3 text-[14px] leading-6 card-shell",
+        "flex items-start gap-3 rounded-[var(--radius-md)] border px-4 py-3 text-[14px] leading-6 card-shell",
         TONES[tone],
         className
       )}
@@ -110,7 +110,7 @@ export function AlertBanner({
     <motion.div
       role={tone === "danger" ? "alert" : "status"}
       className={cn(
-        "flex items-center gap-3 rounded-[12px] border px-4 py-3 text-[14px] leading-6 card-shell",
+        "flex items-center gap-3 rounded-[var(--radius-md)] border px-4 py-3 text-[14px] leading-6 card-shell",
         TONES[tone],
         className
       )}

@@ -52,7 +52,7 @@ export function RatingButtons({ foodId, current }: { foodId: string; current?: R
           aria-pressed={rating === option.value}
           onClick={() => rate(option.value)}
           className={cn(
-            "touch-target rounded-[8px] px-1.5 text-[16px]",
+            "touch-target rounded-[var(--radius-xs)] px-1.5 text-[16px]",
             rating === option.value ? "bg-surface-2" : "opacity-50 hover:opacity-100",
           )}
         >

@@ -109,7 +109,7 @@ export function ApprovalList({
           </p>
 
           {rejecting === expense.id ? (
-            <div className="rounded-[10px] bg-surface-2 p-3">
+            <div className="rounded-[var(--radius-sm)] bg-surface-2 p-3">
               <Input
                 aria-label="Reason for rejecting"
                 value={reason}

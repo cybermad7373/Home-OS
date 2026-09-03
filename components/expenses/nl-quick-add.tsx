@@ -128,7 +128,7 @@ export function NlQuickAdd({
       </form>
 
       {chore ? (
-        <div className="mt-2 flex items-center justify-between gap-3 rounded-[10px] border border-border bg-surface-2 px-3 py-2">
+        <div className="mt-2 flex items-center justify-between gap-3 rounded-[var(--radius-sm)] border border-border bg-surface-2 px-3 py-2">
           <span className="caption-text">Mark &ldquo;{chore.chore}&rdquo; done?</span>
           <div className="flex gap-2">
             <Button size="sm" variant="ghost" onClick={() => setChore(null)}>

@@ -80,7 +80,7 @@ const MEAL_SELECT = `
   meal_items ( id, name, quantity, cost_paise ),
   meal_participants (
     member_id, guest_id, label, share_paise,
-    house_members ( id, users ( display_name ) ),
+    house_members ( id, display_name, users ( display_name ) ),
     guests ( id, name )
   )
 `;
@@ -92,7 +92,9 @@ type MealJoinRow = MealRow & {
     guest_id: string | null;
     label: string | null;
     share_paise: number;
-    house_members: { id: string; users: { display_name: string } | null } | null;
+    house_members:
+      | { id: string; display_name: string | null; users: { display_name: string } | null }
+      | null;
     guests: { id: string; name: string } | null;
   }[];
 };
@@ -127,7 +129,11 @@ function toMealView(row: MealJoinRow): MealView {
       guestId: p.guest_id,
       label: p.label,
       displayName:
-        p.house_members?.users?.display_name ?? p.guests?.name ?? p.label ?? "Someone",
+        p.house_members?.users?.display_name ??
+        p.house_members?.display_name ??
+        p.guests?.name ??
+        p.label ??
+        "Someone",
       sharePaise: p.share_paise,
     })),
   };

@@ -10,28 +10,28 @@ export function Skeleton({ className, variant = "default" }: {
 }) {
   const reduce = useReducedMotion();
 
-  const baseClass = "bg-surface-2 rounded-[10px]";
+  const baseClass = "bg-surface-2 rounded-[var(--radius-sm)]";
 
   const variants = {
     default: "h-4 w-full",
     text: "h-4 w-3/4",
     circular: "rounded-full",
-    rectangular: "rounded-[10px]",
-    card: "aspect-[4/3] rounded-[1.25rem]",
+    rectangular: "rounded-[var(--radius-sm)]",
+    card: "aspect-[4/3] rounded-[var(--radius-lg)]",
     avatar: "rounded-full",
     button: "h-11 rounded-full",
-    stat: "h-8 w-24 rounded-[10px]",
+    stat: "h-8 w-24 rounded-[var(--radius-sm)]",
   };
 
   const classNameMap = {
     default: "h-4 w-full",
     text: "h-4 w-3/4",
     circular: "h-10 w-10 rounded-full",
-    rectangular: "h-12 w-32 rounded-[10px]",
-    card: "aspect-[4/3] rounded-[1.25rem]",
+    rectangular: "h-12 w-32 rounded-[var(--radius-sm)]",
+    card: "aspect-[4/3] rounded-[var(--radius-lg)]",
     avatar: "h-10 w-10 rounded-full",
     button: "h-11 w-24 rounded-full",
-    stat: "h-8 w-24 rounded-[10px]",
+    stat: "h-8 w-24 rounded-[var(--radius-sm)]",
   };
 
   if (reduce) {

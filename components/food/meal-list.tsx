@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/ui/empty-state";
+import { List } from "@/components/layout/section";
 import { LinkExpenseChip } from "./link-expense-chip";
 import { formatDate } from "@/lib/utils/date";
 import { formatMoney } from "@/lib/utils/money";
@@ -23,9 +24,9 @@ export function MealList({ meals, currency }: { meals: MealView[]; currency: str
   }
 
   return (
-    <ul className="flex flex-col gap-2">
+    <List>
       {meals.map((meal) => (
-        <li key={meal.id} className="rounded-[14px] border border-border bg-surface p-3">
+        <li key={meal.id} className="px-4 py-3">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[15px] font-medium text-text">{meal.name}</p>
@@ -38,7 +39,7 @@ export function MealList({ meals, currency }: { meals: MealView[]; currency: str
             </div>
             <div className="flex items-center gap-2">
               {meal.totalCostPaise > 0 ? (
-                <span className="text-[15px] text-text">
+                <span className="tabular text-[15px]">
                   {formatMoney(meal.totalCostPaise, { currency })}
                 </span>
               ) : null}
@@ -47,6 +48,6 @@ export function MealList({ meals, currency }: { meals: MealView[]; currency: str
           </div>
         </li>
       ))}
-    </ul>
+    </List>
   );
 }

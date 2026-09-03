@@ -129,7 +129,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               exit={{ opacity: 0, x: 100, y: -20 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               className={cn(
-                "pointer-events-auto w-full max-w-sm rounded-[12px] border px-4 py-3 text-[14px] shadow-[var(--shadow-md)] flex items-start gap-3",
+                "pointer-events-auto w-full max-w-sm rounded-[var(--radius-md)] border px-4 py-3 text-[14px] shadow-[var(--shadow-md)] flex items-start gap-3",
                 TONES[toast.tone],
                 "card-shell"
               )}

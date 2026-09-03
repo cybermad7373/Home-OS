@@ -178,7 +178,7 @@ function ShoppingRow({
   onDelete: () => void;
 }) {
   return (
-    <li className="flex items-center gap-3 rounded-[14px] border border-border bg-surface p-3">
+    <li className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border bg-surface p-3">
       <input
         type="checkbox"
         checked={item.checkedOff}

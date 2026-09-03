@@ -34,7 +34,7 @@ export function RejectForm({
   const tooShort = reason.trim().length < MIN_REASON;
 
   return (
-    <div className="mt-3 rounded-[10px] bg-surface-2 p-3">
+    <div className="mt-3 rounded-[var(--radius-sm)] bg-surface-2 p-3">
       <p className="caption-text mb-2 text-text-muted">Why are you rejecting it?</p>
 
       <ul className="mb-2 flex flex-wrap gap-2">

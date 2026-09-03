@@ -48,7 +48,10 @@ export function PlannedMeals({ plans, members }: { plans: MealPlanView[]; member
     <>
       <ul className="flex flex-col gap-2">
         {upcoming.map((plan) => (
-          <li key={plan.id} className="flex items-center justify-between rounded-[14px] border border-dashed border-border bg-surface p-3">
+          <li
+            key={plan.id}
+            className="flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-dashed border-border bg-surface p-3"
+          >
             <div>
               <p className="text-[15px] text-text">{plan.name}</p>
               <p className="caption-text text-text-muted">Planned for {formatDate(plan.plannedDate)}</p>
@@ -59,7 +62,7 @@ export function PlannedMeals({ plans, members }: { plans: MealPlanView[]; member
                 onClick={() => setConfirming(plan)}
                 disabled={busyId === plan.id}
                 aria-label={`Confirm ${plan.name} as eaten`}
-                className="touch-target text-success hover:opacity-80"
+                className="touch-target flex items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
               >
                 <Check size={18} aria-hidden />
               </button>
@@ -68,7 +71,7 @@ export function PlannedMeals({ plans, members }: { plans: MealPlanView[]; member
                 onClick={() => cancel(plan)}
                 disabled={busyId === plan.id}
                 aria-label={`Cancel plan for ${plan.name}`}
-                className="touch-target text-text-subtle hover:text-danger"
+                className="touch-target flex items-center justify-center rounded-full text-text-subtle transition-colors hover:bg-surface-2 hover:text-text"
               >
                 <X size={18} aria-hidden />
               </button>

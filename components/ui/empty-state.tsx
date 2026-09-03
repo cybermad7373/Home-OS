@@ -178,7 +178,7 @@ export function EmptyStateInline({
 
   if (reduce) {
     return (
-      <div className={cn("flex items-center gap-3 px-4 py-3 rounded-[10px] bg-surface-2/50", className)}>
+      <div className={cn("flex items-center gap-3 px-4 py-3 rounded-[var(--radius-sm)] bg-surface-2/50", className)}>
         <div className="flex-shrink-0 w-10 h-10 rounded-full bg-border flex items-center justify-center text-text-subtle">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <circle cx="12" cy="12" r="10" strokeDasharray="6 6"/>
@@ -196,7 +196,7 @@ export function EmptyStateInline({
 
   return (
     <motion.div
-      className={cn("flex items-center gap-3 px-4 py-3 rounded-[10px] bg-surface-2/50", className)}
+      className={cn("flex items-center gap-3 px-4 py-3 rounded-[var(--radius-sm)] bg-surface-2/50", className)}
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}

@@ -133,7 +133,7 @@ function Segmented({
 }) {
   return (
     <nav aria-label={label} className="min-w-0 flex-1">
-      <ul className="flex gap-1 rounded-[10px] bg-surface-2 p-1">
+      <ul className="flex gap-1 rounded-[var(--radius-sm)] bg-surface-2 p-1">
         {options.map((option) => (
           <li key={option.key} className="min-w-0 flex-1">
             <Link
@@ -141,8 +141,8 @@ function Segmented({
               aria-current={option.current ? "page" : undefined}
               className={
                 option.current
-                  ? "touch-target flex items-center justify-center rounded-[8px] bg-surface px-2 text-[15px] font-medium text-primary"
-                  : "touch-target flex items-center justify-center rounded-[8px] px-2 text-[15px] text-text-muted"
+                  ? "touch-target flex items-center justify-center rounded-[var(--radius-xs)] bg-surface px-2 text-[15px] font-medium text-primary"
+                  : "touch-target flex items-center justify-center rounded-[var(--radius-xs)] px-2 text-[15px] text-text-muted"
               }
             >
               <span className="truncate">{option.label}</span>

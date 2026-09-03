@@ -13,14 +13,14 @@ export default async function ShoppingListPage() {
   const items = await listShoppingItems(session, context.house.id);
 
   return (
-    <div>
-      <PageHeader title="Shopping List" subtitle="Derived from meal plans, not a module of its own" />
+    <>
+      <PageHeader title="Shopping list" subtitle="Derived from meal plans, not a module of its own" />
       <ShoppingListClient
         initialItems={items}
         currency={context.house.currency}
         myMemberId={context.me.id}
         isLead={context.isLead}
       />
-    </div>
+    </>
   );
 }

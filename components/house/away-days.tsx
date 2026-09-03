@@ -141,7 +141,7 @@ export function AwayDays({
                 value={date}
                 min={today}
                 onChange={(event) => setDate(event.target.value)}
-                className="mt-1 block w-full rounded-[10px] border border-border bg-surface px-2 py-1.5 text-base"
+                className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
               />
             </label>
             <label className="caption-text flex-1 text-text-muted">
@@ -149,7 +149,7 @@ export function AwayDays({
               <select
                 value={type}
                 onChange={(event) => setType(event.target.value as ExceptionItem["type"])}
-                className="mt-1 block w-full rounded-[10px] border border-border bg-surface px-2 py-1.5 text-base"
+                className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
               >
                 <option value="away">Away all day</option>
                 <option value="home_all_day">Home all day</option>
@@ -166,7 +166,7 @@ export function AwayDays({
                   type="time"
                   value={leavesAt}
                   onChange={(event) => setLeavesAt(event.target.value)}
-                  className="mt-1 block w-full rounded-[10px] border border-border bg-surface px-2 py-1.5 text-base"
+                  className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
                 />
               </label>
               <label className="caption-text flex-1 text-text-muted">
@@ -175,7 +175,7 @@ export function AwayDays({
                   type="time"
                   value={returnsAt}
                   onChange={(event) => setReturnsAt(event.target.value)}
-                  className="mt-1 block w-full rounded-[10px] border border-border bg-surface px-2 py-1.5 text-base"
+                  className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
                 />
               </label>
             </div>
@@ -189,7 +189,7 @@ export function AwayDays({
               maxLength={120}
               onChange={(event) => setReason(event.target.value)}
               placeholder="Home for the weekend"
-              className="mt-1 block w-full rounded-[10px] border border-border bg-surface px-2 py-1.5 text-base"
+              className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
             />
           </label>
 

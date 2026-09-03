@@ -35,8 +35,11 @@ export default async function FoodLibraryPage() {
   }
 
   return (
-    <div>
-      <PageHeader title="Food Library" subtitle="Every dish the Home has recorded, so it never has to be described twice" />
+    <>
+      <PageHeader
+        title="Library"
+        subtitle="Every dish the home has recorded, so it never has to be described twice"
+      />
       {context.isLead ? <MergeDuplicates foods={foods} /> : null}
       <LibraryList
         foods={foods}
@@ -45,6 +48,6 @@ export default async function FoodLibraryPage() {
         homeLikes={homeLikes}
         today={houseToday(context.house.timezone)}
       />
-    </div>
+    </>
   );
 }

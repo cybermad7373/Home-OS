@@ -1,7 +1,22 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { Card, CardShell, CardCore } from "@/components/ui/card";
+import { Alert, AlertBanner } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardCore,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardShell,
+  CardTitle,
+} from "@/components/ui/card";
+import { Chip, ChipRow } from "@/components/ui/chip";
+import { Field, Label } from "@/components/ui/label";
+import { List, Section } from "@/components/layout/section";
 import { Input, Select, Textarea } from "@/components/ui/input";
 import { Readout } from "@/components/ui/readout";
 
@@ -107,4 +122,36 @@ describe("form controls", () => {
     expect(html).toContain("Say something");
     expect(html).toMatch(/for="([^"]+)"[^]*id="\1"/);
   });
+});
+
+/**
+ * A sweep over every primitive that takes children, so the class of bug that
+ * hit `Card` and `Select` cannot hide in a third one. Two of the app's most
+ * used components shipped rendering nothing; a test this cheap would have
+ * caught both on the day they were written.
+ */
+describe("every primitive that takes children renders them", () => {
+  const cases: [string, (child: React.ReactNode) => React.ReactElement][] = [
+    ["Alert", (child) => createElement(Alert, null, child)],
+    ["AlertBanner", (child) => createElement(AlertBanner, null, child)],
+    ["Badge", (child) => createElement(Badge, null, child)],
+    ["Chip", (child) => createElement(Chip, null, child)],
+    ["ChipRow", (child) => createElement(ChipRow, null, child)],
+    ["Label", (child) => createElement(Label, null, child)],
+    ["Field", (child) => createElement(Field, { label: "L", htmlFor: "x", children: child })],
+    ["CardHeader", (child) => createElement(CardHeader, null, child)],
+    ["CardTitle", (child) => createElement(CardTitle, null, child)],
+    ["CardDescription", (child) => createElement(CardDescription, null, child)],
+    ["CardContent", (child) => createElement(CardContent, null, child)],
+    ["CardFooter", (child) => createElement(CardFooter, null, child)],
+    ["CardAction", (child) => createElement(CardAction, null, child)],
+    ["Section", (child) => createElement(Section, { label: "S", children: child })],
+    ["List", (child) => createElement(List, null, createElement("li", null, child))],
+  ];
+
+  for (const [name, render] of cases) {
+    it(name, () => {
+      expect(renderToStaticMarkup(render("content"))).toContain("content");
+    });
+  }
 });

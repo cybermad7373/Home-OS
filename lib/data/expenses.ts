@@ -59,28 +59,38 @@ const EXPENSE_SELECT = `
   expense_categories ( id, name, icon ),
   monthly_periods ( period, status ),
   payer:house_members!expenses_paid_by_member_id_fkey (
-    id, users ( display_name, avatar_url )
+    id, display_name, users ( display_name, avatar_url )
   ),
   approver:house_members!expenses_approved_by_fkey (
-    id, users ( display_name )
+    id, display_name, users ( display_name )
   ),
   expense_splits (
     member_id, share_paise, guest_share_paise, dependent_share_paise,
-    house_members ( id, users ( display_name ) )
+    house_members ( id, display_name, users ( display_name ) )
   )
 `;
 
 type RawExpense = ExpenseRow & {
   expense_categories: { id: string; name: string; icon: string | null } | null;
   monthly_periods: { period: string; status: string } | null;
-  payer: { id: string; users: { display_name: string; avatar_url: string | null } | null } | null;
-  approver: { id: string; users: { display_name: string } | null } | null;
+  payer:
+    | {
+        id: string;
+        display_name: string | null;
+        users: { display_name: string; avatar_url: string | null } | null;
+      }
+    | null;
+  approver:
+    | { id: string; display_name: string | null; users: { display_name: string } | null }
+    | null;
   expense_splits: {
     member_id: string;
     share_paise: number;
     guest_share_paise: number;
     dependent_share_paise: number;
-    house_members: { id: string; users: { display_name: string } | null } | null;
+    house_members:
+      | { id: string; display_name: string | null; users: { display_name: string } | null }
+      | null;
   }[];
 };
 
@@ -104,13 +114,14 @@ function toExpenseView(row: RawExpense, myMemberId: string): ExpenseView {
     category: row.expense_categories ?? { id: row.category_id, name: "Other", icon: null },
     paidBy: {
       memberId: row.paid_by_member_id,
-      displayName: row.payer?.users?.display_name ?? "Someone",
+      displayName: row.payer?.users?.display_name ?? row.payer?.display_name ?? "Someone",
       avatarUrl: row.payer?.users?.avatar_url ?? null,
     },
     approvedBy: row.approver
       ? {
           memberId: row.approver.id,
-          displayName: row.approver.users?.display_name ?? "Someone",
+          displayName:
+            row.approver.users?.display_name ?? row.approver.display_name ?? "Someone",
         }
       : null,
     period: row.monthly_periods?.period ?? row.expense_date.slice(0, 7),
@@ -121,7 +132,10 @@ function toExpenseView(row: RawExpense, myMemberId: string): ExpenseView {
     splits: row.expense_splits
       .map((split) => ({
         memberId: split.member_id,
-        displayName: split.house_members?.users?.display_name ?? "Someone",
+        displayName:
+          split.house_members?.users?.display_name ??
+          split.house_members?.display_name ??
+          "Someone",
         sharePaise: split.share_paise,
         guestSharePaise: split.guest_share_paise,
         dependentSharePaise: split.dependent_share_paise,

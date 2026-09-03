@@ -32,12 +32,14 @@ export interface GuestView {
 }
 
 type GuestJoinRow = GuestRow & {
-  host: { id: string; users: { display_name: string } | null } | null;
+  host:
+    | { id: string; display_name: string | null; users: { display_name: string } | null }
+    | null;
 };
 
 const GUEST_SELECT = `
   *,
-  host:house_members!guests_host_member_id_fkey ( id, users ( display_name ) )
+  host:house_members!guests_host_member_id_fkey ( id, display_name, users ( display_name ) )
 `;
 
 function toGuestView(row: GuestJoinRow): GuestView {
@@ -45,7 +47,7 @@ function toGuestView(row: GuestJoinRow): GuestView {
     id: row.id,
     name: row.name,
     hostMemberId: row.host_member_id,
-    hostName: row.host?.users?.display_name ?? "Someone",
+    hostName: row.host?.users?.display_name ?? row.host?.display_name ?? "Someone",
     fromDate: row.from_date,
     toDate: row.to_date,
     countsForExpense: row.counts_for_expense,

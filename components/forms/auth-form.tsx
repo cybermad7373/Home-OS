@@ -256,7 +256,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
         </Button>
 
         {DEV_LOGIN && mode === "signin" ? (
-          <div className="mt-3 rounded-[10px] border border-dashed border-border-strong p-3">
+          <div className="mt-3 rounded-[var(--radius-sm)] border border-dashed border-border-strong p-3">
             <p className="caption-text mb-2 text-text-muted">
               Development build. Signing in as{" "}
               <span className="font-medium text-text">{DEV_LOGIN.identifier}</span> with the

@@ -67,7 +67,7 @@ export function HomeSwitcher({
         aria-expanded={open}
         aria-haspopup="listbox"
         disabled={pending}
-        className="flex w-full items-center gap-1.5 rounded-[10px] px-1 py-0.5 text-left hover:bg-surface-2"
+        className="flex w-full items-center gap-1.5 rounded-[var(--radius-sm)] px-1 py-0.5 text-left hover:bg-surface-2"
       >
         <span className="heading-text truncate">{selected?.name}</span>
         <ChevronDown size={16} aria-hidden className="shrink-0 text-text-muted" />

@@ -13,9 +13,9 @@ export default async function MealHistoryPage() {
   const meals = await listMeals(session, context.house.id, { limit: 100 });
 
   return (
-    <div>
-      <PageHeader title="Meal History" subtitle="What was eaten, by whom, and what it cost" />
+    <>
+      <PageHeader title="Meal history" subtitle="What was eaten, by whom, and what it cost" />
       <MealList meals={meals} currency={context.house.currency} />
-    </div>
+    </>
   );
 }

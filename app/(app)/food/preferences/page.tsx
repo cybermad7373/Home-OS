@@ -17,9 +17,9 @@ export default async function FoodPreferencesPage() {
   const restrictions = await listMyRestrictions(session, context.me.id);
 
   return (
-    <div>
-      <PageHeader title="Food Preferences" subtitle="What you like, and what you cannot eat" />
+    <>
+      <PageHeader title="Preferences" subtitle="What you like, and what you cannot eat" />
       <RestrictionsPanel restrictions={restrictions} memberId={context.me.id} />
-    </div>
+    </>
   );
 }

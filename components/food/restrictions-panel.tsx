@@ -76,7 +76,7 @@ export function RestrictionsPanel({
       ) : (
         <ul className="mb-3 flex flex-col gap-2">
           {restrictions.map((r) => (
-            <li key={r.id} className="flex items-center justify-between rounded-[10px] bg-surface-2 px-3 py-2">
+            <li key={r.id} className="flex items-center justify-between rounded-[var(--radius-sm)] bg-surface-2 px-3 py-2">
               <span className="text-[14px] text-text">
                 {r.itemName} <span className="text-text-subtle">· {SEVERITY_LABEL[r.severity]}</span>
               </span>

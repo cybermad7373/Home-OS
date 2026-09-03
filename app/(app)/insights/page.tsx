@@ -132,7 +132,7 @@ function ExportLink({ href, children }: { href: string; children: string }) {
   return (
     <a
       href={href}
-      className="touch-target inline-flex items-center rounded-[10px] border border-border px-3 text-[15px] text-text-muted"
+      className="touch-target inline-flex items-center rounded-[var(--radius-sm)] border border-border px-3 text-[15px] text-text-muted"
     >
       {children}
     </a>

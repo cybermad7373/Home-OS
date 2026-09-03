@@ -181,7 +181,7 @@ export function AddMealSheet({
           placeholder="What did you eat?"
         />
         {match && !match.exact && match.suggestions.length > 0 ? (
-          <div className="mt-2 rounded-[10px] border border-border bg-surface-2 p-2">
+          <div className="mt-2 rounded-[var(--radius-sm)] border border-border bg-surface-2 p-2">
             <p className="caption-text mb-1 text-text-muted">Did you mean:</p>
             {match.suggestions.map((s) => (
               <button
@@ -192,7 +192,7 @@ export function AddMealSheet({
                   setFoodId(s.id);
                   setMatch(null);
                 }}
-                className="block w-full rounded-[8px] px-2 py-1.5 text-left text-[14px] hover:bg-surface"
+                className="block w-full rounded-[var(--radius-xs)] px-2 py-1.5 text-left text-[14px] hover:bg-surface"
               >
                 {s.name} <span className="text-text-subtle">({s.timesEaten} eaten)</span>
               </button>
@@ -239,7 +239,7 @@ export function AddMealSheet({
               type="button"
               onClick={() => setSource(s.value)}
               className={cn(
-                "touch-target flex-1 rounded-[10px] border px-2 py-2 text-[13px]",
+                "touch-target flex-1 rounded-[var(--radius-sm)] border px-2 py-2 text-[13px]",
                 source === s.value
                   ? "border-primary bg-primary text-primary-fg"
                   : "border-border bg-surface-2 text-text-muted",
@@ -257,7 +257,7 @@ export function AddMealSheet({
           <button
             type="button"
             onClick={() => setCostExpanded(true)}
-            className="flex h-11 w-full items-center rounded-[10px] border border-border bg-surface-2 px-3 text-[15px] text-text-muted"
+            className="flex h-11 w-full items-center rounded-[var(--radius-sm)] border border-border bg-surface-2 px-3 text-[15px] text-text-muted"
           >
             {baseCost === "0" ? "Tap to enter a cost (optional)" : `₹${baseCost}`}
           </button>

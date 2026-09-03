@@ -21,9 +21,9 @@ export function FoodHomeClient({
   const [adding, setAdding] = useState(openAddOnMount);
 
   return (
-    <div className="flex flex-col gap-4">
-      <Button onClick={() => setAdding(true)} className="self-start">
-        <Plus size={16} aria-hidden /> Add Meal
+    <>
+      <Button onClick={() => setAdding(true)} block className="mb-6">
+        <Plus size={16} aria-hidden /> Record a meal
       </Button>
 
       <SuggestionsCard currency={currency} today={today} />
@@ -34,6 +34,6 @@ export function FoodHomeClient({
         members={members}
         today={today}
       />
-    </div>
+    </>
   );
 }

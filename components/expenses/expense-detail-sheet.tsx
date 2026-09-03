@@ -281,7 +281,7 @@ export function ExpenseDetailSheet({
       </div>
 
       <h3 className="heading-text mb-2">The split</h3>
-      <ul className="mb-4 divide-y divide-border rounded-[10px] border border-border">
+      <ul className="mb-4 divide-y divide-border rounded-[var(--radius-sm)] border border-border">
         {expense.splits.map((split) => (
           <li
             key={split.memberId}
@@ -344,7 +344,7 @@ export function ExpenseDetailSheet({
 
       {canVoid ? (
         voiding ? (
-          <div className="mt-3 rounded-[10px] bg-danger-bg p-3">
+          <div className="mt-3 rounded-[var(--radius-sm)] bg-danger-bg p-3">
             <p className="caption-text mb-2 text-danger">
               Voiding keeps the record and its reason, and takes it out of every balance.
             </p>

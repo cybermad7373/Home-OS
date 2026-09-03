@@ -68,7 +68,7 @@ export function QuickAddSheet({
             <Link
               href={option.href}
               onClick={onClose}
-              className="touch-target flex flex-col rounded-[10px] border border-border bg-surface px-3 py-3 hover:border-primary"
+              className="touch-target flex flex-col rounded-[var(--radius-sm)] border border-border bg-surface px-3 py-3 hover:border-primary"
             >
               <span className="font-medium">{option.label}</span>
               <span className="caption-text text-text-muted">{option.body}</span>

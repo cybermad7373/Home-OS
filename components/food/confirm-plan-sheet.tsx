@@ -127,7 +127,7 @@ export function ConfirmPlanSheet({
                   type="button"
                   onClick={() => setSource(s.value)}
                   className={cn(
-                    "touch-target flex-1 rounded-[10px] border px-2 py-2 text-[13px]",
+                    "touch-target flex-1 rounded-[var(--radius-sm)] border px-2 py-2 text-[13px]",
                     source === s.value
                       ? "border-primary bg-primary text-primary-fg"
                       : "border-border bg-surface-2 text-text-muted",

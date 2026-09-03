@@ -146,7 +146,7 @@ export function SettingsForm({
           its own — somebody here still has to let them in.
         </CardDescription>
         {link ? (
-          <p className="my-3 break-all rounded-[10px] bg-surface-2 px-3 py-2 font-mono text-[13px]">
+          <p className="my-3 break-all rounded-[var(--radius-sm)] bg-surface-2 px-3 py-2 font-mono text-[13px]">
             {link}
           </p>
         ) : (

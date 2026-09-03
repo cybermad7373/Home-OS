@@ -335,7 +335,7 @@ export function ChoreCard({
                 one signature is no longer the whole quorum. */}
             {mayRespond ? (
               rejecting ? (
-                <div className="w-full rounded-[10px] bg-surface-2 p-3">
+                <div className="w-full rounded-[var(--radius-sm)] bg-surface-2 p-3">
                   <Input
                     aria-label="What was wrong with it"
                     value={reason}
@@ -413,7 +413,7 @@ export function ChoreCard({
         (isMine || isMyDependents) &&
         (chore.status === "assigned" || chore.status === "done_pending") ? (
           attaching ? (
-            <div className="mt-2 rounded-[10px] bg-surface-2 p-3">
+            <div className="mt-2 rounded-[var(--radius-sm)] bg-surface-2 p-3">
               <label htmlFor={`note-${chore.id}`} className="sr-only">
                 Note
               </label>
@@ -436,7 +436,7 @@ export function ChoreCard({
                       event.target.value = "";
                     }}
                   />
-                  <span className="touch-target rounded-[10px] border border-border px-3 py-1.5 text-[13px]">
+                  <span className="touch-target rounded-[var(--radius-sm)] border border-border px-3 py-1.5 text-[13px]">
                     {uploadingPhoto ? "Uploading…" : chore.photoUrl ? "Replace photo" : "Add photo"}
                   </span>
                 </label>

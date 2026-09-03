@@ -96,7 +96,7 @@ export function GeneratePanel({
             type="date"
             value={weekStart}
             onChange={(event) => setWeekStart(event.target.value)}
-            className="h-11 w-full rounded-[10px] border border-border bg-surface-2 px-3 text-[15px] text-text"
+            className="h-11 w-full rounded-[var(--radius-sm)] border border-border bg-surface-2 px-3 text-[15px] text-text"
           />
         </div>
 

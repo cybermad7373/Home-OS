@@ -21,7 +21,7 @@ export function NotificationBell({ unread }: { unread: number }) {
     <Link
       href="/notifications"
       aria-label={label}
-      className="relative inline-flex h-11 w-11 items-center justify-center rounded-[10px] text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+      className="relative inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-sm)] text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
     >
       <Bell size={20} aria-hidden />
       {unread > 0 ? (

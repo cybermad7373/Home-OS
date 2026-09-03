@@ -133,7 +133,7 @@ export function GuestList({
               maxLength={50}
               onChange={(event) => setName(event.target.value)}
               placeholder="Arjun"
-              className="mt-1 block w-full rounded-[10px] border border-border bg-surface px-2 py-1.5 text-base"
+              className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
             />
           </label>
 
@@ -147,7 +147,7 @@ export function GuestList({
                   setFromDate(event.target.value);
                   if (event.target.value > toDate) setToDate(event.target.value);
                 }}
-                className="mt-1 block w-full rounded-[10px] border border-border bg-surface px-2 py-1.5 text-base"
+                className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
               />
             </label>
             <label className="caption-text flex-1 text-text-muted">
@@ -157,7 +157,7 @@ export function GuestList({
                 value={toDate}
                 min={fromDate}
                 onChange={(event) => setToDate(event.target.value)}
-                className="mt-1 block w-full rounded-[10px] border border-border bg-surface px-2 py-1.5 text-base"
+                className="mt-1 block w-full rounded-[var(--radius-sm)] border border-border bg-surface px-2 py-1.5 text-base"
               />
             </label>
           </div>
