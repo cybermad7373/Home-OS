@@ -45,12 +45,18 @@ export const PROVIDERS: ProviderDescriptor[] = [
     label: "Google Gemini",
     transport: "gemini",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+    // Google retires a numbered Gemini release and answers it with a 404, which
+    // this app reads as a provider failure and quietly falls back from — so a
+    // house sees its AI features stop working and nothing says why. The three
+    // pinned 1.5/2.0/2.5 ids listed here until 2026-09-03 had all been retired.
+    // The rolling aliases lead, because they survive the next retirement; the
+    // pinned id is kept for a house that wants a fixed model.
     models: [
-      { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", free: true },
-      { id: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite", free: true },
-      { id: "gemini-1.5-flash", label: "Gemini 1.5 Flash", free: true },
+      { id: "gemini-flash-latest", label: "Gemini Flash (latest)", free: true },
+      { id: "gemini-flash-lite-latest", label: "Gemini Flash Lite (latest)", free: true },
+      { id: "gemini-3.6-flash", label: "Gemini 3.6 Flash", free: true },
     ],
-    defaultModel: "gemini-2.0-flash",
+    defaultModel: "gemini-flash-latest",
     jsonMode: "schema",
     keyHint: { pattern: "^AIza[A-Za-z0-9_\\-]{20,}$", example: "AIza…" },
     consoleUrl: "https://aistudio.google.com/apikey",
@@ -157,7 +163,8 @@ export const PROVIDERS: ProviderDescriptor[] = [
     baseUrl: "https://api.anthropic.com",
     models: [
       { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5", free: false },
-      { id: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5", free: false },
+      { id: "claude-sonnet-5", label: "Claude Sonnet 5", free: false },
+      { id: "claude-opus-5", label: "Claude Opus 5", free: false },
     ],
     defaultModel: "claude-haiku-4-5-20251001",
     jsonMode: "schema",

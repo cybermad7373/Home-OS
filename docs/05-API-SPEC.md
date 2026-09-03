@@ -1506,7 +1506,7 @@ Documented in section 4. Listed here because it is the sixth AI call site.
 The weekly fairness summary.
 
 ```json
-{ "generated": true, "model": "gemini-2.0-flash",
+{ "generated": true, "model": "gemini-flash-latest",
   "summary": "Ravi and Kumar together earned 61 percent of the week's points...",
   "highlights": { "carried": ["Ravi", "Kumar"], "coasted": ["Suresh"], "improved": ["Vinoth"] },
   "next_week_correction": "Suresh's target rises by 30 points; two evening kitchen slots moved to him because he is home by 18:30." }

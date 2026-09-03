@@ -150,7 +150,7 @@ product's premise is that a shared house pays nothing to run it:
 
 | id | Label | Transport | Default model | Free tier |
 |----|-------|-----------|---------------|-----------|
-| `gemini` | Google Gemini | `gemini` | `gemini-2.0-flash` | Generous free tier on an AI Studio key |
+| `gemini` | Google Gemini | `gemini` | `gemini-flash-latest` | Generous free tier on an AI Studio key |
 | `groq` | Groq | `openai-chat` | `llama-3.3-70b-versatile` | Free, rate-limited per minute and per day |
 | `openrouter` | OpenRouter | `openai-chat` | `meta-llama/llama-3.3-70b-instruct:free` | The free model pool, suffixed `:free` |
 | `huggingface` | Hugging Face | `openai-chat` | `meta-llama/Llama-3.3-70B-Instruct` | Monthly inference credit |

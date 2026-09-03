@@ -219,7 +219,7 @@ LLM_KEY_ENCRYPTION_KEY=<generated below>
 
 LLM_PROVIDER=gemini
 LLM_API_KEY=<optional fallback>
-LLM_MODEL=gemini-2.0-flash
+LLM_MODEL=gemini-flash-latest
 
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
@@ -358,7 +358,7 @@ supabase functions deploy
 ```bash
 supabase secrets set \
   VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... VAPID_SUBJECT=mailto:you@example.com \
-  LLM_KEY_ENCRYPTION_KEY=...   LLM_PROVIDER=gemini LLM_API_KEY=... LLM_MODEL=gemini-2.0-flash \
+  LLM_KEY_ENCRYPTION_KEY=...   LLM_PROVIDER=gemini LLM_API_KEY=... LLM_MODEL=gemini-flash-latest \
   LLM_BASE_URL=...             APP_URL=https://your-app.vercel.app
 ```
 

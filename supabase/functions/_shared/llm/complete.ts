@@ -108,7 +108,7 @@ export async function resolveJobProvider(
 
   return {
     id: envProvider,
-    model: Deno.env.get("LLM_MODEL") ?? "gemini-2.0-flash",
+    model: Deno.env.get("LLM_MODEL") ?? "gemini-flash-latest",
     apiKey: envKey,
     baseUrl: (Deno.env.get("LLM_BASE_URL") ?? entry.baseUrl).replace(/\/+$/, ""),
     transport: entry.transport,
