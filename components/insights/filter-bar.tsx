@@ -55,7 +55,9 @@ export function FilterBar({
   members: { memberId: string; displayName: string }[];
 }) {
   return (
-    <div className="mb-4 flex flex-col gap-3">
+    // Capped on a desktop: a segmented control stretched to 1100px is four
+    // buttons the size of a paragraph.
+    <div className="mb-6 flex max-w-3xl flex-col gap-3">
       <Segmented
         label="Insight type"
         options={TYPES.map((type) => ({

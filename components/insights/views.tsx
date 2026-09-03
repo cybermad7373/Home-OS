@@ -137,7 +137,12 @@ export function MoneyView({
     // desktop, with the row of figures spanning both. A 1100px-wide card
     // holding a five-row list is not a card.
     <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start">
-      <div className="grid grid-cols-2 gap-3 lg:col-span-2 lg:grid-cols-4">
+      {/* Auto-fit rather than a fixed four: a view with two figures should
+          fill the row with two, not leave half of it empty. */}
+      <div
+        className="grid grid-cols-2 gap-3 lg:col-span-2"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))" }}
+      >
         <Metric label="Approved" value={money(report.totalPaise)} />
         <Metric
           label="Waiting on approval"
@@ -263,7 +268,12 @@ export function ChoresView({ report }: { report: ChoreInsightsOutput }) {
     // desktop, with the row of figures spanning both. A 1100px-wide card
     // holding a five-row list is not a card.
     <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start">
-      <div className="grid grid-cols-2 gap-3 lg:col-span-2 lg:grid-cols-4">
+      {/* Auto-fit rather than a fixed four: a view with two figures should
+          fill the row with two, not leave half of it empty. */}
+      <div
+        className="grid grid-cols-2 gap-3 lg:col-span-2"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))" }}
+      >
         <Metric
           label="Done and confirmed"
           value={`${report.summary.confirmedPoints} pts`}
@@ -397,7 +407,12 @@ export function FoodView({
     // desktop, with the row of figures spanning both. A 1100px-wide card
     // holding a five-row list is not a card.
     <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start">
-      <div className="grid grid-cols-2 gap-3 lg:col-span-2 lg:grid-cols-4">
+      {/* Auto-fit rather than a fixed four: a view with two figures should
+          fill the row with two, not leave half of it empty. */}
+      <div
+        className="grid grid-cols-2 gap-3 lg:col-span-2"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))" }}
+      >
         <Metric
           label="Cooked at home"
           value={money(report.homeCookedPaise)}
@@ -490,7 +505,12 @@ export function HomeView({ report }: { report: HomeInsightsOutput }) {
     // desktop, with the row of figures spanning both. A 1100px-wide card
     // holding a five-row list is not a card.
     <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start">
-      <div className="grid grid-cols-2 gap-3 lg:col-span-2 lg:grid-cols-4">
+      {/* Auto-fit rather than a fixed four: a view with two figures should
+          fill the row with two, not leave half of it empty. */}
+      <div
+        className="grid grid-cols-2 gap-3 lg:col-span-2"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))" }}
+      >
         <Metric
           label="Records kept"
           value={String(

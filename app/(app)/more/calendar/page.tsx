@@ -94,7 +94,7 @@ export default async function CalendarPage({
         subtitle="Chores, money, food and decisions, on one timeline"
       />
 
-      <nav aria-label="Calendar view" className="mb-5">
+      <nav aria-label="Calendar view" className="mb-5 max-w-md">
         <ul className="flex gap-1 rounded-full border border-border p-1">
           {VIEWS.map((entry) => (
             <li key={entry.key} className="flex-1">
@@ -438,6 +438,7 @@ async function WeekView({
               day={day}
               today={today}
               busiest={busiest}
+              currency={currency}
               label={day.date.slice(8)}
             />
           </li>
@@ -560,6 +561,7 @@ async function MonthView({
                 day={day}
                 today={today}
                 busiest={busiest}
+                currency={currency}
                 label={String(Number(day.date.slice(8)))}
               />
             </li>
@@ -570,7 +572,9 @@ async function MonthView({
         </ol>
       </div>
 
-      <p className="caption-text mb-6 flex flex-wrap items-center gap-x-4 gap-y-1 text-text-subtle">
+      {/* The legend explains the phone's marks. On a desktop the cells say it
+          in words, so there is nothing to explain. */}
+      <p className="caption-text mb-6 flex flex-wrap items-center gap-x-4 gap-y-1 text-text-subtle lg:hidden">
         <span className="flex items-center gap-1.5">
           <span aria-hidden className="h-2 w-4 bg-text" />
           chores finished
@@ -658,11 +662,13 @@ function DayCell({
   today,
   busiest,
   label,
+  currency,
 }: {
   day: DayDensity;
   today: string;
   busiest: number;
   label: string;
+  currency?: string;
 }) {
   const share = day.chores > 0 ? day.choresDone / day.chores : 0;
   const height = Math.round((day.chores / busiest) * 100);
@@ -674,41 +680,59 @@ function DayCell({
       aria-label={`${day.date}: ${day.chores} chores, ${day.choresDone} done, ${day.meals} meals`}
       className={cn(
         "flex aspect-square flex-col items-center justify-between bg-surface px-1 py-1.5 transition-colors hover:bg-surface-2",
+        // On a desktop a square cell is 150px of mostly nothing, so the cell
+        // stops being square and starts saying what happened in words.
+        "lg:aspect-auto lg:h-[104px] lg:items-stretch lg:px-2.5 lg:py-2",
         isToday && "bg-surface-2",
       )}
     >
       <span
         className={cn(
-          "readout text-[12px] leading-none",
+          "readout text-[12px] leading-none lg:text-[13px]",
           isToday ? "text-text" : "text-text-muted",
         )}
       >
         {label}
       </span>
 
+      {/* The bar is the phone's whole vocabulary; on a desktop it is a rule
+          under two lines of plain text. */}
       <span
         aria-hidden
-        className="flex h-full w-full items-end justify-center pb-0.5"
+        className="flex h-full w-full items-end justify-center pb-0.5 lg:hidden"
       >
         {day.chores > 0 ? (
           <span
             className="flex w-3 items-end bg-surface-3"
             style={{ height: `${Math.max(height, 12)}%` }}
           >
-            <span
-              className="block w-full bg-text"
-              style={{ height: `${share * 100}%` }}
-            />
+            <span className="block w-full bg-text" style={{ height: `${share * 100}%` }} />
           </span>
         ) : null}
       </span>
 
-      <span aria-hidden className="flex h-1.5 items-center gap-0.5">
-        {day.expensePaise > 0 ? (
-          <span className="h-1.5 w-1.5 rounded-full bg-text" />
-        ) : null}
+      <span aria-hidden className="flex h-1.5 items-center gap-0.5 lg:hidden">
+        {day.expensePaise > 0 ? <span className="h-1.5 w-1.5 rounded-full bg-text" /> : null}
         {day.meals > 0 ? (
           <span className="h-1.5 w-1.5 rounded-full border border-border-strong" />
+        ) : null}
+      </span>
+
+      <span aria-hidden className="mt-auto hidden flex-col gap-1 lg:flex">
+        {day.chores > 0 ? (
+          <>
+            <span className="caption-text text-text-muted">
+              <span className="tabular text-text">{day.choresDone}</span>/{day.chores} done
+            </span>
+            <span className="flex h-[3px] w-full bg-surface-3">
+              <span className="block bg-text" style={{ width: `${share * 100}%` }} />
+            </span>
+          </>
+        ) : null}
+        {day.expensePaise > 0 ? (
+          <span className="caption-text tabular truncate text-text-muted">
+            {formatMoney(day.expensePaise, { currency: currency ?? "INR" })}
+          </span>
         ) : null}
       </span>
     </Link>

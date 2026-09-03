@@ -74,21 +74,30 @@ export default async function MorePage() {
         </div>
       </Link>
 
-      {/* The two things that can be waiting on you lead, because they are the
-          only entries here that are ever urgent. */}
-      <Section heading="Waiting on you">
-        {WAITING.map((item) => (
-          <Row key={item.href} item={item} count={counts[item.href] ?? 0} />
-        ))}
-      </Section>
-
-      {groups.map((group) => (
-        <Section key={group.heading} heading={group.heading} note={group.note}>
-          {group.items.map((item) => (
-            <Row key={`${group.heading}-${item.href}`} item={item} count={counts[item.href] ?? 0} />
+      {/* One column on a phone; two or three on a desktop, because this is a
+          menu and a menu of six groups read one under another is a scroll
+          rather than a glance. */}
+      <div className="grid items-start gap-x-8 lg:grid-cols-2 xl:grid-cols-3">
+        {/* The two things that can be waiting on you lead, because they are
+            the only entries here that are ever urgent. */}
+        <Section heading="Waiting on you">
+          {WAITING.map((item) => (
+            <Row key={item.href} item={item} count={counts[item.href] ?? 0} />
           ))}
         </Section>
-      ))}
+
+        {groups.map((group) => (
+          <Section key={group.heading} heading={group.heading} note={group.note}>
+            {group.items.map((item) => (
+              <Row
+                key={`${group.heading}-${item.href}`}
+                item={item}
+                count={counts[item.href] ?? 0}
+              />
+            ))}
+          </Section>
+        ))}
+      </div>
 
       <div className="mt-8 flex items-center justify-between gap-3 border-t border-border pt-4">
         <ThemeToggle />
