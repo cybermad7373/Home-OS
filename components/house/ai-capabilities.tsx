@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Alert } from "@/components/ui/alert";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { SwitchRow } from "@/components/ui/switch";
+import { List, Section } from "@/components/layout/section";
 import { useToast } from "@/components/ui/toast";
 import {
   CAPABILITIES,
@@ -67,43 +68,35 @@ export function AiCapabilities({
   }
 
   return (
-    <Card className="mb-4">
-      <CardTitle>What the key may be used for</CardTitle>
-      <CardDescription>
+    <Section label="What the key may be used for">
+      <p className="caption-text mb-3 text-text-muted">
         Each one has a version that works without a model. Turning one off takes
         away the prose, never the feature.
-      </CardDescription>
+      </p>
 
       {error ? (
-        <div className="mt-3">
+        <div className="mb-3">
           <Alert tone="danger">{error}</Alert>
         </div>
       ) : null}
 
-      <ul className="mt-3 divide-y divide-border">
+      <List>
         {CAPABILITIES.map((capability) => (
-          <li key={capability} className="flex items-start justify-between gap-3 py-2.5">
-            <label htmlFor={`cap-${capability}`} className="min-w-0 text-[14px]">
-              {CAPABILITY_LABEL[capability]}
-            </label>
-            <input
-              id={`cap-${capability}`}
-              type="checkbox"
-              role="switch"
-              className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--color-primary)]"
-              checked={state[capability]}
-              disabled={disabled || busy !== null}
-              onChange={(event) => toggle(capability, event.target.checked)}
-            />
-          </li>
+          <SwitchRow
+            key={capability}
+            label={CAPABILITY_LABEL[capability]}
+            checked={state[capability]}
+            disabled={disabled || busy !== null}
+            onChange={(next) => void toggle(capability, next)}
+          />
         ))}
-      </ul>
+      </List>
 
       {disabled ? (
         <p className="caption-text mt-3 text-text-muted">
           Add a key above and these become yours to set.
         </p>
       ) : null}
-    </Card>
+    </Section>
   );
 }

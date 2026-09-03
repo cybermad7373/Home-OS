@@ -28,9 +28,7 @@ export default async function AiSettingsPage() {
       <PageHeader title="AI features" subtitle={context.house.name} />
       <AiSettings initialConfig={config} />
       {/* AI-02. Under the key, because that is what they are switches on. */}
-      <div className="mt-4">
-        <AiCapabilities initial={config.capabilities} disabled={!config.configured} />
-      </div>
+      <AiCapabilities initial={config.capabilities} disabled={!config.configured} />
     </>
   );
 }

@@ -28,6 +28,8 @@ import {
   Readout,
   Stat,
   StatRow,
+  Switch,
+  SwitchRow,
   Tabs,
   Textarea,
 } from "@/components/ui";
@@ -85,6 +87,7 @@ export function KitchenSink() {
   const [range, setRange] = useState<"day" | "week" | "month">("week");
   const [filter, setFilter] = useState("all");
   const [dialog, setDialog] = useState(false);
+  const [reminders, setReminders] = useState(true);
   const [confirm, setConfirm] = useState(false);
 
   return (
@@ -321,6 +324,35 @@ export function KitchenSink() {
           <Input label="With an error" error="Enter an amount above zero" defaultValue="0" />
         </div>
         <Textarea label="Note" placeholder="Anything the house should know" rows={3} />
+
+        {/* The one on/off control. Four different ones were in the app before
+            it: a Button labelled "On", a Button labelled "Yes", and two native
+            checkboxes tinted through two different token names. */}
+        <ul className="mt-4 divide-y divide-border overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface">
+          <SwitchRow
+            label="Chore reminders"
+            help="Before a window opens, and again before the deadline"
+            checked={reminders}
+            onChange={setReminders}
+          />
+          <SwitchRow
+            label="Weekly digest"
+            help="Disabled — the row still says where the setting stands"
+            checked={false}
+            disabled
+          />
+          <SwitchRow
+            locked
+            label="Settlement"
+            help="Cannot be turned off, and says so rather than hiding"
+          />
+        </ul>
+        <div className="mt-3 flex items-center gap-3">
+          <Switch label="On its own" checked={reminders} onChange={setReminders} />
+          <span className="caption-text text-text-muted">
+            the control on its own, outside a row
+          </span>
+        </div>
       </Section>
 
       <Section title="Feedback">

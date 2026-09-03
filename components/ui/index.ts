@@ -18,3 +18,5 @@ export { DataList, DefinitionList, type Column } from "./data-list";
 export { Dialog, ConfirmDialog } from "./dialog";
 export { Chip, ChipLink, ChipRow } from "./chip";
 export { BarChart, ShareBar, ColumnChart, Legend, chartColor, CHART_COLORS, type Slice } from "./chart";
+
+export { Switch, SwitchRow } from "./switch";

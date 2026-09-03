@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, BellRing, Laptop, Lock, Smartphone, Trash2 } from "lucide-react";
+import { Bell, BellRing, Laptop, Smartphone, Trash2 } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SwitchRow } from "@/components/ui/switch";
+import { Columns } from "@/components/layout/columns";
+import { List, Section } from "@/components/layout/section";
 import { useToast } from "@/components/ui/toast";
 import type { Device } from "@/lib/data/notifications";
 import { lastSeenLabel } from "@/lib/utils/device";
@@ -251,190 +253,180 @@ export function NotificationPrefsForm({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card>
-        <CardTitle>This device</CardTitle>
-        <CardDescription>
-          Push reaches you with the app closed. Each device is registered
-          separately — your phone and your laptop are two answers to this
-          question.
-        </CardDescription>
+    <Columns
+      asideFirst
+      main={
+        <>
+          <Section label="What reaches you" className="mt-0">
+            <p className="caption-text mb-3 text-text-muted">
+              Everything is written to your feed whatever you choose here. These
+              switches decide what interrupts you.
+            </p>
 
-        {pushState === "unsupported" ? (
-          <Alert tone="info" className="mt-3">
-            This browser cannot receive push notifications. On Android, install
-            the app to the home screen first.
-          </Alert>
-        ) : pushState === "unconfigured" ? (
-          <Alert tone="warning" className="mt-3">
-            Push is not configured for this deployment yet. Everything still
-            arrives in the feed.
-          </Alert>
-        ) : pushState === "denied" ? (
-          <Alert tone="warning" className="mt-3">
-            Your browser is blocking notifications for this site. Turn them back
-            on in the site settings, then reload.
-          </Alert>
-        ) : (
-          <Button
-            className="mt-3"
-            variant={pushState === "subscribed" ? "secondary" : "primary"}
-            loading={saving === "push"}
-            onClick={togglePush}
-          >
-            {pushState === "subscribed" ? (
-              <>
-                <BellRing size={16} aria-hidden /> Registered — turn off
-              </>
-            ) : (
-              <>
-                <Bell size={16} aria-hidden /> Enable push on this device
-              </>
-            )}
-          </Button>
-        )}
-      </Card>
-
-      <Card>
-        <CardTitle>What reaches you</CardTitle>
-        <CardDescription>
-          Everything is written to your feed whatever you choose here. These
-          switches decide what interrupts you.
-        </CardDescription>
-
-        <ul className="mt-3 flex flex-col divide-y divide-border">
-          {ROWS.map((row) => (
-            <li key={row.key} className="flex items-center justify-between gap-3 py-3">
-              <div className="min-w-0">
-                <p className="font-medium">{row.label}</p>
-                <p className="caption-text text-text-muted">{row.help}</p>
-              </div>
-              <label className="flex shrink-0 items-center gap-2">
-                <span className="sr-only">{row.label}</span>
-                <input
-                  type="checkbox"
-                  className="h-5 w-5 accent-[var(--primary)]"
+            <List>
+              {ROWS.map((row) => (
+                <SwitchRow
+                  key={row.key}
+                  label={row.label}
+                  help={row.help}
                   checked={prefs[row.field] as boolean}
                   disabled={saving === row.key}
                   onChange={() => void toggle(row)}
                 />
-              </label>
-            </li>
-          ))}
+              ))}
 
-          <li className="flex items-center justify-between gap-3 py-3">
-            <div className="min-w-0">
-              <p className="flex items-center gap-1.5 font-medium">
-                <Lock size={14} aria-hidden /> Settlement
-              </p>
-              <p className="caption-text text-text-muted">
-                Always on. A member who has muted the app cannot then say they
-                were never told they owed money.
-              </p>
-            </div>
-          </li>
+              <SwitchRow
+                locked
+                label="Settlement"
+                help="A member who has muted the app cannot then say they were never told they owed money."
+              />
 
-          {/* Shown with a padlock rather than hidden, per D-30: a rule a member
-              discovers by being surprised is a rule they resent. */}
-          <li className="flex items-center justify-between gap-3 py-3">
-            <div className="min-w-0">
-              <p className="flex items-center gap-1.5 font-medium">
-                <Lock size={14} aria-hidden /> Decisions waiting on you
-              </p>
-              <p className="caption-text text-text-muted">
-                Always on. If these could be silenced, the house could decide
-                something without you and you would have no way of knowing.
-              </p>
-            </div>
-          </li>
-        </ul>
-      </Card>
+              {/* Shown with a padlock rather than hidden, per D-30: a rule a
+                  member discovers by being surprised is a rule they resent. */}
+              <SwitchRow
+                locked
+                label="Decisions waiting on you"
+                help="If these could be silenced, the house could decide something without you and you would have no way of knowing."
+              />
+            </List>
+          </Section>
 
-      <Card>
-        <CardTitle>Quiet hours</CardTitle>
-        <CardDescription>
-          Nothing arrives between these times. Anything that comes due waits and
-          is delivered when they end. Settlement is the one exception.
-        </CardDescription>
+          <Section label="Quiet hours">
+            <p className="caption-text mb-3 text-text-muted">
+              Nothing arrives between these times. Anything that comes due waits
+              and is delivered when they end. Settlement is the one exception.
+            </p>
 
-        <div className="mt-3 flex flex-wrap items-end gap-3">
-          <div>
-            <Label htmlFor="quiet-start">From</Label>
-            <Input
-              id="quiet-start"
-              type="time"
-              value={quietStart}
-              onChange={(event) => setQuietStart(event.target.value)}
-            />
-          </div>
-          <div>
-            <Label htmlFor="quiet-end">Until</Label>
-            <Input
-              id="quiet-end"
-              type="time"
-              value={quietEnd}
-              onChange={(event) => setQuietEnd(event.target.value)}
-            />
-          </div>
-          <Button size="sm" loading={saving === "quiet"} onClick={saveQuietHours}>
-            Save
-          </Button>
-          {prefs.quietHoursStart ? (
-            <Button size="sm" variant="ghost" onClick={clearQuietHours}>
-              Turn off
-            </Button>
-          ) : null}
-        </div>
-      </Card>
-
-      <Card>
-        <CardTitle>Your devices</CardTitle>
-        <CardDescription>
-          Everywhere the house can reach you. Removing one stops notifications
-          there and nowhere else.
-        </CardDescription>
-
-        {devices.length === 0 ? (
-          <p className="caption-text mt-3 text-text-muted">
-            No devices registered yet. Turn push on above and this one appears
-            here.
-          </p>
-        ) : (
-          <ul className="mt-3 flex flex-col divide-y divide-border">
-            {devices.map((device) => (
-              <li key={device.id} className="flex items-center justify-between gap-3 py-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  {device.platform === "web" ? (
-                    <Laptop size={18} aria-hidden className="shrink-0 text-text-muted" />
-                  ) : (
-                    <Smartphone size={18} aria-hidden className="shrink-0 text-text-muted" />
-                  )}
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">
-                      {device.label}
-                      {device.endpoint === thisEndpoint ? (
-                        <span className="caption-text text-text-muted"> · this device</span>
-                      ) : null}
-                    </p>
-                    <p className="caption-text text-text-muted">
-                      Last used {lastSeenLabel(device.lastSeenAt).toLowerCase()}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  loading={saving === device.id}
-                  onClick={() => void removeDevice(device)}
-                >
-                  <Trash2 size={16} aria-hidden />
-                  <span className="sr-only">Remove {device.label}</span>
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <Label htmlFor="quiet-start">From</Label>
+                <Input
+                  id="quiet-start"
+                  type="time"
+                  value={quietStart}
+                  onChange={(event) => setQuietStart(event.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="quiet-end">Until</Label>
+                <Input
+                  id="quiet-end"
+                  type="time"
+                  value={quietEnd}
+                  onChange={(event) => setQuietEnd(event.target.value)}
+                />
+              </div>
+              <Button size="sm" loading={saving === "quiet"} onClick={saveQuietHours}>
+                Save
+              </Button>
+              {prefs.quietHoursStart ? (
+                <Button size="sm" variant="ghost" onClick={clearQuietHours}>
+                  Turn off
                 </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-    </div>
+              ) : null}
+            </div>
+          </Section>
+        </>
+      }
+      aside={
+        <>
+          {/* The rail holds the two questions about *this* browser rather than
+              about you: whether it may interrupt you at all, and which other
+              devices already can. On a phone it comes first, because a member
+              who arrives here to turn push on should not have to scroll past
+              ten switches that do nothing until they have. */}
+          <Section label="This device" className="mt-0">
+            <p className="caption-text mb-3 text-text-muted">
+              Push reaches you with the app closed. Each device is registered
+              separately — your phone and your laptop are two answers to this
+              question.
+            </p>
+
+            {pushState === "unsupported" ? (
+              <Alert tone="info">
+                This browser cannot receive push notifications. On Android, install
+                the app to the home screen first.
+              </Alert>
+            ) : pushState === "unconfigured" ? (
+              <Alert tone="warning">
+                Push is not configured for this deployment yet. Everything still
+                arrives in the feed.
+              </Alert>
+            ) : pushState === "denied" ? (
+              <Alert tone="warning">
+                Your browser is blocking notifications for this site. Turn them back
+                on in the site settings, then reload.
+              </Alert>
+            ) : (
+              <Button
+                block
+                variant={pushState === "subscribed" ? "secondary" : "primary"}
+                loading={saving === "push"}
+                onClick={togglePush}
+              >
+                {pushState === "subscribed" ? (
+                  <>
+                    <BellRing size={16} aria-hidden /> Registered — turn off
+                  </>
+                ) : (
+                  <>
+                    <Bell size={16} aria-hidden /> Enable push on this device
+                  </>
+                )}
+              </Button>
+            )}
+          </Section>
+
+          <Section label="Your devices">
+            {devices.length === 0 ? (
+              <p className="caption-text text-text-muted">
+                No devices registered yet. Turn push on above and this one appears
+                here.
+              </p>
+            ) : (
+              <List>
+                {devices.map((device) => (
+                  <li
+                    key={device.id}
+                    className="flex items-center justify-between gap-3 px-4 py-3"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      {device.platform === "web" ? (
+                        <Laptop size={18} aria-hidden className="shrink-0 text-text-muted" />
+                      ) : (
+                        <Smartphone size={18} aria-hidden className="shrink-0 text-text-muted" />
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">
+                          {device.label}
+                          {device.endpoint === thisEndpoint ? (
+                            <span className="caption-text text-text-muted"> · this device</span>
+                          ) : null}
+                        </p>
+                        <p className="caption-text text-text-muted">
+                          Last used {lastSeenLabel(device.lastSeenAt).toLowerCase()}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      loading={saving === device.id}
+                      onClick={() => void removeDevice(device)}
+                    >
+                      <Trash2 size={16} aria-hidden />
+                      <span className="sr-only">Remove {device.label}</span>
+                    </Button>
+                  </li>
+                ))}
+              </List>
+            )}
+            <p className="caption-text mt-2 text-text-muted">
+              Removing one stops notifications there and nowhere else.
+            </p>
+          </Section>
+        </>
+      }
+    />
   );
 }

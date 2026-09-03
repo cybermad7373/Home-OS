@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/label";
 import { Input, Select } from "@/components/ui/input";
+import { SwitchRow } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
+import { Columns } from "@/components/layout/columns";
+import { List, Section } from "@/components/layout/section";
 import { formatMoney, paiseToRupeeString, rupeesToPaise } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
 import type {
@@ -24,6 +26,15 @@ const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
  *
  * Each number carries a live example, because "penalty rate" means nothing on
  * its own and "missing one dinner costs ₹150" means everything.
+ *
+ * Redrawn for 3.0. It was eight stacked cards, each with its own border and its
+ * own 16px heading, and a Save button seven screens below the first field — so
+ * on a desktop the control that commits the change was never on screen at the
+ * same time as the change. The groups are hairline sections now, the switches
+ * are switches rather than buttons labelled "On", and the two things that are
+ * not settings at all — the invite link, and Save — are the rail, which is
+ * sticky. On a phone the rail stacks underneath, which is where the Save button
+ * has always been.
  */
 export function SettingsForm({
   settings,
@@ -135,283 +146,259 @@ export function SettingsForm({
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      {error ? <Alert tone="danger">{error}</Alert> : null}
-
-      <Card>
-        <CardTitle>Invite link</CardTitle>
-        <CardDescription>
-          Anyone holding this link can ask to join. Holding it grants nothing on
-          its own — somebody here still has to let them in.
-        </CardDescription>
-        {link ? (
-          <p className="my-3 break-all rounded-[var(--radius-sm)] bg-surface-2 px-3 py-2 font-mono text-[13px]">
-            {link}
-          </p>
-        ) : (
-          <p className="my-3 text-text-muted">
-            There is no live link. Nobody new can ask until you make one.
-          </p>
-        )}
-        <div className="flex gap-2">
-          {link ? (
-            <Button variant="outline" size="sm" onClick={copyLink}>
-              {copied ? "Copied" : "Copy link"}
-            </Button>
+    <Columns
+      main={
+        <>
+          {error ? (
+            <Alert tone="danger" className="mb-4">
+              {error}
+            </Alert>
           ) : null}
-          <Button variant="outline" size="sm" loading={busy} onClick={rotate}>
-            {link ? "Replace this link" : "Make a link"}
-          </Button>
-        </div>
-      </Card>
 
-      <Card>
-        <CardTitle>How money works here</CardTitle>
-        <CardDescription>
-          The single most consequential setting in the app. It decides whether the
-          month ends with a list of payments or with nothing owed at all.
-        </CardDescription>
-        <div className="mt-3 flex flex-col gap-2">
-          <ModeOption
-            name="money_mode"
-            checked={moneyMode === "split"}
-            onSelect={() => setMoneyMode("split")}
-            title="Split between us"
-            body="Every expense divides across the house, and the month nets down to who pays whom."
-          />
-          <ModeOption
-            name="money_mode"
-            checked={moneyMode === "pot"}
-            onSelect={() => setMoneyMode("pot")}
-            title="One shared pot"
-            body="Spending is recorded against whoever paid and creates no debt. Nobody ends the month owing anybody."
-          />
-        </div>
-        {moneyMode === "pot" ? (
-          <Alert tone="info" className="mt-3">
-            Settling up disappears from the app. Budgets and the running cost stay,
-            and are the point.
-          </Alert>
-        ) : null}
-      </Card>
+          <Section label="How money works here" className="mt-0">
+            <p className="caption-text mb-3 text-text-muted">
+              The single most consequential setting in the app. It decides whether
+              the month ends with a list of payments or with nothing owed at all.
+            </p>
+            <div className="flex flex-col gap-2">
+              <ModeOption
+                name="money_mode"
+                checked={moneyMode === "split"}
+                onSelect={() => setMoneyMode("split")}
+                title="Split between us"
+                body="Every expense divides across the house, and the month nets down to who pays whom."
+              />
+              <ModeOption
+                name="money_mode"
+                checked={moneyMode === "pot"}
+                onSelect={() => setMoneyMode("pot")}
+                title="One shared pot"
+                body="Spending is recorded against whoever paid and creates no debt. Nobody ends the month owing anybody."
+              />
+            </div>
+            {moneyMode === "pot" ? (
+              <Alert tone="info" className="mt-3">
+                Settling up disappears from the app. Budgets and the running cost
+                stay, and are the point.
+              </Alert>
+            ) : null}
+          </Section>
 
-      <Card>
-        <CardTitle>Money</CardTitle>
-        <div className="mt-3">
-          <Field
-            label="Approval threshold"
-            htmlFor="threshold"
-            hint="expenses above this need somebody else to approve"
-          >
-            <Input
-              id="threshold"
-              inputMode="decimal"
-              value={threshold}
-              onChange={(event) => setThreshold(event.target.value)}
-            />
-          </Field>
-
-          <Field
-            label="Daily budget"
-            htmlFor="daily_budget"
-            hint="what the house means to spend in a day — blank for no target"
-          >
-            <Input
-              id="daily_budget"
-              inputMode="decimal"
-              value={dailyBudget}
-              onChange={(event) => setDailyBudget(event.target.value)}
-              placeholder="1500"
-            />
-          </Field>
-          <p className="caption-text -mt-2 text-text-muted">
-            {dailyBudget.trim()
-              ? `Roughly ${monthlyEquivalent(dailyBudget, currency)} a month.`
-              : "Without one, the running-cost screen shows the trend and passes no judgement."}
-          </p>
-        </div>
-      </Card>
-
-      <Card>
-        <CardTitle>How chores are scored</CardTitle>
-        <div className="mt-3 flex flex-col gap-2">
-          <ModeOption
-            name="effort_mode"
-            checked={effortMode === "points"}
-            onSelect={() => setEffortMode("points")}
-            title="Points and a leaderboard"
-            body="Everybody has a weekly target, and the house can see who is meeting theirs."
-          />
-          <ModeOption
-            name="effort_mode"
-            checked={effortMode === "rota"}
-            onSelect={() => setEffortMode("rota")}
-            title="Just a rota"
-            body="The same fair distribution of work, with the scoring kept out of sight."
-          />
-        </div>
-      </Card>
-
-      <Card>
-        <CardTitle>Effort penalty</CardTitle>
-        <CardDescription>
-          Whether a point of unpaid effort turns into money at month end.
-        </CardDescription>
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <span className="label-text">
-            {penaltyEnabled
-              ? "Deficit is charged at the rate below"
-              : "Deficit is shown as points, and never costs money"}
-          </span>
-          <Button
-            variant={penaltyEnabled ? "primary" : "outline"}
-            size="sm"
-            aria-pressed={penaltyEnabled}
-            onClick={() => setPenaltyEnabled((value) => !value)}
-          >
-            {penaltyEnabled ? "On" : "Off"}
-          </Button>
-        </div>
-
-        {penaltyEnabled ? (
-          <div className="mt-3">
-            <Field label="Rate per point" htmlFor="penalty_rate">
+          <Section label="Money">
+            <Field
+              label="Approval threshold"
+              htmlFor="threshold"
+              hint="expenses above this need somebody else to approve"
+            >
               <Input
-                id="penalty_rate"
+                id="threshold"
                 inputMode="decimal"
-                value={penaltyRate}
-                onChange={(event) => setPenaltyRate(event.target.value)}
+                value={threshold}
+                onChange={(event) => setThreshold(event.target.value)}
+              />
+            </Field>
+
+            <Field
+              label="Daily budget"
+              htmlFor="daily_budget"
+              hint="what the house means to spend in a day — blank for no target"
+            >
+              <Input
+                id="daily_budget"
+                inputMode="decimal"
+                value={dailyBudget}
+                onChange={(event) => setDailyBudget(event.target.value)}
+                placeholder="1500"
               />
             </Field>
             <p className="caption-text -mt-2 text-text-muted">
-              At this rate, missing one dinner (30 points) costs {penaltyExample}. Set
-              it to zero for the first month — everybody sees what they would have
-              owed before any money moves.
+              {dailyBudget.trim()
+                ? `Roughly ${monthlyEquivalent(dailyBudget, currency)} a month.`
+                : "Without one, the running-cost screen shows the trend and passes no judgement."}
             </p>
-          </div>
-        ) : (
-          <CardDescription className="mt-2">
-            The right setting wherever the people falling behind are children, or
-            wherever charging each other would do more damage than the missed work.
-          </CardDescription>
-        )}
-      </Card>
+          </Section>
 
-      <Card>
-        <CardTitle>Chores</CardTitle>
-        <div className="mt-3">
-          <Field
-            label="Auto-confirm window"
-            htmlFor="auto_confirm"
-            hint="hours before silence counts as approval"
-          >
-            <Input
-              id="auto_confirm"
-              type="number"
-              min={1}
-              max={168}
-              value={autoConfirm}
-              onChange={(event) => setAutoConfirm(event.target.value)}
-            />
-          </Field>
-          <p className="caption-text -mt-2 mb-4 text-text-muted">
-            Without a timeout, refusing to tap approve becomes a veto on other people
-            earning points. That is the failure this window exists to prevent.
-          </p>
+          <Section label="How chores are scored">
+            <div className="flex flex-col gap-2">
+              <ModeOption
+                name="effort_mode"
+                checked={effortMode === "points"}
+                onSelect={() => setEffortMode("points")}
+                title="Points and a leaderboard"
+                body="Everybody has a weekly target, and the house can see who is meeting theirs."
+              />
+              <ModeOption
+                name="effort_mode"
+                checked={effortMode === "rota"}
+                onSelect={() => setEffortMode("rota")}
+                title="Just a rota"
+                body="The same fair distribution of work, with the scoring kept out of sight."
+              />
+            </div>
+          </Section>
 
-          <Field label="Schedule generation day" htmlFor="dow">
-            <Select id="dow" value={dow} onChange={(event) => setDow(event.target.value)}>
-              {DAYS.map((day, index) => (
-                <option key={day} value={index}>
-                  {day}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          <Section label="Effort penalty">
+            <List>
+              <SwitchRow
+                label="Charge unpaid effort"
+                help={
+                  penaltyEnabled
+                    ? "Deficit is charged at the rate below when the month closes"
+                    : "Deficit is shown as points, and never costs money"
+                }
+                checked={penaltyEnabled}
+                onChange={setPenaltyEnabled}
+              />
+            </List>
 
-          <Field label="Generation hour" htmlFor="hour" hint="house time, 0–23">
-            <Input
-              id="hour"
-              type="number"
-              min={0}
-              max={23}
-              value={hour}
-              onChange={(event) => setHour(event.target.value)}
-            />
-          </Field>
+            {penaltyEnabled ? (
+              <div className="mt-3">
+                <Field label="Rate per point" htmlFor="penalty_rate">
+                  <Input
+                    id="penalty_rate"
+                    inputMode="decimal"
+                    value={penaltyRate}
+                    onChange={(event) => setPenaltyRate(event.target.value)}
+                  />
+                </Field>
+                <p className="caption-text -mt-2 text-text-muted">
+                  At this rate, missing one dinner (30 points) costs {penaltyExample}.
+                  Set it to zero for the first month — everybody sees what they would
+                  have owed before any money moves.
+                </p>
+              </div>
+            ) : (
+              <p className="caption-text mt-3 text-text-muted">
+                The right setting wherever the people falling behind are children, or
+                wherever charging each other would do more damage than the missed
+                work.
+              </p>
+            )}
+          </Section>
 
-          <Field
-            label="Carry cap"
-            htmlFor="carry_cap"
-            hint="most a surplus or deficit may move next week's target, as a percentage"
-          >
-            <Input
-              id="carry_cap"
-              type="number"
-              min={0}
-              max={100}
-              value={carryCap}
-              onChange={(event) => setCarryCap(event.target.value)}
-            />
-          </Field>
-        </div>
-      </Card>
+          <Section label="Chores">
+            <Field
+              label="Auto-confirm window"
+              htmlFor="auto_confirm"
+              hint="hours before silence counts as approval"
+            >
+              <Input
+                id="auto_confirm"
+                type="number"
+                min={1}
+                max={168}
+                value={autoConfirm}
+                onChange={(event) => setAutoConfirm(event.target.value)}
+              />
+            </Field>
+            <p className="caption-text -mt-2 mb-4 text-text-muted">
+              Without a timeout, refusing to tap approve becomes a veto on other
+              people earning points. That is the failure this window exists to
+              prevent.
+            </p>
 
-      <Card>
-        <CardTitle>Gamification</CardTitle>
-        <CardDescription>
-          Opt in to the game layer: streaks, badges, and game points. No leaderboard,
-          no ranking — just personal progress. Admin-only toggle.
-        </CardDescription>
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <span className="label-text">
-            {gameLayerEnabled
-              ? "Streaks and badges are visible to all members"
-              : "Game layer is off — no streaks or badges shown"}
-          </span>
-          <Button
-            variant={gameLayerEnabled ? "primary" : "outline"}
-            size="sm"
-            aria-pressed={gameLayerEnabled}
-            onClick={() => setGameLayerEnabled((v: boolean | undefined) => !v)}
-          >
-            {gameLayerEnabled ? "On" : "Off"}
+            <Field label="Schedule generation day" htmlFor="dow">
+              <Select id="dow" value={dow} onChange={(event) => setDow(event.target.value)}>
+                {DAYS.map((day, index) => (
+                  <option key={day} value={index}>
+                    {day}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+
+            <Field label="Generation hour" htmlFor="hour" hint="house time, 0–23">
+              <Input
+                id="hour"
+                type="number"
+                min={0}
+                max={23}
+                value={hour}
+                onChange={(event) => setHour(event.target.value)}
+              />
+            </Field>
+
+            <Field
+              label="Carry cap"
+              htmlFor="carry_cap"
+              hint="most a surplus or deficit may move next week's target, as a percentage"
+            >
+              <Input
+                id="carry_cap"
+                type="number"
+                min={0}
+                max={100}
+                value={carryCap}
+                onChange={(event) => setCarryCap(event.target.value)}
+              />
+            </Field>
+          </Section>
+
+          <Section label="Extras">
+            <List>
+              <SwitchRow
+                label="Streaks and badges"
+                help="Personal progress only — no leaderboard, no ranking"
+                checked={gameLayerEnabled}
+                onChange={setGameLayerEnabled}
+              />
+              <SwitchRow
+                label="Let the model propose schedules"
+                help={
+                  llmConfigured
+                    ? "The rule engine still produces the schedule; a proposal is used only if it violates no hard constraint"
+                    : "No AI key set up for this house yet"
+                }
+                checked={llmEnabled}
+                onChange={setLlmEnabled}
+                disabled={!llmConfigured}
+              />
+            </List>
+            <Link
+              href="/admin/settings/ai"
+              className="caption-text mt-3 inline-block underline"
+            >
+              {llmConfigured ? "Change the key" : "Add a key"}
+            </Link>
+          </Section>
+        </>
+      }
+      aside={
+        <>
+          <Section label="Invite link" className="mt-0">
+            {link ? (
+              <p className="break-all rounded-[var(--radius-sm)] bg-surface-2 px-3 py-2 font-mono text-[13px]">
+                {link}
+              </p>
+            ) : (
+              <p className="caption-text text-text-muted">
+                There is no live link. Nobody new can ask until you make one.
+              </p>
+            )}
+            <p className="caption-text mt-2 text-text-muted">
+              Holding the link grants nothing on its own — somebody here still has
+              to let them in.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {link ? (
+                <Button variant="outline" size="sm" onClick={copyLink}>
+                  {copied ? "Copied" : "Copy link"}
+                </Button>
+              ) : null}
+              <Button variant="outline" size="sm" loading={busy} onClick={rotate}>
+                {link ? "Replace this link" : "Make a link"}
+              </Button>
+            </div>
+          </Section>
+
+          {/* Nothing above is written until this is pressed, so it sits with the
+              rail rather than at the bottom of a column it cannot see. */}
+          <Button className="mt-8" block loading={busy} onClick={save}>
+            Save settings
           </Button>
-        </div>
-      </Card>
-
-      <Card>
-        <CardTitle>AI scheduling</CardTitle>
-        <CardDescription>
-          The rule engine always produces the schedule. When this is on and a key is
-          configured, a model may propose an alternative — which is used only if it
-          violates no hard constraint.
-        </CardDescription>
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <span className="label-text">
-            {llmConfigured
-              ? "Let the model propose schedules"
-              : "No AI key set up for this house yet"}
-          </span>
-          <Button
-            variant={llmEnabled ? "primary" : "outline"}
-            size="sm"
-            disabled={!llmConfigured}
-            aria-pressed={llmEnabled}
-            onClick={() => setLlmEnabled((value) => !value)}
-          >
-            {llmEnabled ? "On" : "Off"}
-          </Button>
-        </div>
-        <Link href="/admin/settings/ai" className="caption-text mt-3 inline-block underline">
-          {llmConfigured ? "Change the key" : "Add a key"}
-        </Link>
-      </Card>
-
-      <Button block loading={busy} onClick={save}>
-        Save settings
-      </Button>
-    </div>
+        </>
+      }
+    />
   );
 }
 
@@ -432,8 +419,10 @@ function ModeOption({
   return (
     <label
       className={cn(
-        "block cursor-pointer rounded-xl border p-3 transition-colors",
-        checked ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
+        "block cursor-pointer rounded-[var(--radius-md)] border p-3 transition-colors",
+        checked
+          ? "border-primary bg-surface-2"
+          : "border-border hover:border-border-strong",
       )}
     >
       <input

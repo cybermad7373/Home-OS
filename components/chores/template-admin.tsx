@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardDescription } from "@/components/ui/card";
 import { List, Section } from "@/components/layout/section";
 import { Readout } from "@/components/ui/readout";
@@ -385,15 +386,11 @@ function TemplateSheet({
 
       <div className="mb-4 flex items-center justify-between gap-3">
         <span className="label-text">Only people who can cook</span>
-        <Button
-          type="button"
-          size="sm"
-          variant={requiresCooking ? "primary" : "outline"}
-          aria-pressed={requiresCooking}
-          onClick={() => setRequiresCooking((value) => !value)}
-        >
-          {requiresCooking ? "Yes" : "No"}
-        </Button>
+        <Switch
+          label="Only people who can cook"
+          checked={requiresCooking}
+          onChange={setRequiresCooking}
+        />
       </div>
 
       <div className="mb-6 flex items-center justify-between gap-3">
@@ -403,15 +400,7 @@ function TemplateSheet({
             — not the same person two weeks running
           </span>
         </span>
-        <Button
-          type="button"
-          size="sm"
-          variant={isHeavy ? "primary" : "outline"}
-          aria-pressed={isHeavy}
-          onClick={() => setIsHeavy((value) => !value)}
-        >
-          {isHeavy ? "Yes" : "No"}
-        </Button>
+        <Switch label="Heavy" checked={isHeavy} onChange={setIsHeavy} />
       </div>
 
       <Button
