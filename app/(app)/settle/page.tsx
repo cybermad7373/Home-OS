@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/input";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { getPeriodPosition, listSettlements } from "@/lib/data/settlement";
+import { monthLabel } from "@/lib/utils/period";
 import { houseToday } from "@/lib/utils/date";
 
 export const metadata: Metadata = { title: "Settle" };
@@ -80,11 +81,13 @@ export default async function SettlePage({
           aria-label="Month"
           name="period"
           defaultValue={period}
-          className="h-9 w-auto text-[13px]"
+          className="h-9 min-w-0 flex-1 text-[13px] sm:w-auto sm:flex-none"
         >
+          {/* "September 2026", not "2026-09". The month picker on Money has
+              always said it in words; this one printed the column value. */}
           {periods.map((value) => (
             <option key={value} value={value}>
-              {value}
+              {monthLabel(value)}
             </option>
           ))}
         </Select>

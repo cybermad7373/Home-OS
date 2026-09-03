@@ -9,7 +9,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { formatMoney, rupeesToPaise } from "@/lib/utils/money";
-import { monthLabel } from "@/components/expenses/expense-list";
+import { monthLabel } from "@/lib/utils/period";
 
 interface Balance {
   member_id: string;

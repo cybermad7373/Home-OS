@@ -194,7 +194,7 @@ export function GuestList({
       {guests.length === 0 ? (
         <EmptyState title="Nobody staying" body="Register a guest before they arrive." />
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {guests
             .slice()
             .sort((a, b) => a.fromDate.localeCompare(b.fromDate))

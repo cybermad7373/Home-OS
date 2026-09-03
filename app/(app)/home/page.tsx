@@ -15,9 +15,14 @@ import {
   weekStartOf,
 } from "@/lib/data/chores";
 import { rankStanding } from "@/lib/domain/fairness/targets";
-import { ownRowsFirst, owesRows, pendingItems } from "@/lib/domain/home/overview";
+import {
+  ownRowsFirst,
+  owesRows,
+  pendingItems,
+} from "@/lib/domain/home/overview";
 import { weekDates } from "@/lib/domain/scheduling/capacity";
 import { formatDate, houseToday } from "@/lib/utils/date";
+import { Columns } from "@/components/layout/columns";
 import { Section } from "@/components/layout/section";
 import { HomeFigures } from "./HomeFigures";
 import { HomeOwesWhom } from "./HomeOwesWhom";
@@ -65,7 +70,12 @@ export default async function HomeOverviewPage() {
     listPendingApprovals(session, context.house.id, context.me.id),
     countDecisionsAwaiting(session, context.house.id, context.me.id),
     listAwaitingConfirmation(session, context.house.id, context.me.id),
-    listAssignments(session, context.house.id, { from: dates[0], to: dates[6] }, context.me.id),
+    listAssignments(
+      session,
+      context.house.id,
+      { from: dates[0], to: dates[6] },
+      context.me.id,
+    ),
     getStanding(session, context.house.id, weekStart),
     getDailyCost(session, context.house, context.settings),
     // A pot household nets nothing, so the read that produces the transfer list
@@ -101,7 +111,9 @@ export default async function HomeOverviewPage() {
     },
   ].filter(Boolean) as Nudge[];
 
-  const joinRequests = context.members.filter((member) => member.status === "requested");
+  const joinRequests = context.members.filter(
+    (member) => member.status === "requested",
+  );
   const active = context.members.filter((member) => member.status === "active");
 
   const pending = pendingItems(
@@ -117,15 +129,23 @@ export default async function HomeOverviewPage() {
   const earnedThisWeek = myChores
     .filter((chore) => chore.status === "confirmed")
     .reduce((sum, chore) => sum + chore.effortPoints, 0);
-  const assignedThisWeek = myChores.reduce((sum, chore) => sum + chore.effortPoints, 0);
+  const assignedThisWeek = myChores.reduce(
+    (sum, chore) => sum + chore.effortPoints,
+    0,
+  );
 
   const ranked = rankStanding(standing).map((row) => ({
     ...row,
-    displayName: standing.find((s) => s.memberId === row.memberId)?.displayName ?? "Someone",
-    avatarUrl: standing.find((s) => s.memberId === row.memberId)?.avatarUrl ?? null,
+    displayName:
+      standing.find((s) => s.memberId === row.memberId)?.displayName ??
+      "Someone",
+    avatarUrl:
+      standing.find((s) => s.memberId === row.memberId)?.avatarUrl ?? null,
   }));
 
-  const owes = position ? ownRowsFirst(owesRows(position.position), context.me.id) : [];
+  const owes = position
+    ? ownRowsFirst(owesRows(position.position), context.me.id)
+    : [];
 
   // Positive means the house owes you. This mapping never inverts, anywhere.
   const yourNetPaise = money.yourPaidPaise - money.yourSharePaise;
@@ -144,12 +164,6 @@ export default async function HomeOverviewPage() {
         subtitle={`${active.length} ${active.length === 1 ? "member" : "members"} at ${context.house.name}`}
       />
 
-      <SetupNudges nudges={nudges} />
-
-      {/* Anything the house is blocked on you for comes before anything it
-          merely wants you to know. */}
-      <HomePendingBlock pending={pending} />
-
       <HomeFigures
         earnedThisWeek={earnedThisWeek}
         assignedThisWeek={assignedThisWeek}
@@ -160,21 +174,51 @@ export default async function HomeOverviewPage() {
         currency={context.house.currency}
       />
 
-      {owes.length > 0 ? (
-        <Section label="Who owes whom" href="/settle" linkLabel="Settle up">
-          <HomeOwesWhom owes={owes} meId={context.me.id} currency={context.house.currency} />
-        </Section>
-      ) : null}
+      {/*
+        The main column is the record — who owes whom, who is carrying the
+        week. The rail is what you glance at: what is blocked on you, the
+        setup you have not finished, and who lives here.
 
-      {context.shape.effortMode === "points" && ranked.some((row) => row.earnedPoints > 0) ? (
-        <Section label="Standing" href="/chores/standing">
-          <HomeStanding ranked={ranked} meId={context.me.id} />
-        </Section>
-      ) : null}
+        On a phone the two stack in that order, which puts "waiting on you"
+        directly under the two figures, exactly where it was before there was
+        a rail at all.
+      */}
+      <Columns
+        className="mt-8"
+        main={
+          <>
+            {owes.length > 0 ? (
+              <Section
+                label="Who owes whom"
+                href="/settle"
+                linkLabel="Settle up"
+              >
+                <HomeOwesWhom
+                  owes={owes}
+                  meId={context.me.id}
+                  currency={context.house.currency}
+                />
+              </Section>
+            ) : null}
 
-      <Section label="The house" href="/house/members">
-        <HomeHouseMembers active={active} meId={context.me.id} />
-      </Section>
+            {context.shape.effortMode === "points" &&
+            ranked.some((row) => row.earnedPoints > 0) ? (
+              <Section label="Standing" href="/chores/standing">
+                <HomeStanding ranked={ranked} meId={context.me.id} />
+              </Section>
+            ) : null}
+          </>
+        }
+        aside={
+          <>
+            <HomePendingBlock pending={pending} />
+            <SetupNudges nudges={nudges} />
+            <Section label="The house" href="/house/members">
+              <HomeHouseMembers active={active} meId={context.me.id} />
+            </Section>
+          </>
+        }
+      />
     </>
   );
 }

@@ -41,7 +41,9 @@ export function HomeCards({
   }
 
   return (
-    <ul className="flex flex-col gap-3">
+    // Homes are objects, not rows: two or three to a line on a desktop rather
+    // than one banner each.
+    <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {homes.map((home) => {
         const isSelected = home.id === selectedId;
         const isRequested = home.status === "requested";

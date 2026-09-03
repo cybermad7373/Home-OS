@@ -28,7 +28,10 @@ export function Stepper({
   forwardLabel?: string;
 }) {
   return (
-    <div className="mb-4 flex items-center justify-between gap-3">
+    // Capped and centred: on a wide screen a stepper stretched to the full
+    // column puts its two chevrons a thousand pixels apart, which is a control
+    // you have to travel to rather than one you use.
+    <div className="mx-auto mb-4 flex w-full max-w-md items-center justify-between gap-3">
       <Link
         href={back}
         aria-label={backLabel}

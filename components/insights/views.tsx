@@ -39,14 +39,25 @@ export function BarChart({
       {bars.map((bar) => {
         // A zero bar still gets a sliver, so an empty week reads as a week
         // with nothing in it rather than as a gap in the chart.
-        const height = peak === 0 ? 2 : Math.max(3, Math.round((bar.value / peak) * 100));
+        const height =
+          peak === 0 ? 2 : Math.max(3, Math.round((bar.value / peak) * 100));
         return (
-          <div key={bar.key} className="flex min-w-[2.5rem] flex-1 flex-col items-center gap-1">
-            <span className="caption-text text-text-muted tabular-nums">{bar.caption}</span>
+          <div
+            key={bar.key}
+            className="flex min-w-[2.5rem] flex-1 flex-col items-center gap-1"
+          >
+            <span className="caption-text text-text-muted tabular-nums">
+              {bar.caption}
+            </span>
             <div className="flex h-20 w-full items-end bg-surface-3">
-              <div className="w-full bg-primary" style={{ height: `${height}%` }} />
+              <div
+                className="w-full bg-primary"
+                style={{ height: `${height}%` }}
+              />
             </div>
-            <span className="caption-text text-text-muted truncate">{shortKey(bar.key)}</span>
+            <span className="caption-text text-text-muted truncate">
+              {shortKey(bar.key)}
+            </span>
           </div>
         );
       })}
@@ -61,19 +72,42 @@ function shortKey(key: string): string {
   return parts.length === 3 ? `${Number(parts[2])} ${month}` : month;
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 /**
  * One figure and what it is. The value is set in the display face, because a
  * metric card exists to be read at a glance and a metric card whose number is
  * the same weight as its label is a paragraph.
  */
-function Metric({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Metric({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
   return (
     <Card>
       <p className="eyebrow-text mb-2">{label}</p>
       <Readout value={value} size="md" />
-      {hint ? <p className="caption-text mt-1.5 text-text-muted">{hint}</p> : null}
+      {hint ? (
+        <p className="caption-text mt-1.5 text-text-muted">{hint}</p>
+      ) : null}
     </Card>
   );
 }
@@ -99,13 +133,20 @@ export function MoneyView({
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-3">
+    // A column of full-width cards on a phone; two columns of cards on a
+    // desktop, with the row of figures spanning both. A 1100px-wide card
+    // holding a five-row list is not a card.
+    <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start">
+      <div className="grid grid-cols-2 gap-3 lg:col-span-2 lg:grid-cols-4">
         <Metric label="Approved" value={money(report.totalPaise)} />
         <Metric
           label="Waiting on approval"
           value={money(report.pendingPaise)}
-          hint={report.pendingPaise > 0 ? "Not counted in any figure below" : undefined}
+          hint={
+            report.pendingPaise > 0
+              ? "Not counted in any figure below"
+              : undefined
+          }
         />
       </div>
 
@@ -126,7 +167,10 @@ export function MoneyView({
         <CardTitle>By category</CardTitle>
         <ul className="mt-2 flex flex-col gap-2">
           {report.byCategory.map((category) => (
-            <li key={category.categoryId} className="flex items-center justify-between gap-3">
+            <li
+              key={category.categoryId}
+              className="flex items-center justify-between gap-3"
+            >
               <span className="min-w-0 truncate">{category.name}</span>
               <span className="flex shrink-0 items-center gap-2">
                 {/* A signed percentage says which way it moved. Colouring it
@@ -154,13 +198,18 @@ export function MoneyView({
         </CardDescription>
         <ul className="mt-2 flex flex-col gap-2">
           {report.paidVsShare.map((member) => (
-            <li key={member.memberId} className="flex items-center justify-between gap-3">
+            <li
+              key={member.memberId}
+              className="flex items-center justify-between gap-3"
+            >
               <span className="min-w-0 truncate">{member.name}</span>
               <span className="shrink-0 tabular-nums">
                 {money(member.paidPaise)} of {money(member.fairSharePaise)}
                 <span
                   className={
-                    member.netPaise >= 0 ? "ml-2 text-success" : "ml-2 text-text-muted"
+                    member.netPaise >= 0
+                      ? "ml-2 text-success"
+                      : "ml-2 text-text-muted"
                   }
                 >
                   {member.netPaise >= 0 ? "+" : ""}
@@ -175,7 +224,9 @@ export function MoneyView({
       {report.owed.length > 0 ? (
         <Card>
           <CardTitle>Who owes whom</CardTitle>
-          <CardDescription>The fewest payments that settle the range.</CardDescription>
+          <CardDescription>
+            The fewest payments that settle the range.
+          </CardDescription>
           <ul className="mt-2 flex flex-col gap-2">
             {report.owed.map((edge) => (
               <li
@@ -185,7 +236,9 @@ export function MoneyView({
                 <span className="min-w-0 truncate">
                   {edge.fromName} pays {edge.toName}
                 </span>
-                <span className="shrink-0 tabular-nums">{money(edge.amountPaise)}</span>
+                <span className="shrink-0 tabular-nums">
+                  {money(edge.amountPaise)}
+                </span>
               </li>
             ))}
           </ul>
@@ -206,8 +259,11 @@ export function ChoresView({ report }: { report: ChoreInsightsOutput }) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-3">
+    // A column of full-width cards on a phone; two columns of cards on a
+    // desktop, with the row of figures spanning both. A 1100px-wide card
+    // holding a five-row list is not a card.
+    <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start">
+      <div className="grid grid-cols-2 gap-3 lg:col-span-2 lg:grid-cols-4">
         <Metric
           label="Done and confirmed"
           value={`${report.summary.confirmedPoints} pts`}
@@ -220,7 +276,11 @@ export function ChoresView({ report }: { report: ChoreInsightsOutput }) {
         <Metric
           label="Missed"
           value={`${report.summary.missedPoints} pts`}
-          hint={report.summary.pendingPoints > 0 ? `${report.summary.pendingPoints} pts still open` : undefined}
+          hint={
+            report.summary.pendingPoints > 0
+              ? `${report.summary.pendingPoints} pts still open`
+              : undefined
+          }
         />
       </div>
 
@@ -241,8 +301,8 @@ export function ChoresView({ report }: { report: ChoreInsightsOutput }) {
         <Card>
           <CardTitle>Effort concentration</CardTitle>
           <CardDescription>
-            The share of each period&rsquo;s confirmed points earned by the three people who did
-            most. The target is under 45%.
+            The share of each period&rsquo;s confirmed points earned by the
+            three people who did most. The target is under 45%.
           </CardDescription>
           <ul className="mt-3 flex flex-col gap-2">
             {report.buckets
@@ -251,10 +311,16 @@ export function ChoresView({ report }: { report: ChoreInsightsOutput }) {
                 const percent = Math.round((bucket.topThreeShare ?? 0) * 100);
                 return (
                   <li key={bucket.key} className="flex items-center gap-3">
-                    <span className="caption-text w-20 shrink-0 text-text-muted">{bucket.key}</span>
+                    <span className="caption-text w-20 shrink-0 text-text-muted">
+                      {bucket.key}
+                    </span>
                     <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-2">
                       <span
-                        className={percent > 45 ? "block h-full bg-warning" : "block h-full bg-success"}
+                        className={
+                          percent > 45
+                            ? "block h-full bg-warning"
+                            : "block h-full bg-success"
+                        }
                         style={{ width: `${percent}%` }}
                       />
                     </span>
@@ -267,16 +333,22 @@ export function ChoresView({ report }: { report: ChoreInsightsOutput }) {
       ) : null}
 
       <Card>
-        <CardTitle>{report.ranked ? "Who did what" : "What everybody contributed"}</CardTitle>
+        <CardTitle>
+          {report.ranked ? "Who did what" : "What everybody contributed"}
+        </CardTitle>
         {report.ranked && report.summary.topThreeShare !== null ? (
           <CardDescription>
-            The top three earned {Math.round(report.summary.topThreeShare * 100)}% of confirmed
+            The top three earned{" "}
+            {Math.round(report.summary.topThreeShare * 100)}% of confirmed
             points.
           </CardDescription>
         ) : null}
         <ul className="mt-2 flex flex-col gap-2">
           {report.byMember.map((member) => (
-            <li key={member.memberId} className="flex items-center justify-between gap-3">
+            <li
+              key={member.memberId}
+              className="flex items-center justify-between gap-3"
+            >
               <span className="min-w-0 truncate">{member.memberName}</span>
               <span className="shrink-0 tabular-nums">
                 {/* EF-12 — the figure opens to the chores behind it. */}
@@ -321,8 +393,11 @@ export function FoodView({
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-3">
+    // A column of full-width cards on a phone; two columns of cards on a
+    // desktop, with the row of figures spanning both. A 1100px-wide card
+    // holding a five-row list is not a card.
+    <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start">
+      <div className="grid grid-cols-2 gap-3 lg:col-span-2 lg:grid-cols-4">
         <Metric
           label="Cooked at home"
           value={money(report.homeCookedPaise)}
@@ -350,10 +425,15 @@ export function FoodView({
       {report.mostLiked.length > 0 ? (
         <Card>
           <CardTitle>Most liked</CardTitle>
-          <CardDescription>Ranked on who said they liked it, minus who did not.</CardDescription>
+          <CardDescription>
+            Ranked on who said they liked it, minus who did not.
+          </CardDescription>
           <ul className="mt-2 flex flex-col gap-2">
             {report.mostLiked.map((dish) => (
-              <li key={dish.name} className="flex items-center justify-between gap-3">
+              <li
+                key={dish.name}
+                className="flex items-center justify-between gap-3"
+              >
                 <span className="min-w-0 truncate">{dish.name}</span>
                 <span className="caption-text shrink-0 text-text-muted">
                   {dish.likes} liked
@@ -370,9 +450,14 @@ export function FoodView({
           <CardTitle>Most repeated</CardTitle>
           <ul className="mt-2 flex flex-col gap-2">
             {report.mostRepeated.map((dish) => (
-              <li key={dish.name} className="flex items-center justify-between gap-3">
+              <li
+                key={dish.name}
+                className="flex items-center justify-between gap-3"
+              >
                 <span className="min-w-0 truncate">{dish.name}</span>
-                <span className="caption-text shrink-0 text-text-muted">{dish.times} times</span>
+                <span className="caption-text shrink-0 text-text-muted">
+                  {dish.times} times
+                </span>
               </li>
             ))}
           </ul>
@@ -383,7 +468,10 @@ export function FoodView({
         <CardTitle>Recently eaten</CardTitle>
         <ul className="mt-2 flex flex-col gap-2">
           {report.recent.map((meal) => (
-            <li key={`${meal.date}-${meal.name}`} className="flex items-center justify-between gap-3">
+            <li
+              key={`${meal.date}-${meal.name}`}
+              className="flex items-center justify-between gap-3"
+            >
               <span className="min-w-0 truncate">{meal.name}</span>
               <span className="caption-text shrink-0 text-text-muted tabular-nums">
                 {meal.date} · {money(meal.costPaise)}
@@ -398,12 +486,17 @@ export function FoodView({
 
 export function HomeView({ report }: { report: HomeInsightsOutput }) {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-3">
+    // A column of full-width cards on a phone; two columns of cards on a
+    // desktop, with the row of figures spanning both. A 1100px-wide card
+    // holding a five-row list is not a card.
+    <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start">
+      <div className="grid grid-cols-2 gap-3 lg:col-span-2 lg:grid-cols-4">
         <Metric
           label="Records kept"
           value={String(
-            report.activity.expenses + report.activity.meals + report.activity.choresConfirmed,
+            report.activity.expenses +
+              report.activity.meals +
+              report.activity.choresConfirmed,
           )}
           hint={
             report.activity.recordsPerMember === null
@@ -421,10 +514,19 @@ export function HomeView({ report }: { report: HomeInsightsOutput }) {
       <Card>
         <CardTitle>How active the home is</CardTitle>
         <ul className="mt-2 flex flex-col gap-2">
-          <Row label="Expenses recorded" value={String(report.activity.expenses)} />
+          <Row
+            label="Expenses recorded"
+            value={String(report.activity.expenses)}
+          />
           <Row label="Meals recorded" value={String(report.activity.meals)} />
-          <Row label="Chores confirmed" value={String(report.activity.choresConfirmed)} />
-          <Row label="Chores missed" value={String(report.activity.choresMissed)} />
+          <Row
+            label="Chores confirmed"
+            value={String(report.activity.choresConfirmed)}
+          />
+          <Row
+            label="Chores missed"
+            value={String(report.activity.choresMissed)}
+          />
         </ul>
       </Card>
 
@@ -441,14 +543,16 @@ export function HomeView({ report }: { report: HomeInsightsOutput }) {
         <Card>
           <CardTitle>How the work falls</CardTitle>
           <CardDescription>
-            The share of confirmed points earned by the three people who did most.
+            The share of confirmed points earned by the three people who did
+            most.
           </CardDescription>
           <p className="title-text mt-2 tabular-nums">
             {Math.round(report.imbalance.topThreeShare * 100)}%
           </p>
           {report.imbalance.maxDeviationPoints === null ? null : (
             <p className="caption-text text-text-muted">
-              Furthest from the average: {Math.round(report.imbalance.maxDeviationPoints)} points.
+              Furthest from the average:{" "}
+              {Math.round(report.imbalance.maxDeviationPoints)} points.
             </p>
           )}
         </Card>

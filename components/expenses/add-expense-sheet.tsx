@@ -247,7 +247,11 @@ export function AddExpenseSheet({
                   : "border-border bg-surface-2 text-text-muted",
               )}
             >
-              {category.icon ? `${category.icon} ` : ""}
+              {category.icon ? (
+                <span aria-hidden className="mr-1 grayscale">
+                  {category.icon}
+                </span>
+              ) : null}
               {category.name}
             </button>
           ))}

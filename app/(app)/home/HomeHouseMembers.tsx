@@ -26,7 +26,9 @@ export function HomeHouseMembers({ active, meId }: { active: Member[]; meId: str
   if (active.length === 0) return null;
 
   return (
-    <ul className="scroll-x flex gap-1 py-1">
+    // A sideways strip on a phone, where horizontal room is the scarce thing;
+    // a wrapping grid in the desktop rail, where vertical room is.
+    <ul className="scroll-x flex gap-1 py-1 lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0">
       {active.map((member) => {
         const isMe = member.id === meId;
         const lead = member.role === "admin" || member.role === "co_admin";

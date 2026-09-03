@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
+import { Columns } from "@/components/layout/columns";
 import { Section } from "@/components/layout/section";
 import { MealList } from "@/components/food/meal-list";
 import { FoodHomeClient } from "@/components/food/food-home-client";
@@ -49,33 +50,49 @@ export default async function FoodPage({
         subtitle="What the home ate, what it cost, whether anybody liked it"
       />
 
-      <FoodHomeClient
-        members={context.members}
-        today={today}
-        currency={context.house.currency}
-        openAddOnMount={add === "1"}
-      />
+      {/* The record is the main column; the prompt to add to it, what to try
+          and the rest of the module are the rail. */}
+      <Columns
+        asideFirst
+        main={
+          <>
+            <Section label="Planned" className="mt-0">
+              <PlannedMeals plans={plans} members={context.members} />
+            </Section>
 
-      <ul className="scroll-x mt-6 flex gap-2">
-        {ELSEWHERE.map((entry) => (
-          <li key={entry.href} className="shrink-0">
-            <Link
-              href={entry.href}
-              className="flex h-9 items-center rounded-full border border-border px-3.5 text-[13px] text-text-muted transition-colors hover:border-border-strong hover:text-text"
+            <Section
+              label="Recently eaten"
+              href="/food/history"
+              linkLabel="History"
             >
-              {entry.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
+              <MealList meals={recentMeals} currency={context.house.currency} />
+            </Section>
+          </>
+        }
+        aside={
+          <>
+            <FoodHomeClient
+              members={context.members}
+              today={today}
+              currency={context.house.currency}
+              openAddOnMount={add === "1"}
+            />
 
-      <Section label="Planned">
-        <PlannedMeals plans={plans} members={context.members} />
-      </Section>
-
-      <Section label="Recently eaten" href="/food/history" linkLabel="History">
-        <MealList meals={recentMeals} currency={context.house.currency} />
-      </Section>
+            <ul className="scroll-x mt-6 flex gap-2 lg:mx-0 lg:flex-wrap lg:px-0">
+              {ELSEWHERE.map((entry) => (
+                <li key={entry.href} className="shrink-0">
+                  <Link
+                    href={entry.href}
+                    className="flex h-9 items-center rounded-full border border-border px-3.5 text-[13px] text-text-muted transition-colors hover:border-border-strong hover:text-text"
+                  >
+                    {entry.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
+        }
+      />
     </>
   );
 }

@@ -16,16 +16,18 @@ export function Section({
   label,
   href,
   linkLabel = "All",
+  className,
   children,
 }: {
   label: string;
   href?: string;
   linkLabel?: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   const id = `sec-${label.toLowerCase().replace(/[^a-z]+/g, "-")}`;
   return (
-    <section aria-labelledby={id} className="mt-8 first:mt-0">
+    <section aria-labelledby={id} className={cn("mt-8 first:mt-0", className)}>
       <div className="mb-3 flex items-center gap-3">
         <h2 id={id} className="eyebrow-text shrink-0">
           {label}

@@ -11,7 +11,7 @@ import { Readout } from "@/components/ui/readout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { formatMoney } from "@/lib/utils/money";
-import { monthLabel } from "@/components/expenses/expense-list";
+import { monthLabel } from "@/lib/utils/period";
 
 export interface SettlementItem {
   id: string;

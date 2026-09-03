@@ -186,9 +186,11 @@ export function AiSettings({
 
   return (
     <div className="flex flex-col gap-3">
+      {/* The screen's own title is on the page header. This panel is also
+          rendered inside onboarding, where there is no header, so it keeps the
+          explanation and drops the second copy of the title. */}
       <div>
-        <h1 className="title-text">AI features</h1>
-        <p className="caption-text mt-1 text-text-muted">
+        <p className="caption-text text-text-muted">
           Optional. With a key, the house gets a written weekly summary, a model&apos;s
           second opinion on the rota, and plain-English entry — &ldquo;paid 840 for
           vegetables yesterday&rdquo;. Without one, everything still works on the

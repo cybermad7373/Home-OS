@@ -25,10 +25,19 @@ export function PageTransition({ children, className }: PageTransitionProps) {
   );
 }
 
-interface SheetProps extends Omit<HTMLMotionProps<"div">, "initial" | "animate" | "exit" | "transition"> {
+interface SheetProps
+  extends Omit<HTMLMotionProps<"div">, "initial" | "animate" | "exit" | "transition" | "title"> {
   open: boolean;
   onClose: () => void;
   children: ReactNode;
+  /**
+   * What this sheet is. It was hardcoded to the literal word "Sheet" — and to
+   * "Drawer" on the wide-screen variant — so every sheet in the app opened
+   * with a heading naming the component rather than the task, above the real
+   * title that the wrapper then rendered underneath. Add an expense, add a
+   * meal, edit a member: all of them said "Sheet" first.
+   */
+  title?: ReactNode;
   side?: "bottom" | "right";
   size?: "sm" | "md" | "lg" | "full";
 }
@@ -49,6 +58,7 @@ export function Sheet({
   open,
   onClose,
   children,
+  title,
   side = "bottom",
   size = "md",
   className,
@@ -79,7 +89,7 @@ export function Sheet({
       >
         <div className={`${sizeClasses[size]} w-full lg:w-[420px] bg-surface dark:bg-surface rounded-t-[2rem] lg:rounded-l-[2rem] shadow-[var(--shadow-elevated)] ring-1 ring-border dark:ring-border overflow-hidden`}>
           <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-border">
-            <h2 className="heading-text">Sheet</h2>
+            <h2 className="heading-text">{title}</h2>
             <button
               type="button"
               onClick={onClose}
@@ -99,13 +109,15 @@ export function Sheet({
   );
 }
 
-interface DrawerProps extends Omit<HTMLMotionProps<"div">, "initial" | "animate" | "exit" | "transition"> {
+interface DrawerProps
+  extends Omit<HTMLMotionProps<"div">, "initial" | "animate" | "exit" | "transition" | "title"> {
   open: boolean;
   onClose: () => void;
   children: ReactNode;
+  title?: ReactNode;
 }
 
-export function Drawer({ open, onClose, children, className, ...props }: DrawerProps) {
+export function Drawer({ open, onClose, children, title, className, ...props }: DrawerProps) {
   const reduce = useReducedMotion();
 
   if (!open) return null;
@@ -129,7 +141,7 @@ export function Drawer({ open, onClose, children, className, ...props }: DrawerP
         {...props}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-border">
-          <h2 className="heading-text">Drawer</h2>
+          <h2 className="heading-text">{title}</h2>
           <button
             type="button"
             onClick={onClose}

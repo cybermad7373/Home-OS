@@ -7,6 +7,10 @@ import { Sheet as MotionSheet, Drawer } from "@/components/motion/sheet";
 /**
  * A bottom sheet on mobile, a right-side drawer at ≥1024 px. Dismisses by
  * backdrop tap or Escape — no modal traps (design principle 6).
+ *
+ * The title goes to the sheet's own header, next to the close button, rather
+ * than being drawn a second time inside the content: the header used to say
+ * "Sheet", and the real title sat under a grab handle below it.
  */
 export const Sheet = forwardRef<HTMLDivElement, {
   open: boolean;
@@ -31,18 +35,14 @@ export const Sheet = forwardRef<HTMLDivElement, {
 
   if (side === "right") {
     return (
-      <Drawer ref={ref} open={open} onClose={onClose}>
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border-strong hidden lg:block" />
-        <h2 className="title-text mb-4">{title}</h2>
+      <Drawer ref={ref} open={open} onClose={onClose} title={title}>
         {children}
       </Drawer>
     );
   }
 
   return (
-    <MotionSheet ref={ref} open={open} onClose={onClose} side="bottom" size={size}>
-      <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border-strong lg:hidden" />
-      <h2 className="title-text mb-4">{title}</h2>
+    <MotionSheet ref={ref} open={open} onClose={onClose} title={title} side="bottom" size={size}>
       {children}
     </MotionSheet>
   );

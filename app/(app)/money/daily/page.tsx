@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { DailyCostPanel } from "@/components/money/daily-cost";
 import { getDailyCost } from "@/lib/data/analytics";
 import { getHouseContext, requireSession } from "@/lib/data/house";
+import { monthLabel } from "@/lib/utils/period";
 
 export const metadata: Metadata = { title: "Running cost" };
 
@@ -40,13 +41,4 @@ export default async function DailyCostPage({
       />
     </>
   );
-}
-
-function monthLabel(period: string): string {
-  const [year, month] = period.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString("en-IN", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
 }

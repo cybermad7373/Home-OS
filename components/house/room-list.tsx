@@ -71,8 +71,9 @@ export function RoomList({
 
       {unhoused.length > 0 ? (
         <p className="caption-text text-warning">
-          {unhoused.length} {unhoused.length === 1 ? "member has" : "members have"} no room.
-          They are excluded from room-rent splits until they get one.
+          {unhoused.length}{" "}
+          {unhoused.length === 1 ? "member has" : "members have"} no room. They
+          are excluded from room-rent splits until they get one.
         </p>
       ) : null}
 
@@ -90,61 +91,78 @@ export function RoomList({
         />
       ) : null}
 
-      {rooms.map((room) => {
-        const perPerson =
-          room.occupants.length > 0
-            ? Math.round(room.monthlyRentPaise / room.occupants.length)
-            : room.monthlyRentPaise;
+      {/* Rooms are objects too — a room card holding a rent and two occupants
+          does not want to be 1100px wide. */}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {rooms.map((room) => {
+          const perPerson =
+            room.occupants.length > 0
+              ? Math.round(room.monthlyRentPaise / room.occupants.length)
+              : room.monthlyRentPaise;
 
-        return (
-          <Card key={room.id}>
-            <div className="mb-2 flex items-start justify-between gap-3">
-              <div>
-                <CardTitle>{room.name}</CardTitle>
-                <p className="caption-text text-text-muted">
-                  {room.occupants.length} of {room.capacity} ·{" "}
-                  <span className="tabular">
-                    {formatMoney(room.monthlyRentPaise, { currency })}
-                  </span>{" "}
-                  a month
-                </p>
-              </div>
-              {isAdmin ? (
-                <div className="flex gap-1">
-                  <Button size="sm" variant="ghost" onClick={() => setEditing(room)}>
-                    Edit
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setAssigning(room)}>
-                    Assign
-                  </Button>
+          return (
+            <Card key={room.id}>
+              <div className="mb-2 flex items-start justify-between gap-3">
+                <div>
+                  <CardTitle>{room.name}</CardTitle>
+                  <p className="caption-text text-text-muted">
+                    {room.occupants.length} of {room.capacity} ·{" "}
+                    <span className="tabular">
+                      {formatMoney(room.monthlyRentPaise, { currency })}
+                    </span>{" "}
+                    a month
+                  </p>
                 </div>
-              ) : null}
-            </div>
-
-            {room.occupants.length === 0 ? (
-              <p className="caption-text text-text-subtle">
-                Vacant. Its rent is split equally across every active member.
-              </p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {room.occupants.map((occupant) => (
-                  <li key={occupant.memberId} className="flex items-center gap-2">
-                    <MemberAvatar
-                      name={occupant.displayName}
-                      avatarUrl={occupant.avatarUrl}
+                {isAdmin ? (
+                  <div className="flex gap-1">
+                    <Button
                       size="sm"
-                    />
-                    <span className="flex-1 truncate">{occupant.displayName}</span>
-                    <span className="caption-text tabular text-text-muted">
-                      {formatMoney(perPerson, { currency })}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        );
-      })}
+                      variant="ghost"
+                      onClick={() => setEditing(room)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setAssigning(room)}
+                    >
+                      Assign
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+
+              {room.occupants.length === 0 ? (
+                <p className="caption-text text-text-subtle">
+                  Vacant. Its rent is split equally across every active member.
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {room.occupants.map((occupant) => (
+                    <li
+                      key={occupant.memberId}
+                      className="flex items-center gap-2"
+                    >
+                      <MemberAvatar
+                        name={occupant.displayName}
+                        avatarUrl={occupant.avatarUrl}
+                        size="sm"
+                      />
+                      <span className="flex-1 truncate">
+                        {occupant.displayName}
+                      </span>
+                      <span className="caption-text tabular text-text-muted">
+                        {formatMoney(perPerson, { currency })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          );
+        })}
+      </div>
 
       {editing ? (
         <RoomSheet
@@ -171,7 +189,9 @@ export function RoomList({
           busy={busy}
           onClose={() => setAssigning(null)}
           onAssign={(memberId) =>
-            send(`/api/rooms/${assigning.id}/assign`, "POST", { member_id: memberId })
+            send(`/api/rooms/${assigning.id}/assign`, "POST", {
+              member_id: memberId,
+            })
           }
         />
       ) : null}
@@ -210,7 +230,11 @@ function RoomSheet({
         />
       </Field>
 
-      <Field label="Capacity" htmlFor="room_capacity" hint="how many sleep here">
+      <Field
+        label="Capacity"
+        htmlFor="room_capacity"
+        hint="how many sleep here"
+      >
         <Input
           id="room_capacity"
           type="number"
@@ -244,13 +268,23 @@ function RoomSheet({
         confirmingDelete ? (
           <div className="mt-3 rounded-[var(--radius-sm)] bg-danger-bg p-3">
             <p className="caption-text mb-2 text-danger">
-              Delete {room?.name}? Past rent splits keep it; it just stops being offered.
+              Delete {room?.name}? Past rent splits keep it; it just stops being
+              offered.
             </p>
             <div className="flex gap-2">
-              <Button size="sm" variant="ghost" onClick={() => setConfirmingDelete(false)}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setConfirmingDelete(false)}
+              >
                 Keep it
               </Button>
-              <Button size="sm" variant="danger" loading={busy} onClick={onDelete}>
+              <Button
+                size="sm"
+                variant="danger"
+                loading={busy}
+                onClick={onDelete}
+              >
                 Delete
               </Button>
             </div>
@@ -283,17 +317,23 @@ function AssignSheet({
   onClose: () => void;
   onAssign: (memberId: string) => Promise<boolean>;
 }) {
-  const occupantIds = new Set(room.occupants.map((occupant) => occupant.memberId));
+  const occupantIds = new Set(
+    room.occupants.map((occupant) => occupant.memberId),
+  );
   const selectable = candidates.filter((member) => !occupantIds.has(member.id));
   const [memberId, setMemberId] = useState(selectable[0]?.id ?? "");
   const full = room.occupants.length >= room.capacity;
 
   return (
-    <BottomSheet open onClose={onClose} title={`Move someone into ${room.name}`}>
+    <BottomSheet
+      open
+      onClose={onClose}
+      title={`Move someone into ${room.name}`}
+    >
       {full ? (
         <p className="caption-text mb-4 text-danger">
-          {room.name} is at capacity ({room.occupants.length} of {room.capacity}). Move
-          somebody out first.
+          {room.name} is at capacity ({room.occupants.length} of {room.capacity}
+          ). Move somebody out first.
         </p>
       ) : null}
 
@@ -323,7 +363,12 @@ function AssignSheet({
             proportionally by the days spent in each room.
           </p>
 
-          <Button block loading={busy} disabled={full} onClick={() => onAssign(memberId)}>
+          <Button
+            block
+            loading={busy}
+            disabled={full}
+            onClick={() => onAssign(memberId)}
+          >
             Move them in
           </Button>
         </>

@@ -8,10 +8,21 @@ import { Readout } from "@/components/ui/readout";
 import { List, Section } from "@/components/layout/section";
 import { Stepper } from "@/components/layout/stepper";
 import { getHouseContext, requireSession } from "@/lib/data/house";
-import { getCalendarDay, getCalendarMonth, getCalendarWeek } from "@/lib/data/calendar";
-import { boundsOfMonth, weekStartOfDate, type DayDensity } from "@/lib/domain/home/calendar";
+import {
+  getCalendarDay,
+  getCalendarMonth,
+  getCalendarWeek,
+} from "@/lib/data/calendar";
+import {
+  boundsOfMonth,
+  weekStartOfDate,
+  type DayDensity,
+} from "@/lib/domain/home/calendar";
 import { presenceLabel } from "@/lib/domain/home/today";
-import { calendarDateSchema, calendarPeriodSchema } from "@/lib/validation/calendar";
+import {
+  calendarDateSchema,
+  calendarPeriodSchema,
+} from "@/lib/validation/calendar";
 import {
   CHORE_STATUS_LABEL,
   CHORE_STATUS_TONE,
@@ -69,14 +80,19 @@ export default async function CalendarPage({
   const dateResult = calendarDateSchema.safeParse(params.date ?? today);
   const date = dateResult.success ? dateResult.data : today;
 
-  const periodResult = calendarPeriodSchema.safeParse(params.period ?? today.slice(0, 7));
+  const periodResult = calendarPeriodSchema.safeParse(
+    params.period ?? today.slice(0, 7),
+  );
   const period = periodResult.success ? periodResult.data : today.slice(0, 7);
 
   const currency = context.house.currency;
 
   return (
     <>
-      <PageHeader title="Calendar" subtitle="Chores, money, food and decisions, on one timeline" />
+      <PageHeader
+        title="Calendar"
+        subtitle="Chores, money, food and decisions, on one timeline"
+      />
 
       <nav aria-label="Calendar view" className="mb-5">
         <ul className="flex gap-1 rounded-full border border-border p-1">
@@ -133,7 +149,9 @@ type Session = Awaited<ReturnType<typeof requireSession>>;
 type Context = Awaited<ReturnType<typeof getHouseContext>>;
 
 function shiftDate(date: string, days: number): string {
-  return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+  return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
 }
 
 function shiftPeriod(period: string, months: number): string {
@@ -155,18 +173,28 @@ function weekdayIndex(date: string): number {
  */
 function Figures({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-lg)] border border-border bg-border">
+    <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-lg)] border border-border bg-border lg:grid-cols-4">
       {children}
     </div>
   );
 }
 
-function Figure({ label, value, note }: { label: string; value: string; note?: string }) {
+function Figure({
+  label,
+  value,
+  note,
+}: {
+  label: string;
+  value: string;
+  note?: string;
+}) {
   return (
     <div className="bg-surface p-4">
       <p className="eyebrow-text mb-3">{label}</p>
       <Readout value={value} size="lg" />
-      {note ? <p className="caption-text mt-2 text-text-muted">{note}</p> : null}
+      {note ? (
+        <p className="caption-text mt-2 text-text-muted">{note}</p>
+      ) : null}
     </div>
   );
 }
@@ -187,7 +215,8 @@ async function DayView({
   currency: string;
 }) {
   const day = await getCalendarDay(session, context, date);
-  const href = (target: string) => `/more/calendar?view=day&date=${target}&period=${period}`;
+  const href = (target: string) =>
+    `/more/calendar?view=day&date=${target}&period=${period}`;
 
   const empty =
     day.chores.length === 0 &&
@@ -212,116 +241,161 @@ async function DayView({
         }
       />
 
-      <Section label={`People · ${presenceLabel(day.presence)}`}>
-        {day.presence.away.length > 0 ? (
-          <p className="text-[14px] text-text-muted">
-            Away: {day.presence.away.map((member) => member.displayName).join(", ")}
-          </p>
-        ) : (
-          <p className="text-[14px] text-text-muted">Everybody was in the house.</p>
-        )}
-      </Section>
-
-      {empty ? (
-        <div className="mt-6">
-          <EmptyState
-            title="Nothing recorded"
-            body="No chores, no money and no meals on this date."
-          />
-        </div>
-      ) : null}
-
-      {day.chores.length > 0 ? (
-        <Section label="Chores" href="/chores">
-          <List>
-            {day.chores.map((chore) => (
-              <li key={chore.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                <span className="min-w-0">
-                  <span className="block truncate text-[15px]">{chore.name}</span>
-                  <span className="caption-text block text-text-muted">
-                    {chore.assigneeName ?? "Unassigned"} · {chore.effortPoints} pts
-                  </span>
-                </span>
-                <Badge tone={CHORE_STATUS_TONE[chore.status as ChoreStatus] ?? "neutral"}>
-                  {CHORE_STATUS_LABEL[chore.status as ChoreStatus] ?? chore.status}
-                </Badge>
-              </li>
-            ))}
-          </List>
+      <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-10">
+        <Section
+          label={`People · ${presenceLabel(day.presence)}`}
+          className="lg:col-span-2"
+        >
+          {day.presence.away.length > 0 ? (
+            <p className="text-[14px] text-text-muted">
+              Away:{" "}
+              {day.presence.away.map((member) => member.displayName).join(", ")}
+            </p>
+          ) : (
+            <p className="text-[14px] text-text-muted">
+              Everybody was in the house.
+            </p>
+          )}
         </Section>
-      ) : null}
 
-      {day.money.expenses.length > 0 ? (
-        <Section label={`Money · ${formatMoney(day.money.totalPaise, { currency })}`} href="/expenses">
-          <List>
-            {day.money.expenses.map((expense) => (
-              <li key={expense.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                <span className="min-w-0 truncate text-[15px]">{expense.description}</span>
-                <span className="flex shrink-0 items-center gap-2">
-                  {expense.status === "pending_approval" ? (
-                    <span className="eyebrow-text">Unapproved</span>
-                  ) : null}
-                  <span className="tabular font-medium">
-                    {formatMoney(expense.amountPaise, { currency })}
+        {empty ? (
+          <div className="mt-6 lg:col-span-2">
+            <EmptyState
+              title="Nothing recorded"
+              body="No chores, no money and no meals on this date."
+            />
+          </div>
+        ) : null}
+
+        {day.chores.length > 0 ? (
+          <Section label="Chores" href="/chores">
+            <List>
+              {day.chores.map((chore) => (
+                <li
+                  key={chore.id}
+                  className="flex items-center justify-between gap-3 px-4 py-3"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-[15px]">
+                      {chore.name}
+                    </span>
+                    <span className="caption-text block text-text-muted">
+                      {chore.assigneeName ?? "Unassigned"} ·{" "}
+                      {chore.effortPoints} pts
+                    </span>
                   </span>
-                </span>
-              </li>
-            ))}
-          </List>
-        </Section>
-      ) : null}
+                  <Badge
+                    tone={
+                      CHORE_STATUS_TONE[chore.status as ChoreStatus] ??
+                      "neutral"
+                    }
+                  >
+                    {CHORE_STATUS_LABEL[chore.status as ChoreStatus] ??
+                      chore.status}
+                  </Badge>
+                </li>
+              ))}
+            </List>
+          </Section>
+        ) : null}
 
-      {day.food.length > 0 || day.plannedFood.length > 0 ? (
-        <Section label="Food" href="/food">
-          <List>
-            {day.food.map((meal) => (
-              <li key={meal.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                <span className="min-w-0 truncate text-[15px]">{meal.name}</span>
-                <span className="tabular shrink-0 text-text-muted">
-                  {formatMoney(meal.totalCostPaise, { currency })}
-                </span>
-              </li>
-            ))}
+        {day.money.expenses.length > 0 ? (
+          <Section
+            label={`Money · ${formatMoney(day.money.totalPaise, { currency })}`}
+            href="/expenses"
+          >
+            <List>
+              {day.money.expenses.map((expense) => (
+                <li
+                  key={expense.id}
+                  className="flex items-center justify-between gap-3 px-4 py-3"
+                >
+                  <span className="min-w-0 truncate text-[15px]">
+                    {expense.description}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    {expense.status === "pending_approval" ? (
+                      <span className="eyebrow-text">Unapproved</span>
+                    ) : null}
+                    <span className="tabular font-medium">
+                      {formatMoney(expense.amountPaise, { currency })}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </List>
+          </Section>
+        ) : null}
 
-            {/*
+        {day.food.length > 0 || day.plannedFood.length > 0 ? (
+          <Section label="Food" href="/food">
+            <List>
+              {day.food.map((meal) => (
+                <li
+                  key={meal.id}
+                  className="flex items-center justify-between gap-3 px-4 py-3"
+                >
+                  <span className="min-w-0 truncate text-[15px]">
+                    {meal.name}
+                  </span>
+                  <span className="tabular shrink-0 text-text-muted">
+                    {formatMoney(meal.totalCostPaise, { currency })}
+                  </span>
+                </li>
+              ))}
+
+              {/*
               FD-20 — a plan is an intention, and it is marked as one. Showing
               it the same way as a meal that was eaten would put food in the
               Home's record that nobody ate.
             */}
-            {day.plannedFood.map((plan) => (
-              <li key={plan.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="eyebrow-text shrink-0">Planned</span>
-                <span className="min-w-0 truncate text-[15px] text-text-muted">{plan.name}</span>
-              </li>
-            ))}
-          </List>
-        </Section>
-      ) : null}
+              {day.plannedFood.map((plan) => (
+                <li key={plan.id} className="flex items-center gap-3 px-4 py-3">
+                  <span className="eyebrow-text shrink-0">Planned</span>
+                  <span className="min-w-0 truncate text-[15px] text-text-muted">
+                    {plan.name}
+                  </span>
+                </li>
+              ))}
+            </List>
+          </Section>
+        ) : null}
 
-      {day.pendingDecisions.length > 0 ? (
-        <Section label="Waiting on the home" href="/more/approvals">
-          <List>
-            {day.pendingDecisions.map((decision) => (
-              <li key={decision.id}>
-                <Link
-                  href={`/more/approvals/${decision.id}`}
-                  className={cn(
-                    "touch-target relative flex items-center gap-3 py-3 pl-4 pr-3 transition-colors hover:bg-surface-2",
-                    decision.level === "critical" &&
-                      "before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-accent",
-                  )}
-                >
-                  {decision.level === "critical" ? (
-                    <TriangleAlert size={13} className="shrink-0 text-accent" aria-label="Critical" />
-                  ) : null}
-                  <span className="min-w-0 flex-1 truncate text-[15px]">{decision.label}</span>
-                  <ChevronRight size={15} className="shrink-0 text-text-subtle" aria-hidden />
-                </Link>
-              </li>
-            ))}
-          </List>
-        </Section>
-      ) : null}
+        {day.pendingDecisions.length > 0 ? (
+          <Section label="Waiting on the home" href="/more/approvals">
+            <List>
+              {day.pendingDecisions.map((decision) => (
+                <li key={decision.id}>
+                  <Link
+                    href={`/more/approvals/${decision.id}`}
+                    className={cn(
+                      "touch-target relative flex items-center gap-3 py-3 pl-4 pr-3 transition-colors hover:bg-surface-2",
+                      decision.level === "critical" &&
+                        "before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-accent",
+                    )}
+                  >
+                    {decision.level === "critical" ? (
+                      <TriangleAlert
+                        size={13}
+                        className="shrink-0 text-accent"
+                        aria-label="Critical"
+                      />
+                    ) : null}
+                    <span className="min-w-0 flex-1 truncate text-[15px]">
+                      {decision.label}
+                    </span>
+                    <ChevronRight
+                      size={15}
+                      className="shrink-0 text-text-subtle"
+                      aria-hidden
+                    />
+                  </Link>
+                </li>
+              ))}
+            </List>
+          </Section>
+        ) : null}
+      </div>
     </>
   );
 }
@@ -360,7 +434,12 @@ async function WeekView({
       <ol className="mb-6 grid grid-cols-7 gap-px overflow-hidden rounded-[var(--radius-lg)] border border-border bg-border">
         {week.perDay.map((day) => (
           <li key={day.date}>
-            <DayCell day={day} today={today} busiest={busiest} label={day.date.slice(8)} />
+            <DayCell
+              day={day}
+              today={today}
+              busiest={busiest}
+              label={day.date.slice(8)}
+            />
           </li>
         ))}
       </ol>
@@ -375,14 +454,21 @@ async function WeekView({
               : "all approved"
           }
         />
-        <Figure label="Meals" value={String(week.mealsLogged)} note="logged this week" />
+        <Figure
+          label="Meals"
+          value={String(week.mealsLogged)}
+          note="logged this week"
+        />
       </Figures>
 
       {week.points.length > 0 ? (
         <Section label="Points" href="/chores/standing">
           <List>
             {week.points.map((row) => (
-              <li key={row.memberId} className="flex items-center justify-between px-4 py-3">
+              <li
+                key={row.memberId}
+                className="flex items-center justify-between px-4 py-3"
+              >
                 <span className="text-[15px]">{row.displayName}</span>
                 <span className="tabular font-medium">{row.points}</span>
               </li>
@@ -406,9 +492,11 @@ async function WeekView({
                   })}
                 </span>
                 <span className="caption-text text-text-muted">
-                  {day.chores} {day.chores === 1 ? "chore" : "chores"} · {day.meals}{" "}
-                  {day.meals === 1 ? "meal" : "meals"} ·{" "}
-                  <span className="tabular">{formatMoney(day.expensePaise, { currency })}</span>
+                  {day.chores} {day.chores === 1 ? "chore" : "chores"} ·{" "}
+                  {day.meals} {day.meals === 1 ? "meal" : "meals"} ·{" "}
+                  <span className="tabular">
+                    {formatMoney(day.expensePaise, { currency })}
+                  </span>
                 </span>
               </Link>
             </li>
@@ -506,7 +594,9 @@ async function MonthView({
         <Figure
           label="Chores done"
           value={
-            month.completion.rate === null ? "—" : `${Math.round(month.completion.rate * 100)}%`
+            month.completion.rate === null
+              ? "—"
+              : `${Math.round(month.completion.rate * 100)}%`
           }
           note={
             month.completion.rate === null
@@ -519,7 +609,8 @@ async function MonthView({
       <Section label="Food" href="/food/history" linkLabel="History">
         <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-4">
           <p className="text-[15px]">
-            {month.mealsLogged} {month.mealsLogged === 1 ? "meal" : "meals"} logged
+            {month.mealsLogged} {month.mealsLogged === 1 ? "meal" : "meals"}{" "}
+            logged
           </p>
           <p className="caption-text mt-1 text-text-muted">
             <span className="tabular">
@@ -538,7 +629,10 @@ async function MonthView({
         <Section label="Points" href="/chores/standing">
           <List>
             {month.points.map((row) => (
-              <li key={row.memberId} className="flex items-center justify-between px-4 py-3">
+              <li
+                key={row.memberId}
+                className="flex items-center justify-between px-4 py-3"
+              >
                 <span className="text-[15px]">{row.displayName}</span>
                 <span className="tabular font-medium">{row.points}</span>
               </li>
@@ -592,19 +686,27 @@ function DayCell({
         {label}
       </span>
 
-      <span aria-hidden className="flex h-full w-full items-end justify-center pb-0.5">
+      <span
+        aria-hidden
+        className="flex h-full w-full items-end justify-center pb-0.5"
+      >
         {day.chores > 0 ? (
           <span
             className="flex w-3 items-end bg-surface-3"
             style={{ height: `${Math.max(height, 12)}%` }}
           >
-            <span className="block w-full bg-text" style={{ height: `${share * 100}%` }} />
+            <span
+              className="block w-full bg-text"
+              style={{ height: `${share * 100}%` }}
+            />
           </span>
         ) : null}
       </span>
 
       <span aria-hidden className="flex h-1.5 items-center gap-0.5">
-        {day.expensePaise > 0 ? <span className="h-1.5 w-1.5 rounded-full bg-text" /> : null}
+        {day.expensePaise > 0 ? (
+          <span className="h-1.5 w-1.5 rounded-full bg-text" />
+        ) : null}
         {day.meals > 0 ? (
           <span className="h-1.5 w-1.5 rounded-full border border-border-strong" />
         ) : null}

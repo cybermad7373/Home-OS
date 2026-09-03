@@ -14,5 +14,17 @@ export function OnboardingAi({ initialConfig }: { initialConfig: AiConfig }) {
     router.refresh();
   };
 
-  return <AiSettings initialConfig={initialConfig} onSkip={next} onSaved={next} skipLabel="Skip — set it up later" />;
+  return (
+    <>
+      {/* The panel no longer carries the title — the admin screen's page header
+          does — so the wizard, which has no header, supplies its own. */}
+      <h1 className="title-text mb-4">AI features</h1>
+      <AiSettings
+        initialConfig={initialConfig}
+        onSkip={next}
+        onSaved={next}
+        skipLabel="Skip — set it up later"
+      />
+    </>
+  );
 }
