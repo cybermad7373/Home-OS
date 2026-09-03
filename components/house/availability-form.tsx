@@ -247,10 +247,10 @@ export function AvailabilityForm({
           {days.map((day, index) => (
             <li
               key={day.dayOfWeek}
-              className={`caption-text rounded-[var(--radius-xs)] px-2 py-1 ${
+              className={`caption-text rounded-[var(--radius-xs)] border px-2 py-1 ${
                 derived[index].length === 0
-                  ? "bg-danger/10 text-danger"
-                  : "bg-primary/10 text-primary"
+                  ? "border-dashed border-border-strong text-text-subtle"
+                  : "border-primary bg-primary text-primary-fg"
               }`}
             >
               {SHORT_LABELS[day.dayOfWeek]}

@@ -6,7 +6,8 @@ import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProposeSheet } from "@/components/governance/propose-sheet";
-import { Card, CardDescription } from "@/components/ui/card";
+import { CardDescription } from "@/components/ui/card";
+import { List, Section } from "@/components/layout/section";
 import { MemberAvatar } from "@/components/ui/avatar";
 import { Input, Select } from "@/components/ui/input";
 import { Field } from "@/components/ui/label";
@@ -106,10 +107,8 @@ export function MemberList({
 
   return (
     <div className="flex flex-col gap-4">
-      <section>
-        <h2 className="heading-text mb-2">Members</h2>
-        <Card className="p-0">
-          <ul className="divide-y divide-border">
+      <Section label="Members">
+        <List>
             {active.map((member) => (
               <li key={member.id} className="flex items-center gap-3 px-4 py-3">
                 <MemberAvatar
@@ -137,24 +136,19 @@ export function MemberList({
                   </Button>
                 ) : null}
               </li>
-            ))}
-          </ul>
-        </Card>
-      </section>
+          ))}
+        </List>
+      </Section>
 
-      <section>
-        <h2 className="heading-text mb-2">
-          {isFamily ? "Children and dependents" : "Dependents"}
-        </h2>
-        <CardDescription className="mb-2">
+      <Section label={isFamily ? "Children and dependents" : "Dependents"}>
+        <CardDescription className="mb-3">
           People who live here and have no account of their own. They count as a
           head when the shopping is split, and their share sits on whoever looks
           after them.
         </CardDescription>
 
         {dependents.length > 0 ? (
-          <Card className="p-0">
-            <ul className="divide-y divide-border">
+          <List>
               {dependents.map((member) => (
                 <li key={member.id} className="flex items-center gap-3 px-4 py-3">
                   <MemberAvatar name={member.displayName} avatarUrl={null} />
@@ -179,8 +173,7 @@ export function MemberList({
                   ) : null}
                 </li>
               ))}
-            </ul>
-          </Card>
+          </List>
         ) : null}
 
         {isAdmin ? (
@@ -193,13 +186,11 @@ export function MemberList({
             Add someone without an account
           </Button>
         ) : null}
-      </section>
+      </Section>
 
       {inactive.length > 0 ? (
-        <section>
-          <h2 className="heading-text mb-2">Former members</h2>
-          <Card className="p-0">
-            <ul className="divide-y divide-border">
+        <Section label="Former members">
+          <List>
               {inactive.map((member) => (
                 <li key={member.id} className="flex items-center gap-3 px-4 py-3">
                   <MemberAvatar name={member.displayName} avatarUrl={member.avatarUrl} />
@@ -212,13 +203,12 @@ export function MemberList({
                     </p>
                   </div>
                   {member.pendingSettlement ? (
-                    <Badge tone="warning">Owes money</Badge>
+                    <Badge tone="danger">Owes money</Badge>
                   ) : null}
                 </li>
               ))}
-            </ul>
-          </Card>
-        </section>
+          </List>
+        </Section>
       ) : null}
 
       {editing ? (

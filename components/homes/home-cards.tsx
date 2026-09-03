@@ -48,9 +48,18 @@ export function HomeCards({
 
         return (
           <li key={home.id}>
-            <Card className={isSelected ? "border-primary" : undefined}>
+            <Card
+              className={
+                isSelected
+                  ? "overflow-hidden border-border-strong pl-4 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-primary"
+                  : isRequested
+                    ? "border-dashed"
+                    : undefined
+              }
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
+                  {isSelected ? <p className="eyebrow-text mb-1">Current</p> : null}
                   <CardTitle>{home.name}</CardTitle>
                   <CardDescription>
                     {HOME_TYPE_LABEL[home.homeType]}
@@ -70,17 +79,13 @@ export function HomeCards({
                 ) : null}
               </div>
 
-              <div className="mt-3">
+              <div className={isSelected ? "" : "mt-3"}>
                 {isRequested ? (
                   <p className="caption-text text-text-muted">
                     Nothing to see here until somebody lets you in — not the
                     members, not the money, not the chores.
                   </p>
-                ) : isSelected ? (
-                  <p className="caption-text text-text-muted">
-                    This is the home you are looking at.
-                  </p>
-                ) : (
+                ) : isSelected ? null : (
                   <Button
                     variant="outline"
                     size="sm"

@@ -213,16 +213,13 @@ export function NotificationFeed({
                 <li key={item.id}>
                   <Card
                     className={cn(
-                      "flex items-start gap-3",
-                      item.readAt ? null : "border-primary/40 bg-primary/[0.04]",
+                      "flex items-start gap-3 overflow-hidden",
+                      item.readAt
+                        ? null
+                        : "pl-4 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-primary",
                     )}
                   >
-                    {item.readAt ? null : (
-                      <span
-                        className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary"
-                        aria-label="Unread"
-                      />
-                    )}
+                    {item.readAt ? null : <span className="sr-only">Unread</span>}
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-3">
@@ -238,7 +235,7 @@ export function NotificationFeed({
                           <Link
                             href={item.deepLink}
                             onClick={() => void markOneRead(item.id)}
-                            className="caption-text font-medium text-primary underline-offset-2 hover:underline"
+                            className="caption-text font-medium underline underline-offset-2"
                           >
                             Open
                           </Link>

@@ -100,7 +100,7 @@ export function CategoryList({
 
       {archived.length > 0 ? (
         <section className="mt-6">
-          <h2 className="heading-text mb-2">Archived</h2>
+          <p className="eyebrow-text mb-2">Archived</p>
           <CardDescription className="mb-2">
             Hidden when logging an expense. Past expenses keep their category, so
             nothing in the ledger changes.
@@ -159,7 +159,11 @@ function Row({
     <Card className={cn(onEdit && "transition-colors hover:border-primary")}>
       <div className="flex items-baseline justify-between gap-3">
         <span className="min-w-0 truncate font-medium">
-          {category.icon ? <span aria-hidden>{category.icon} </span> : null}
+          {category.icon ? (
+            <span aria-hidden className="grayscale">
+              {category.icon}{" "}
+            </span>
+          ) : null}
           {category.name}
         </span>
         <span className="shrink-0 tabular-nums">

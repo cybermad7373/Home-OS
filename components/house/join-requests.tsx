@@ -43,7 +43,7 @@ export function JoinRequests({ requests }: { requests: JoinRequestView[] }) {
 
   return (
     <section className="mb-4">
-      <h2 className="heading-text mb-2">
+      <h2 className="eyebrow-text mb-2">
         Waiting to be let in ({requests.length})
       </h2>
       <ul className="flex flex-col gap-2">
