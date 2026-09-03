@@ -83,8 +83,16 @@ export function Sheet({
       transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
       onClick={onClose}
     >
+      {/*
+        `w-full` on a phone, auto above `lg`. As a flex item that is always
+        full-width, this wrapper filled the row and left `lg:justify-end` on the
+        container with nothing to push — so the 440px panel inside it sat at the
+        *left* edge of the screen, vertically centred, on top of the sidebar
+        navigation. The quick-add sheet covered Chores, Money, Food, Insights,
+        Approvals and Notifications every time it opened on a desktop.
+      */}
       <motion.div
-        className="w-full bg-transparent"
+        className="w-full bg-transparent lg:w-auto"
         onClick={(e) => e.stopPropagation()}
         initial={reduce ? undefined : offsets.initial}
         animate={offsets.animate}

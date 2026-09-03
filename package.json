@@ -27,7 +27,8 @@
     "seed:verify": "node scripts/seed-demo.mjs --verify",
     "seed:ai": "node scripts/seed-ai.mjs",
     "audit:ui": "node scripts/audit-ui.mjs",
-    "shoot:ui": "node scripts/shoot-ui.mjs"
+    "shoot:ui": "node scripts/shoot-ui.mjs",
+    "uat:tasks": "node scripts/uat-tasks.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
