@@ -4,7 +4,7 @@ A running record of what has been built, what is verified, and what is next.
 Updated at the end of every working session. The roadmap in
 [`docs/07-ROADMAP.md`](docs/07-ROADMAP.md) is the plan; this file is the state.
 
-**Last updated:** 2026-09-03
+**Last updated:** 2026-09-04
 
 ## Working agreements — settled 2026-08-27
 

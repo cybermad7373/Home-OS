@@ -2,7 +2,7 @@
 
 **Product:** HouseOS
 **Version:** 1.0
-**Date:** 2026-09-03
+**Date:** 2026-09-03, second pass 2026-09-04
 **Target:** product phase 1 (web / PWA), run against the local Supabase stack
 with the three demo homes seeded (`npm run seed`)
 
@@ -23,9 +23,11 @@ enough for a thumb.
 Three commands produce the evidence:
 
 ```bash
-npm run test          # 902 unit, property and integration cases
+npm run test          # 942 unit, property and integration cases
 npm run test:e2e      # 92 browser cases, mobile and desktop projects
 npm run audit:ui      # every screen at 360/768/1280 px, light and dark
+npm run shoot:ui      # a full-page screenshot of all 38, to be read by eye
+npm run uat:tasks     # nine ordinary tasks, driven as a housemate would
 ```
 
 The sweep (`scripts/audit-ui.mjs`) is the one written for this document. It
@@ -40,17 +42,26 @@ composition says it is.
 
 ## 1. Result
 
-| | |
-|---|---|
-| **UAT cases** | 127 |
-| **Passed** | 111 |
-| **Deferred** | 11 |
-| **Not built** | 5 |
-| **Failed** | 0 |
-| **Sweep findings** | 0 across 246 screen renders |
+| | | |
+|---|---|---|
+| | **First pass, 2026-09-03** | **Second pass, 2026-09-04** |
+| **UAT cases** | 127 | 136 — the nine tasks in section 10a |
+| **Passed** | 111 | 120 |
+| **Deferred** | 11 | 11 |
+| **Not built** | 5 | 4 — `food_normalise` is built |
+| **Failed** | 0 | 0 |
+| **Sweep findings** | 0 across 246 screen renders | 0, unchanged |
+| **Found by reading the screens** | 16 | 9 more, all fixed |
 
-Everything the sweep found on its first run is fixed and re-verified; section 8
-lists what it caught, because a UAT that reports only the final state hides the
+The second pass is the one worth reading. The first established that every
+screen renders; the second asked whether the screens are any good, and found
+nine defects the sweep passes over by construction — a chart that drew empty
+weeks at full height, every sheet in the app opening on top of the navigation,
+and a pot household told on one screen that it owed money that two other screens
+said did not exist.
+
+Everything both passes found is fixed and re-verified; sections 8 and 10a list
+what they caught, because a UAT that reports only the final state hides the
 work. The eleven deferred cases are in section 9, and every one of them needs
 something this environment does not have — a phone, a hosted origin, or a
 second person.
@@ -261,7 +272,7 @@ against the Home's own sealed credential — not by a mock.
 | AI-08 | The provider fails, or the key is wrong | The deterministic branch, silently — never an error on screen | PASS — 11 rejected `food_ideas` runs in the same table, with the screens unaffected |
 | AI-09 | An admin toggles `food_normalise` | **Nothing happens — the switch controls no code** | NOT BUILT (NB-02) |
 
-### 7.5 Notifications
+### 7.6 Notifications
 
 | ID | A person does this | And this must happen | Status |
 |---|---|---|---|
@@ -354,6 +365,72 @@ primitives' entrance animations with CSS — and it is not attempted here.
 The field metrics (FCP, TTI, LCP, CLS, INP) are D-10 above: they need a real
 device on a real network, and a number measured on a laptop against localhost
 would be a number that means nothing.
+
+---
+
+## 10a. Second pass — 2026-09-04, read by eye and driven by task
+
+The first pass established that every screen renders correctly at three widths
+in both themes, and it was right: `audit:ui` reports zero findings across 246
+renders and still does. What it could not establish is whether the screens are
+any *good*, because no machine check asks whether a figure is stranded in an
+empty card, whether two panels that should balance do, or whether the thing a
+person came to do can be done. This pass asks those, with two new instruments.
+
+`npm run shoot:ui` captures a full-page screenshot of all 38 screens at a given
+width and theme — the screenshot set the overhaul plan called for and never
+produced. `npm run uat:tasks` drives nine ordinary tasks as a housemate would
+and reports what a person feels rather than what a selector asserts: how many
+interactions and how many screens each task cost.
+
+**The tasks, at 1440×900, signed in as the seeded `demo` account.**
+
+| Task | The question behind it | Cost | Outcome |
+|---|---|---|---|
+| Sign in | Can I get in? | 3 interactions | Lands on `/home` |
+| What do I owe | How much, and to whom? | 1 tap | Answered on Money; `/home` states the share and what you paid, and leaves the subtraction to you |
+| What is waiting on me | What does the house need? | 0 taps | Three items on the landing screen |
+| Open an approval | Can I act on it? | 1 tap | An action is on screen |
+| Put in an expense | I paid for the gas | 1 tap to the sheet | Reached from any screen |
+| Mark a chore done | I cooked dinner | 0 taps | A Done button is on Today |
+| Settle up | Who do I pay? | 1 tap | Correctly empty for a pot home, and says why |
+| Read the month | What did we spend it on? | 1 tap | Category breakdown on Insights |
+| Find one expense | Where is that ₹3,862 bill? | 0 taps | Visible on the ledger without filtering |
+
+Nine of nine completed, none blocked. Two results that look like defects and are
+not, recorded so they are not re-investigated: the quick-add options are links
+rather than buttons, which is correct because they navigate; and `/settle` shows
+no figures for the family home because a pot household nets nothing between its
+members, which its empty state explains in exactly those words.
+
+**What reading the screens found.** Nine defects, none of them reachable by the
+sweep, all fixed and re-verified.
+
+| # | Found | Why no check caught it |
+|---|---|---|
+| 17 | The insights chart drew every ₹0 week as a full-height grey column, identical to a week that had spent the peak | Every column had a filled plot block behind it; the bar is correct and invisible against its own track |
+| 18 | The filter bar clipped "Utilities" and two members mid-word at 1440 px with 300 px of empty page beside them | The cap that is right for a segmented control was applied to a scrolling chip row too |
+| 19 | "Paid against fair share" put each member's paid, share and net at a different x, and stranded a third of the screen on a pot home | Three figures set as one right-aligned run of text, in a two-column grid with an odd number of cards |
+| 20 | "Guest room" rendered as "GUEST RO…" | A room name set in the label style — 10 px uppercase at 0.14em tracking |
+| 21 | The standing meter read as an underline on the member's name | A 3 px square-ended black bar two pixels below the text |
+| 22 | The "N missed" column pulled one member's points fraction 70 px left of everybody else's | It existed only for a member who had missed something |
+| 23 | Every `<select>` in the app ignored the dark theme | Chrome paints the platform control and discards the author background; `color-scheme: dark` does not save it |
+| 24 | Every sheet opened on top of the sidebar at desktop width | `w-full` on the animated wrapper left `lg:justify-end` nothing to push |
+| 25 | The Money screen told a pot household's member "You owe ₹1,931.60", in red, while `/settle` and Insights told them a pot home has no debts | The tile computed `yourPaid − yourShare` without consulting the money mode it was already given |
+
+**And what the composition pass changed.** `/home` is exactly one viewport tall
+and never scrolls, so its proportions are the whole of what a person sees on
+opening the product. The main column held the figures, the standing list and the
+roster while the rail stopped at half the page height, leaving a third of the
+landing screen permanently blank. D-74 already says the roster belongs in the
+rail; it is there now, at a cell size that does not overshoot. Main ends at
+580 px and the rail at 755 px, against 760 and 505 before.
+
+Two findings in this pass are not defects and were not treated as design
+opinions to act on unasked. The dot-matrix display face is harder to read at
+44 px than a grotesk would be, which is the deliberate trade in D-72 and is
+noted rather than changed. And a screen that ends above the fold is not by
+itself a fault.
 
 ---
 
