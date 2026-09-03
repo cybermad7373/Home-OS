@@ -64,6 +64,7 @@ distributes the load automatically according to who is actually home and when.
 | 15 | [FOOD-SPEC.md](15-FOOD-SPEC.md) | Meals, items, sources, costs, participants, the library, preferences, both recommendation paths, and planned meals | Developer |
 | 15 | [FOOD-SPEC.md](15-FOOD-SPEC.md) — §5.2a | Restrictions: the hard exclusions no recommendation score may outrank, and what each severity does when a meal is recorded anyway | Developer |
 | 16 | [COMPETITIVE-POSITIONING.md](16-COMPETITIVE-POSITIONING.md) | Every competitor capability and complaint in [`Competitor_Analysis.txt`](Competitor_Analysis.txt), mapped to the requirement that carries it, the commitment that answers it, or the reason we do not build it | Product owner, developer |
+| 17 | [UAT.md](17-UAT.md) | The acceptance pass: every screen and every feature with what must happen, what was observed, what is deferred and what is not built — plus the layout sweep that checks proportion, placement and reach on every screen | Product owner, developer |
 
 ### Source documents
 

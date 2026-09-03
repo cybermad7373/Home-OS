@@ -1573,6 +1573,39 @@ are not intercepted at all.
 
 ---
 
+## User acceptance — 2026-09-03
+
+`docs/17-UAT.md` is the acceptance pass: 127 cases across every module, each
+with what a person does, what must happen, and what was observed. **111 pass,
+11 are deferred, 5 are not built, none fail.**
+
+The layout half of it is `npm run audit:ui`, written for the pass and kept: it
+drives 38 screens plus the three public ones at 360, 768 and 1280 px in both
+themes — 246 renders — and checks horizontal overflow, the 44 px target rule,
+one `h1` per screen, alt text, failed requests, console errors, the 1120 px
+content cap and the 340 px sticky rail. **It reported 272 findings on its first
+run and reports 0 now.** What it caught is listed in section 8 of the UAT; the
+largest single one was that `Button` forwarded every filled variant to
+`MagneticButton`, so half the buttons in the app were not built from the button
+system at all.
+
+Three things the pass established that were not previously written down:
+
+- **Erasure is not built.** D-65 settled what it must do; no route, function or
+  migration implements it. It is a launch-gate item wherever a deployment has
+  to answer a deletion request.
+- **The 180 KB initial-JavaScript budget is not met**: 327 KB of script reaches
+  `/signin` and 192 KB reaches the invite link, as transferred bytes from a
+  production build. The contributors are the Supabase browser client, the
+  React/Next runtime and `motion/react`, which eight UI primitives import.
+- **The AI call sites are proved by their run log** rather than by mocks: 4
+  schedule, 2 digest, 5 parse, 4 rule-parse and 115 food-ideas accepted runs
+  against real provider calls, and 11 rejected ones that fell through to the
+  deterministic branch with nothing shown to the house — which is the specified
+  behaviour.
+
+---
+
 ## Known gaps and follow-ups
 
 - **Specification 2.0 is built.** Phases 10 to 15 are all delivered and verified

@@ -1162,6 +1162,14 @@ Every screen implements all five. A screen without an explicit empty state and a
 | Screen readers | Charts have a text summary alternative; icon-only buttons carry `aria-label` |
 | Motion | `prefers-reduced-motion` collapses all transforms to opacity |
 | Zoom | Layout remains usable at 200 percent text zoom |
+| Targets | Every control is at least 44 x 44px to aim at. The *ink* may be smaller — a chip, a switch, a row action, a figure that is a button — and the `.tap-44` utility carries the target past it with an invisible 44px box centred on the control. A negative inset does not work: a pseudo-element's containing block is the padding box, so "half the difference" lands 2px short on anything with a border. Inline links inside a sentence are exempt (WCAG 2.5.8), because a 44px link breaks the paragraph it lives in. |
+
+**The sweep.** `npm run audit:ui` drives every screen at 360, 768 and 1280px in
+both themes, signed in against the seeded homes, and reports horizontal
+overflow, targets under 44px, missing or duplicated `h1`, images without `alt`,
+failed requests, console errors, a content column over 1120px and a rail that is
+not 340px and sticky. It is the acceptance evidence in `docs/17-UAT.md`, and it
+is the fastest way to find out that a screen broke.
 
 ---
 
