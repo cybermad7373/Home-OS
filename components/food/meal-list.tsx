@@ -12,6 +12,25 @@ const SOURCE_LABEL: Record<string, string> = {
   other: "Other",
 };
 
+/**
+ * Who ate, short enough to scan.
+ *
+ * The row used to join every participant's full display name with commas. In
+ * the seeded family home that is seven names and a guest — two wrapped lines of
+ * grey caption under every meal, so the list of what the home ate was mostly a
+ * list of who lives in it, repeated five times. Two names and a count carry the
+ * same fact in one line; the full list stays on the element's `title`, which is
+ * where a reader who wants all seven can get them.
+ */
+function ate(participants: { displayName: string }[]): { short: string; full: string } | null {
+  if (participants.length === 0) return null;
+  const names = participants.map((participant) => participant.displayName);
+  const full = names.join(", ");
+  if (names.length <= 2) return { short: full, full };
+  const first = names.slice(0, 2).map((name) => name.split(/\s+/)[0]);
+  return { short: `${first.join(", ")} +${names.length - 2}`, full };
+}
+
 /** Meal History (S-42/S-44) — the Home's food history, everyone's, in one list. */
 export function MealList({ meals, currency }: { meals: MealView[]; currency: string }) {
   if (meals.length === 0) {
@@ -28,13 +47,14 @@ export function MealList({ meals, currency }: { meals: MealView[]; currency: str
       {meals.map((meal) => (
         <li key={meal.id} className="px-4 py-3">
           <div className="flex items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <p className="text-[15px] font-medium text-text">{meal.name}</p>
-              <p className="caption-text text-text-muted">
+              <p className="caption-text truncate text-text-muted">
                 {formatDate(meal.mealDate)} · {SOURCE_LABEL[meal.source] ?? meal.source}
-                {meal.participants.length > 0
-                  ? ` · ${meal.participants.map((p) => p.displayName).join(", ")}`
-                  : ""}
+                {(() => {
+                  const who = ate(meal.participants);
+                  return who ? <span title={who.full}> · {who.short}</span> : null;
+                })()}
               </p>
             </div>
             <div className="flex items-center gap-2">

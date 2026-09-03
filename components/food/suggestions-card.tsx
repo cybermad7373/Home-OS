@@ -110,12 +110,16 @@ export function SuggestionsCard({ currency, today }: { currency: string; today: 
                     <p className="caption-text text-text-muted">{s.reasons.join(" · ")}</p>
                   ) : null}
                 </div>
-                <div className="flex items-center gap-2">
-                  {s.score > 0 ? (
-                    <span className="readout text-[13px] leading-none text-text-subtle">
-                      {s.score}
-                    </span>
-                  ) : null}
+                {/*
+                  The raw score is not shown. It was rendered as a bare "76"
+                  beside a dish name, in the same face the app sets money in,
+                  with no label and no unit — so the one reading it invites is
+                  a price or a rating out of a hundred, and it is neither. It
+                  is an internal rank, and the two things a person can act on
+                  are already there: the order of the list, and the reasons
+                  line that says in words why the dish is in it.
+                */}
+                <div className="flex shrink-0 items-center gap-2">
                   <PlanItButton name={s.name} foodId={s.foodId} minDate={today} />
                 </div>
               </li>

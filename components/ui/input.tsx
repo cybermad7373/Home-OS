@@ -90,17 +90,46 @@ export const Select = React.forwardRef<
 >(function Select({ className, label, helperText, error, id, children, ...props }, ref) {
   const fieldId = useFieldId(id, label);
 
+  /*
+   * `appearance-none` and a chevron we draw ourselves.
+   *
+   * With the native appearance, Chrome renders the platform control and
+   * ignores the author background. On a dark theme that made every select in
+   * the app — the month pickers on Money and Settle, the category and member
+   * filters, the recurrence pickers, an announcement's severity — a pale
+   * Windows control on a black page: on `/money` in dark it was the single
+   * light element on the entire screen. `color-scheme: dark` is declared and
+   * does not save it, because the background is being painted by the platform
+   * rather than by the stylesheet.
+   *
+   * The chevron is `aria-hidden` and cannot be clicked through to, so the
+   * select underneath keeps the whole hit area.
+   */
   const control = (
-    <select
-      ref={ref}
-      id={fieldId}
-      aria-invalid={error ? true : undefined}
-      aria-describedby={error ? `${fieldId}-error` : helperText ? `${fieldId}-help` : undefined}
-      className={cn(CONTROL, "pr-8", error && INVALID, className)}
-      {...props}
-    >
-      {children}
-    </select>
+    <span className="relative block">
+      <select
+        ref={ref}
+        id={fieldId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${fieldId}-error` : helperText ? `${fieldId}-help` : undefined}
+        className={cn(CONTROL, "appearance-none pr-9", error && INVALID, className)}
+        {...props}
+      >
+        {children}
+      </select>
+      <svg
+        aria-hidden
+        viewBox="0 0 16 16"
+        className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-text-muted"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="m4 6 4 4 4-4" />
+      </svg>
+    </span>
   );
 
   return <Wrapper {...{ fieldId, label, helperText, error, control }} />;
