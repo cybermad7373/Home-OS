@@ -4,7 +4,7 @@ A running record of what has been built, what is verified, and what is next.
 Updated at the end of every working session. The roadmap in
 [`docs/07-ROADMAP.md`](docs/07-ROADMAP.md) is the plan; this file is the state.
 
-**Last updated:** 2026-08-29
+**Last updated:** 2026-09-03
 
 ## Working agreements — settled 2026-08-27
 
@@ -12,7 +12,7 @@ How the rest of the build runs. The reasoning is D-59; this is the summary.
 
 | | |
 |---|---|
-| **Next piece of work** | Every engineering phase of specification 2.0 is built. What remains is not a phase: the launch gate in "Known gaps" — migration 045 and the LLM master key applied to an environment, the `weekly-digest` redeploy, a real-device push test, and the production release checks. |
+| **Next piece of work** | Every engineering phase of specification 2.0 is built, and as of 2026-09-03 so is the surface overhaul: the seed, the AI paths, the design system, the navigation and all 44 screens. What remains is not a phase: the launch gate in "Known gaps" — migration 045 and the LLM master key applied to an environment, the `weekly-digest` redeploy, a real-device push test, and the production release checks. |
 | **Test target** | The local stack. The hosted project is written to only by an explicitly requested `db:push`. |
 | **Scope** | The whole of specification 2.0: finish phase 11, then 12 to 15 in the roadmap's order. Nothing trimmed. |
 | **Phase-11 order** | Jobs and notifications, then S-37 proposers, then absence, then shared assignment and `change_confirmation_policy`, then governed close with adjustments, then expected contributions and the reserve. |
@@ -20,9 +20,123 @@ How the rest of the build runs. The reasoning is D-59; this is the summary.
 | **E2E** | One Playwright journey per phase, written with the phase. Phase 11's is propose, respond, apply. |
 | **AI keys** | Supplied when a call site needs real verification, pasted into the app's own settings panel and sealed against that Home. Never in the repository, an env file, a fixture or a test. |
 
-Local Supabase is running. Migrations 045–089 applied locally.
+Local Supabase is running. Migrations 045–089 plus `20260901000000`,
+`20260903000000` and `20260903000001` applied locally.
 Integration suites no longer skip themselves. `npm run gen:types` fixed to read local stack.
 `lib/types/schema-pending.ts` reduced to 17-line shim (only `JoinRequestStatus`).
+
+## Product surface overhaul — 2026-09-01 to 2026-09-03
+
+Every engineering phase of specification 2.0 was built, and almost none of it
+was *visible*: the demo house filled 18 tables out of roughly 50, so the whole
+2.0 half of the product fell through to its empty state; the LLM key was
+configured and had never once been used; three navigations disagreed with each
+other; and only the Home screen had ever been designed. This section records
+the audit, the four shipped defects filling the data turned up, and the
+redesign that followed. It changes no product rule: nothing in `DECISIONS.md`
+about splits, fairness, guests, dependents or governance is touched.
+
+### Four shipped defects, found by filling the data
+
+None could have been caught by the suite as it stood, which is the point of
+each entry.
+
+- **An expense could be booked against the wrong household.** `create_expense`,
+  `carry_forward_expense` and `publish_schedule` each worked out the caller's
+  Home for themselves by calling `current_member()` with no house id, which
+  returns an *arbitrary* one of the caller's active memberships — arbitrary in
+  the strict sense, because members who joined on the same day have no tiebreak
+  at all. With one membership each it is unambiguous; with two,
+  `create_expense` read the category, the approval threshold and the period
+  from the guessed house and wrote the expense and its splits there. Every row
+  internally consistent, filed under a household that never spent the money.
+  The Home is a parameter now and the database refuses a caller who is not an
+  active member of it. Migration `20260903000001`; regression test
+  `tests/integration/multi-home.test.ts`.
+- **No role could save a house AI key at all.** `house_llm_credentials` carries
+  a check constraint calling `llm_capabilities_well_formed`, and that function
+  had never been granted to anybody: migration 066 relied on the default grant
+  to `public` and migration 080 swept it away. A check expression is evaluated
+  as the calling role, so every insert and update failed with *permission
+  denied for function*, for `authenticated` and `service_role` alike — the
+  per-house encrypted credential path, the ordinary path the whole design
+  exists for, could not be used. Migration `20260903000000`.
+- **Every LLM call this project had ever made had failed.** All eleven
+  historical `llm_runs` rows carried `accepted: false` and a 404 from Google
+  saying the pinned model no longer existed. All three Gemini models in the
+  registry had been retired, so an admin choosing Gemini got a dead model by
+  default. A provider failure is designed to fall through to the deterministic
+  branch with nothing shown to the user, so no screen ever said so and the AI
+  features looked unbuilt rather than broken. The rolling aliases lead the list
+  now.
+- **The model was never told the limits its answer was judged against.** The
+  Gemini transport dropped `maxLength`, `maxItems`, `minimum` and `maximum`
+  when converting a schema, while the local validator still enforced them on
+  the way back. A food-ideas response whose second description ran thirteen
+  characters long was discarded whole and the Home saw the AI half of Try Today
+  silently vanish. The bounds are sent now; the local validator still has the
+  last word, because a prompt is a request and a filter is a guarantee.
+
+**Reported, not changed:** `food_normalise` is declared in the capability
+vocabulary, in the `llm_purpose` enum and as a switch in the settings panel,
+and no code anywhere routes it. Five of the six documented call sites are
+implemented. Whether to build it or drop it is a product call, not a cleanup.
+
+### The demo data
+
+`scripts/seed-demo.mjs` became a module set under `scripts/seed/`, one per
+domain, driven by a home profile — and three homes are seeded rather than one,
+because almost every screen branches on the household's shape and only one
+branch of each had ever been looked at:
+
+| Home | Type | Effort | Money | People | What it proves |
+|---|---|---|---|---|---|
+| Anna Nagar Boys | shared | points | split | 8 | Standing, leaderboard, settle-up, penalties, an open month and a closed one |
+| Velachery Flat | shared | rota | pot | 4 | The branches that *hide* things, plus the reserve, expected contributions and guests |
+| Sharma Family | family | points | pot | 5 + 2 | Dependents and guardianship, the family governance matrix, the dependent chore screen |
+
+The `demo` account belongs to all three, so the Home switcher finally has
+something to switch — which is how the wrong-household defect above surfaced.
+
+### The interface
+
+The UI specification is at version 3.0 ("Monochrome"), rewritten to describe
+what was built rather than the other way round. The decisions are D-71 to D-74;
+the short form:
+
+- **One palette.** Ink and paper, with green and red reserved for money and
+  never used for effort. Weight, scale and hairlines carry everything hue used
+  to.
+- **One navigation.** The bar, the sidebar, `/more` and the command palette all
+  render from `components/layout/destinations.ts`. The bar never changes shape,
+  and the header carries the Home switcher at every width — it used to exist
+  only in the desktop sidebar, so a member of more than one home could not
+  switch on a phone.
+- **Two compositions.** A screen declares what it is about and what sits beside
+  it; `Columns` stacks them on a phone and makes the second a sticky 340px rail
+  above `lg`. The build was previously responsive only in the sense that it
+  widened.
+- **The primitives the screens kept hand-rolling** — `Section`, `List`,
+  `CardGrid`, `Stepper`, `Readout`, `Switch`, `AppHeader`, `CommandPalette` —
+  exist once, and `/dev/kitchen-sink` renders every one in both themes.
+
+Every screen has now been through the pass. The last of them — recurring
+expenses, the close wizard, the notification feed, the food shopping list and
+restrictions, house settings, notification preferences, AI capabilities, the
+invite-link landing page and onboarding's shell — landed on 2026-09-03.
+
+### One more invented screen, fixed
+
+`/more/game` rendered a literal 7-day streak, a best streak of 14 and 412
+points for **every** member, with each person's row computed from the character
+codes of their UUID modulo 500. It ships behind an admin switch, so a house
+that turned the game layer on was shown fabricated progress for real people.
+
+It is derived from confirmed chores now (`lib/domain/game.ts`,
+`lib/data/game.ts`), with no new table — see D-74. Fifteen unit cases including
+three properties cover it.
+
+---
 
 ## Documentation gap pass — 2026-08-28
 
@@ -212,15 +326,40 @@ the move of close, reopen, removal and confirmation behind decisions in phase 11
 
 Run from the repository root:
 
-| Check | Command | Result on 2026-08-30 |
+| Check | Command | Result on 2026-09-03 |
 |-------|---------|----------------------|
 | Types | `npm run typecheck` | clean |
 | Lint | `npm run lint` | clean |
 | Build | `npm run build` | clean |
-| Unit, property and integration tests | `npm run test` | 848 passing across 62 files, 0 failing, 0 skipped |
+| Unit, property and integration tests | `npm run test` | 902 passing across 65 files, 0 failing, 0 skipped |
 | Edge function types | `npx deno check supabase/functions/*/index.ts` | all eight clean |
 | Web Push and key sealing | `npm run test:functions` | 9 passing |
 | End-to-end | `npm run test:e2e` | **92 passing, 0 failing, 0 flaky**, across both the mobile and desktop projects |
+
+**The end-to-end suite had to be repaired before it could say that.** All six
+journeys were broken at their first step, and all six for one reason: each wrote
+the sign-up-and-create-a-home sequence out again, so cutting onboarding from
+seven required steps to three broke six copies rather than one. It lives in
+`tests/e2e/onboarding.ts` now. The other stale assertions were the screens
+having genuinely changed — the Home overview no longer carries its own grid of
+links to the other destinations, so "every primary destination is one tap" is
+asserted against the bar that renders from `destinations.ts` and is on every
+screen at every width.
+
+**Six product defects surfaced from walking the app** rather than from any
+test, and all six are fixed:
+
+- `/more` scrolled sideways by 131 px at 360 px — the grid-item `min-width:
+  auto` failure again, in a new place.
+- A sheet was a modal surface with no `role`, no `aria-modal` and a title the
+  dialog was not named by, so a screen reader announced the page underneath it.
+- Try Today awaited the model and the library together, and the provider
+  adapter allows 20 s plus one retry — a slow model kept the home's own history
+  off a screen it was already on. Two requests now.
+- An empty food library told the house that nothing in it was safe for anybody.
+- The PWA's "Add expense" shortcut pointed at `/expenses/new`, a route that has
+  never existed — invisible until the app is on a home screen.
+- The new `Switch` had a 26 px target where the minimum is 44 px.
 
 Every end-to-end failure this file used to list is closed, and each was a real
 product defect rather than a flaky test:
@@ -1450,18 +1589,28 @@ are not intercepted at all.
   monitoring, backups, and a real-device smoke test — still need to be completed
   before calling product phase 1 launched. Specification 2.0 widens what phase 1
   contains; it does not change that gate.
+- **`food_normalise` is a capability with no call site.** It is in the
+  capability vocabulary, in the `llm_purpose` enum and as a switch an admin can
+  toggle in the AI panel, and no code anywhere routes it — five of the six
+  documented call sites are implemented. Reported rather than quietly deleted:
+  whether to build it or drop the switch is a product call.
+- **Every screen has been through the 3.0 pass**, and the design decisions are
+  D-71 to D-74. What is *not* done is a screenshot set: the before-and-after
+  comparison the overhaul plan called for was never captured, so visual
+  regressions are caught by `/dev/kitchen-sink` and by reading, not by
+  diffing.
 - **Native mobile is a separate product phase.** It must not be described as a
   wrapper with “no backend change”: native push uses a provider adapter and
   platform token lifecycle, while the shared API and device model remain the
   contract. Android Play and iOS App Store release work is intentionally deferred.
 
-- **The integration suites ran against the live remote project**, so they could
-  fail on a dropped connection rather than on a defect. One such failure was
-  seen on 2026-08-24 and did not reproduce over five consecutive runs; the same
-  session saw a `db push` fail once with a TLS reset and succeed on retry. As of
-  2026-08-27 the answer is settled rather than merely observed: the local
-  `supabase start` stack becomes the test target and removes the whole class of
-  noise (D-59). It is not yet standing up.
+- **The local stack is the test target and is standing up.** D-59 settled it on
+  2026-08-27 and it has been true in practice since: the integration suites,
+  `gen:types` and all 92 end-to-end cases run against `supabase start`, with
+  migrations 045–089 plus `20260901000000`, `20260903000000` and
+  `20260903000001` applied there. The whole class of "failed on a dropped
+  connection rather than on a defect" is gone with it. Nothing in this
+  repository has been written to the hosted project.
 - **End-to-end coverage now runs to phase 15.** Every phase from 11 onward has
   its own journey, and the suite is 92 cases across the mobile and desktop
   projects. `docs/12-TEST-PLAN.md` section 4 still lists journeys nobody walks.

@@ -12,47 +12,48 @@ What is tested, at which level, and the specific cases that must pass before eac
 counts in section 1 include the calendar, insights and remaining food tests that
 phases 13 to 15 will add.
 
-What exists on 2026-08-28, from an observed `npm run test` run:
+What exists on 2026-09-03, from an observed run of each command:
 
 | | Files | State |
 |---|---|---|
-| Unit and property (`tests/unit/`) | 32 | Part of the 671 tests below |
-| Integration (`tests/integration/`) | 16 | Run against the local `supabase start` stack. The hosted project is written to only by an explicitly requested `db:push` (D-59) |
-| End-to-end (`tests/e2e/`) | 3 — `foundation`, `governance`, `rules` | 17 tests, run by `npm run test:e2e` against a running app |
-| Edge Function (`supabase/functions/_shared/`) | Deno tests | Run by `npm run test:functions` |
+| Unit and property (`tests/unit/`) | 45 | Part of the 902 tests below |
+| Integration (`tests/integration/`) | 20 | Run against the local `supabase start` stack. The hosted project is written to only by an explicitly requested `db:push` (D-59) |
+| End-to-end (`tests/e2e/`) | 6 — `foundation`, `governance`, `rules`, `food`, `today`, `insights` | 92 cases across the mobile and desktop projects, run by `npm run test:e2e` against a running app |
+| Edge Function (`supabase/functions/_shared/`) | Deno tests | 9, run by `npm run test:functions` |
 
-`npm run test` on 2026-08-28 reported **682 passing, 2 failing, 0 skipped**
-across 48 files. **The 71 skipped assertions recorded before 2026-08-27 are
-gone**: migrations 045 to 081 are applied to the local stack, so the suites that
+`npm run test` on 2026-09-03 reported **902 passing, 0 failing, 0 skipped**
+across 65 files. **The 71 skipped assertions recorded before 2026-08-27 are
+gone**: migrations 045 to 089 are applied to the local stack, so the suites that
 used to gate themselves out — `llm-credentials`, `governance`, `chore-quorum`,
-`membership`'s removal cases, `rules`, `reserve`, `governed-close` — now execute.
-Migrations 081 (food) and 082 (food restrictions) were applied on 2026-08-28 and
-`food-restrictions.test.ts` runs against them.
+`membership`'s removal cases, `rules`, `reserve`, `governed-close` — now
+execute. The two failures this section used to carry (notification coalescing
+by `tag`, and an isolation assertion that could not tell a blocked read from an
+errored one) are both closed.
 
-The two failures are open and belong to Track A:
+**E2E now runs six spec files and covers six of the twenty-two journeys:**
 
-| Test | File | Symptom |
+| Spec file | Journeys covered | What it also walks |
 |---|---|---|
-| `notifications > replaces rather than adds when the same tag repeats inside ten minutes` | `tests/integration/notifications.test.ts` | Coalescing by `tag` inside the ten-minute window is not collapsing the second row |
-| `cross-house isolation > hides a housemate's profile from an unrelated user` | `tests/integration/rls-isolation.test.ts` | The `users` select returns `null` rather than `[]` — the assertion cannot distinguish a blocked read from an errored one |
+| `foundation.spec.ts` | E2E-01 (partial — setup without rooms, templates or generation), E2E-02 | The invite link cold, and every screen at 360 px |
+| `governance.spec.ts` | E2E-15 | A Critical decision from proposal to application |
+| `rules.spec.ts` | E2E-16 | Versioning, history and disabling |
+| `food.spec.ts` | E2E-17, E2E-22 | The library, the split, restrictions, merging duplicates, the expense link |
+| `today.spec.ts` | — | Today, the Calendar's three views, the quick-add's role filtering, announcements |
+| `insights.spec.ts` | E2E-21 | Filters as URLs, the ungated export, the formula-injection guard |
 
-Neither is a skip. Both are observed failures against a real database, and the
-suite is not green until they are fixed.
+**Sixteen journeys remain unwritten**, and the largest hole is the one it has
+always been: **chores, expenses, close and settlement have no journey of their
+own**, though the six above cross all four. E2E-13 (shared close) and E2E-14
+(the approvals queue) are the two the governance spec is closest to and does
+not yet reach. From phase 11 onward each phase writes one journey through its
+own main path as part of the phase (D-59).
 
-**E2E is still the largest gap, but it is no longer a single journey.** Section 4
-calls for twenty-two; three files cover four of them:
-
-| Spec file | Journeys covered | Journeys still owed |
-|---|---|---|
-| `foundation.spec.ts` | E2E-01 (partial — setup without rooms, templates or generation), E2E-02 | The room, template and generation half of E2E-01 |
-| `governance.spec.ts` | E2E-15 | — |
-| `rules.spec.ts` | E2E-16 | — |
-| — | — | E2E-03 to E2E-14, E2E-17 to E2E-22 |
-
-Eighteen journeys remain unwritten, and the route handlers and screens they
-would cover — chores, expenses, close, settlement, food, Today, Insights — still
-have no browser-level coverage of any kind. From phase 11 onward each phase
-writes one journey through its own main path as part of the phase (D-59).
+**The onboarding walk lives in `tests/e2e/onboarding.ts`.** Every journey starts
+by making an account and a Home, and each used to write that sequence out again
+— so when onboarding was cut from seven required steps to three, all six broke
+at once and each had to be fixed separately. One copy now: a navigation change
+costs one edit, and a journey that fails after one is telling us about the
+screen it was actually testing.
 
 ---
 
@@ -520,9 +521,10 @@ The negative-space tests. Each runs against a real database.
 
 ## 4. End-to-end tests
 
-Twenty-two tests on a Pixel 5 viewport, against a seeded Home. Four exist
-across three spec files (see the implementation-status table above); the rest
-arrive with the phases that make them possible, one per phase.
+Twenty-two journeys, run on both a phone-sized and a desktop viewport against a
+seeded Home. Six exist across six spec files (see the implementation-status
+table above); the rest arrive with the phases that make them possible, one per
+phase.
 
 | ID | Journey | Steps |
 |----|---------|-------|

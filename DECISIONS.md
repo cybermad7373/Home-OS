@@ -1635,3 +1635,113 @@ finished with it.
 A navigation still falls back to the cached shell and then to `/offline`. That
 is the case the worker exists for.
 
+
+---
+
+## D-71 — the interface is monochrome, and the only colour in it is money
+
+Version 2.0 of the UI specification spent colour freely: a teal brand, a blue
+info tone, seven chore-category hues, and an amber badge on anything that was
+merely waiting. By the time a screen needed to say something urgent about money
+it had no colour left that meant anything, because everything on it was already
+coloured.
+
+So the palette is ink and paper, and the two semantic hues are reserved:
+**green means the house owes you, red means you owe the house.** That mapping
+never inverts, on any screen or chart. The accent red is spent on two things
+only — the live dot, and a count that means somebody else is blocked on you.
+
+The rule has a consequence worth stating, because it was got wrong first: it is
+**not** used for effort. Being behind on chores is not a financial state, and a
+red points total on a Monday morning is a scold rather than a fact.
+
+Everything else that used to be carried by hue is carried by weight, scale and
+a hairline. Chart series are a greyscale ramp; the chore-category rail encodes
+weight rather than kind; a card is a hairline and some space rather than a
+shadow; and the focus ring is 2px of ink at 2px offset, deliberately thicker
+than the usual, because it cannot rely on being a different hue from anything
+around it.
+
+---
+
+## D-72 — every destination exists once, in one file
+
+The app had three navigations that did not agree: a bottom tab bar, a desktop
+sidebar of thirty plain links in seven groups, and `/more` as a single
+ungrouped column of twenty-two cards. Food was a tab, a sidebar group and a
+More card — three routes to the same screen, which teaches people that the menu
+is not worth reading.
+
+The bar, the sidebar, `/more` and the command palette all render from
+`components/layout/destinations.ts`. A destination cannot appear in two of them
+under different words, or be missing from one by accident, and a screen added
+without a row there does not silently exist off-menu.
+
+Two rules follow from it and are part of the decision:
+
+- **The bar never changes shape.** 2.0 promoted Approvals *into the tab bar*
+  when something was pending, which moved every control under the caller's
+  thumb depending on the state of the house. Approvals lives in the header at
+  every width instead, next to notifications, because those are the two things
+  that can be waiting on you.
+- **The header carries the Home switcher.** It was rendered only inside the
+  desktop sidebar, so a member of more than one home had no way to switch on a
+  phone — a defect that could not appear until somebody belonged to two homes,
+  and did the moment the seed put one account in three.
+
+---
+
+## D-73 — a screen declares what sits beside it, not how wide it gets
+
+The build was responsive only in the sense that it widened. At 1280px every
+screen was the phone layout with seven hundred pixels of air in the middle of
+each row: a label on the far left, a value on the far right, nothing between
+them.
+
+So a screen declares two things instead of one — what it is *about*, and what
+sits *beside* it. `Columns` stacks them on a phone in that order and turns the
+second into a sticky 340px rail above `lg`.
+
+What belongs in the rail is what a person glances at: counts, standing, who is
+here, the figures a ledger is read against, and the control that commits what
+the main column is for. What stays in the main column is what they came to
+read. `asideFirst` puts the rail above the main column when they stack, for the
+screens whose rail holds the thing the screen opens with.
+
+The same decision covers the primitives the screens kept hand-rolling —
+`Section`, `List`, `CardGrid`, `Stepper`, `Readout`, and `Switch`. A switch is
+the case worth naming: there were four different on/off controls in the app,
+including a `Button` labelled with the word "On", which made the control read
+as an action — pressing a button labelled "On" to turn something *off* is the
+wrong sentence. A switch shows a state, so it is a fill: ink when on, paper
+with a hairline when off.
+
+---
+
+## D-74 — a streak is derived from confirmed chores, never stored
+
+The game layer shipped behind an admin switch with every figure on it invented:
+the same 7-day streak for everybody, a best streak of 14, 412 points, and a
+per-member row computed from the character codes of that member's UUID. A house
+that turned the feature on was shown fabricated progress for real people.
+
+The fix adds no table, and that is the decision rather than an implementation
+detail. A streak is a fact about which days a member has a confirmed chore on;
+game points are what those chores were worth. Both are already in
+`chore_assignments`. A streaks table would be a second copy of the same truth,
+and the two would eventually disagree about a week that was edited after the
+fact — at which point the house would be right to trust neither.
+
+Two rules inside the derivation, both of them things a member would otherwise
+discover at the worst moment:
+
+- **A day counts once**, however many chores were confirmed on it. Doing four
+  things on Sunday is not a four-day streak.
+- **A streak survives until the end of the following day.** A day is not over
+  at nine in the morning, and a streak that resets at midnight is one nobody
+  can hold.
+
+Badges are thresholds over those same figures, because a badge nobody can trace
+back to work they did is a sticker. The standing list is rendered in the
+house's own member order and never sorted by points: sorting it would turn a
+personal record into the leaderboard this layer exists not to be.

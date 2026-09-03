@@ -1183,27 +1183,33 @@ Enforcing measures: charts are dynamically imported and only on the analytics ro
 
 ## 9. PWA specifics
 
+The authority is `app/manifest.ts`, served at `/manifest.webmanifest`.
+
 ```json
 {
   "name": "HouseOS",
   "short_name": "HouseOS",
-  "start_url": "/today",
+  "start_url": "/home",
   "display": "standalone",
-  "background_color": "#0C0A09",
-  "theme_color": "#0F766E",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "portrait",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Add expense", "url": "/money/new" },
-    { "name": "Add meal",    "url": "/food/new" },
-    { "name": "My chores",   "url": "/chores/mine" },
-    { "name": "Approvals",   "url": "/more/approvals" }
+    { "name": "Add expense", "url": "/expenses?add=1" },
+    { "name": "My chores",   "url": "/chores/mine" }
   ]
 }
 ```
+
+The colours are ink, per section 2.1. **A shortcut URL that does not resolve is
+a 404 nobody sees until the app is on a home screen**, so the list is the
+routes that exist: 2.0 specified `/money/new`, `/food/new` and `/more/approvals`
+and the first two have never existed. Adding an expense or a meal is the sheet
+its screen opens with `?add=1`, which is what the universal quick-add links to.
 
 The install prompt is deferred until the third session, and is shown as an inline dismissible card rather than an interrupting dialog.
