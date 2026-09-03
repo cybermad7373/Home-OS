@@ -1612,11 +1612,19 @@ Three things the pass established that were not previously written down:
 - **Specification 2.0 is built.** Phases 10 to 15 are all delivered and verified
   against the local stack. What stands between the code and a launch is the gate
   below, not a phase.
-- **One shipped behaviour still changes in place.** The `member_status` rename
-  landed in migration 047 with its grep classified by enum first. What remains is
-  phase 11's: close, reopen, removal and chore confirmation move behind decisions,
-  and their existing routes become proposers rather than being deleted, so an
-  un-updated client gets `409 DECISION_REQUIRED` rather than a 404.
+- **The shipped behaviours that had to change in place, have.** R-3 is done, and
+  it was the risky one: four routes that already had callers changed what they
+  mean rather than being replaced. `POST /api/periods/:period/close` and
+  `.../reopen` propose a decision instead of closing or reopening, and answer
+  with the decision they raised; `PATCH /api/members/:id` refuses
+  `{ status: "inactive" }` with `409 DECISION_REQUIRED` carrying the decision
+  id; and `POST /api/chores/:id/confirm` records one confirmation toward the
+  Home-size quorum in governance specification section 4 rather than confirming
+  outright. None of the four returns a 404, so a client that has not been
+  updated gets an answer it can act on. `governed-close.test.ts`,
+  `membership.test.ts` and `chore-quorum.test.ts` cover them, including that a
+  decision does not complete on the proposer's own responses and that a
+  service-role key cannot apply an unapproved one.
 - **The web/PWA launch gate is not yet met.** Intelligence is built but not
   applied to any environment (migration 045, the master key, and a redeploy of
   `weekly-digest`), and production release checks — privacy and support pages,

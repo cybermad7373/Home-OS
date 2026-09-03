@@ -361,7 +361,23 @@ the picker renders the registry.
 
 ## 4. Redaction contract
 
-This is enforced by a dedicated test that inspects every `llm_runs.input_payload` produced by the test suite.
+This is enforced by `tests/unit/llm-redaction.test.ts`, which builds each call
+site's payload from inputs whose every string field carries a known, planted
+value and then looks for those values in what came out.
+
+Two detectors, because the forbidden list has two halves. `findForbidden` is
+shape-based and catches the three things that have a shape — a UUID, an email
+address, and a run of ten or more digits. The rest of the list is surnames,
+house names, streets, room names and expense descriptions, which are ordinary
+words that no pattern can recognise; `findPlanted` catches those by asserting
+about the actual value supplied rather than a family of values resembling it.
+
+It reaches the payload builders that are pure functions: call site 1
+(`buildSchedulePayload`), call site 2 (`buildDigestPayload`) and call site 6
+(`payloadFor`). Call sites 3 and 4 send text the member typed, which is the
+input and is shown to them before it is sent, and are covered by their own
+tests; call site 5 builds its payload inside the data layer and is covered
+there.
 
 **Permitted in an LLM payload:**
 
