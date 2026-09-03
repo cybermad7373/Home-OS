@@ -1,249 +1,204 @@
 # 08 — UI / UX Specification
 
 **Product:** HouseOS
-**Version:** 2.0
-**Date:** 2026-08-27
+**Version:** 3.0 — "Monochrome"
+**Date:** 2026-09-03
+**Supersedes:** 2.0 (2026-08-27)
 
 This document specifies every screen, every state and every visual token. A developer should be able to build the entire interface from this document without asking a design question.
+
+**What changed in 3.0, and why.** 2.0 was correct and looked unfinished. It spent colour freely — a teal brand, a blue info, seven chore hues, an amber badge on anything that was merely waiting — so by the time a screen needed to say something urgent about money it had no colour left that meant anything. It had three navigations that disagreed with each other. And it was responsive only in the sense that it widened: at 1280 px every screen was the phone layout with seven hundred pixels of air in the middle of each row.
+
+3.0 is one palette, one navigation and two compositions. Every token name from 2.0 survives, so the screen inventory below is still the screen inventory.
 
 ---
 
 ## 1. Design principles
 
-1. **Mobile is the product; desktop is a wider version of it.** Every layout is designed at 360 px first. Nothing is desktop-only.
-2. **Today answers "what is happening now" in one screen, without scrolling:** who is home, what work is mine, what money moved, what we are eating, and what is waiting on me.
-3. **Logging is one thumb, one screen, under ten seconds.** Any flow that takes more will not be used, and unused flows destroy the data set the product depends on. This applies to a meal as much as to an expense.
-4. **Fairness data is never hidden behind a tap.** The standing, the paid-versus-owed chart and who-owes-whom are surfaces, not reports.
-5. **Numbers are the loudest thing on the screen.** Points, amounts and counts get the largest type. Labels are secondary.
-6. **No modal traps.** Every sheet dismisses by swipe or backdrop tap. Destructive actions confirm inline, not in a dialog stack.
-7. **Simple words on the surface, whatever the model underneath.** The interface says Person, Member, Requested, Rule, Food, Money, Approve, Acknowledge, Done, Owe, Paid. It never says governance engine, effort deficit, decision participant, policy object or membership lifecycle. Those exist in the code and stay there.
-8. **A pending decision is never buried.** Approvals is promoted into primary navigation the moment anything is waiting on the person looking. A queue nobody sees is a Home that stops deciding things.
-9. **Say why.** A suggested meal, an assigned chore, a settlement payment and a required acknowledgement each state their reason on the surface. An automatic allocation nobody understands is one nobody accepts.
+1. **The interface is black and white. The only colour in the app is your money.** Ink is the brand: buttons are black on white and white on black, navigation is ink, emphasis is weight and scale. Green means the house owes you; red means you owe the house. If there is colour on a screen it is about money and it is worth looking at.
+2. **Mobile is the product; the desktop is a different composition of it, not a wider one.** Every screen is designed at 360 px first and then declares what belongs beside it — see section 3.6.
+3. **Today answers "what is happening now" in one screen:** who is home, what work is mine, what money moved, what we are eating, and what is waiting on me.
+4. **Logging is one thumb, one screen, under ten seconds.** Any flow that takes more will not be used, and unused flows destroy the data set the product depends on.
+5. **Fairness data is never hidden behind a tap.** The standing, the paid-versus-owed figures and who-owes-whom are surfaces, not reports.
+6. **Numbers are the display voice.** Every figure a person came to read is set in the dot-matrix face at 28–44 px. Everything else is a list, and a list is not a number.
+7. **Hairlines, not shadows.** Depth is a 1 px rule and honest spacing. Only three things in the app float, and all three are temporary: a sheet, a modal and the raised add button.
+8. **No modal traps.** Every sheet dismisses by backdrop tap or Escape. Destructive actions confirm inline.
+9. **Simple words on the surface, whatever the model underneath.** The interface says Person, Member, Requested, Rule, Food, Money, Approve, Acknowledge, Done, Owe, Paid. It never says governance engine, effort deficit, decision participant, policy object or membership lifecycle.
+10. **What is waiting on you is always in the same place.** The header carries approvals and notifications on every screen at every width. 2.0 promoted Approvals *into the tab bar* when something was pending, which moved the control under your thumb depending on the state of the house.
+11. **Say why.** A suggested meal, an assigned chore, a settlement payment and a required acknowledgement each state their reason on the surface.
 
 ---
 
 ## 2. Design tokens
 
-### 2.1 Colour
+The authority is `app/globals.css`. What follows is that file, explained.
 
-Defined as CSS custom properties on `:root`, with a dark variant. Dark is the default on first load, matching the system when set.
+### 2.1 Colour
 
 ```css
 :root {
-  /* surfaces */
-  --bg:            #FAFAF9;   /* page */
-  --surface:       #FFFFFF;   /* cards */
-  --surface-2:     #F5F5F4;   /* nested, input backgrounds */
-  --border:        #E7E5E4;
-  --border-strong: #D6D3D1;
+  /* surfaces — true neutrals; a tint here is the difference between
+     "monochrome" and "beige" */
+  --bg: #ffffff;  --surface: #ffffff;  --surface-2: #f4f4f4;  --surface-3: #ebebeb;
+  --border: #e2e2e2;  --border-strong: #c2c2c2;
 
   /* text */
-  --text:          #1C1917;
-  --text-muted:    #78716C;
-  --text-subtle:   #A8A29E;
+  --text: #000000;  --text-muted: #6b6b6b;  --text-subtle: #9a9a9a;
 
-  /* brand */
-  --primary:       #0F766E;   /* teal 700 — actions, active nav */
-  --primary-hover: #0D9488;
-  --primary-fg:    #FFFFFF;
+  /* brand — the brand is ink */
+  --primary: #000000;  --primary-hover: #262626;  --primary-fg: #ffffff;
 
-  /* semantic */
-  --success:       #15803D;   /* confirmed, surplus, money owed to you */
-  --success-bg:    #DCFCE7;
-  --warning:       #B45309;   /* pending, approaching budget */
-  --warning-bg:    #FEF3C7;
-  --danger:        #B91C1C;   /* missed, deficit, money you owe */
-  --danger-bg:     #FEE2E2;
-  --info:          #1D4ED8;
-  --info-bg:       #DBEAFE;
+  /* accent — spent on almost nothing: the live dot, an urgent count */
+  --accent: #d71921;  --accent-fg: #ffffff;
 
-  /* chore categories — used for the coloured left rail on chore cards */
-  --cat-cooking:   #EA580C;
-  --cat-kitchen:   #CA8A04;
-  --cat-bathroom:  #0891B2;
-  --cat-room:      #7C3AED;
-  --cat-common:    #059669;
-  --cat-mopping:   #2563EB;
-  --cat-other:     #64748B;
-}
+  /* semantic — the only colour in the system */
+  --success: #067a4c;  --danger: #d71921;  --warning: #8a6a00;
+  --info: #000000;     /* information is the ordinary case, and the ordinary
+                          case is the quietest thing on the screen */
 
-:root[data-theme="dark"] {
-  --bg:            #0C0A09;
-  --surface:       #1C1917;
-  --surface-2:     #292524;
-  --border:        #292524;
-  --border-strong: #44403C;
-  --text:          #FAFAF9;
-  --text-muted:    #A8A29E;
-  --text-subtle:   #78716C;
-  --primary:       #2DD4BF;
-  --primary-hover: #5EEAD4;
-  --primary-fg:    #0C0A09;
-  --success:       #4ADE80;  --success-bg: #14532D;
-  --warning:       #FBBF24;  --warning-bg: #451A03;
-  --danger:        #F87171;  --danger-bg:  #450A0A;
-  --info:          #60A5FA;  --info-bg:    #172554;
+  /* chart — a greyscale ramp, dark to light, --chart-1 … --chart-8 */
+  /* chore categories — greyscale; the rail encodes weight, not kind */
 }
 ```
 
-**Semantic colour rule, applied everywhere without exception:** green means the house owes you, or you are ahead on effort. Red means you owe the house, or you are behind. This one mapping must never invert, on any screen or chart.
+Dark is the inversion this system was designed for rather than a second palette: ink and paper swap, the greys mirror, and the two semantic hues are re-picked so a red balance and a green balance stay equally legible on black.
+
+**Semantic colour rule, applied everywhere without exception:** green means the house owes you. Red means you owe the house. This mapping never inverts. It is *not* used for effort: being behind on chores is not a financial state, and a red points total on a Monday morning is a scold.
 
 ### 2.2 Typography
 
-| Role | Family | Size / line | Weight | Used for |
-|------|--------|-------------|--------|----------|
-| Display | Inter | 32 / 38 | 700 | Dashboard hero numbers |
-| Title | Inter | 22 / 28 | 600 | Screen titles |
-| Heading | Inter | 17 / 24 | 600 | Card and section headings |
-| Body | Inter | 15 / 22 | 400 | Default |
-| Label | Inter | 13 / 18 | 500 | Form labels, metadata |
-| Caption | Inter | 12 / 16 | 400 | Timestamps, helper text |
-| Numeric | Inter, `font-variant-numeric: tabular-nums` | — | 600 | Every money and points value |
+| Role | Family | Size / line | Used for |
+|------|--------|-------------|----------|
+| Display / readout | Doto (dot matrix), `--font-doto` | 20 / 28 / 36 / 44, fluid by `clamp` | Every figure a person came to read |
+| Title | Geist | 22 / 28, 600 | Screen titles |
+| Heading | Geist | 16 / 22, 600 | Card headings |
+| Body | Geist | 15 / 22, 400 | Default |
+| Label | Geist | 13 / 18, 500 | Form labels |
+| Caption | Geist | 12 / 16, 400 | Timestamps, helper text |
+| Eyebrow | Geist | 10 / 14, 600, 0.14em, uppercase | Section rules, technical labels |
+| Numeric in a row | Geist Mono, tabular | — | Amounts inside lists and tables |
 
-Tabular numerals on every number in a column is not optional. Amounts that do not align vertically read as untrustworthy.
+Doto has no rupee glyph, so `<Readout>` splits the symbol out and sets it in the mono face at 0.62em. Setting `₹1,24,850` in Doto directly welds a heavy grotesk ₹ to a dot-matrix number, which was the most visible flaw in the first pass of this system and on the one element the whole product is about.
+
+The readout is for a number somebody reads at a glance. Set on a sentence it becomes unreadable, which is a useful constraint.
 
 ### 2.3 Spacing, radius, elevation
 
 ```
-Spacing scale (px):  4  8  12  16  20  24  32  40  48  64
-Radius:              sm 6   md 10   lg 14   full 9999
-Shadow sm:           0 1px 2px rgba(0,0,0,.06)
-Shadow md:           0 4px 12px rgba(0,0,0,.08)
-Shadow lg:           0 12px 32px rgba(0,0,0,.12)   /* sheets only */
+Spacing scale (px):  4 8 12 16 20 24 32 40 56
+Radius:              xs 6  sm 10  md 14  lg 20  xl 28  2xl 36  full 999
+Elevation:           --elev-1 none   (a card is a hairline)
+                     --elev-2 0 1px 2px / .04
+                     --elev-3 0 8px 32px / .10   (sheet)
+                     --elev-4 0 24px 64px / .18  (modal, raised add)
 
-Screen padding:      16px horizontal on mobile, 24px at ≥768px
+Screen padding:      16px horizontal, 24px at >=768px
 Card padding:        16px
-Gap between cards:   12px
-Minimum touch target: 44 × 44px
+Minimum touch target: 44 x 44px
+Focus ring:          2px solid var(--text), 2px offset — thicker than the usual
+                     2px because it cannot rely on being a different hue
 ```
 
 ### 2.4 Breakpoints
 
-| Name | Width | Layout change |
-|------|-------|---------------|
-| base | 360–639 | Single column. Bottom tab bar. Sheets slide from bottom. |
-| sm | 640–1023 | Two-column card grid on dashboard and analytics. |
-| lg | ≥1024 | Left sidebar replaces the bottom tab bar. Content max-width 1120 px, centred. Sheets become right-side drawers. |
+| Name | Width | Layout |
+|------|-------|--------|
+| base | 360–639 | Single column. Bottom tab bar. Sheets from the bottom. |
+| sm | 640–1023 | Two-up figures; card collections in two columns. |
+| lg | >=1024 | Left sidebar replaces the tab bar. Main column plus a sticky 340 px rail (section 3.6). Sheets become right-side drawers. |
+| xl | >=1280 | Card collections in three columns. |
+
+Page content is capped at 1120 px inside a 1400 px shell. No screen scrolls horizontally at any width; wide content scrolls inside its own container.
 
 ### 2.5 Motion
 
 | Interaction | Duration | Easing |
 |-------------|----------|--------|
-| Sheet open / close | 240 ms | `cubic-bezier(.32,.72,0,1)` |
+| Sheet open / close | 220 ms | `cubic-bezier(.32,.72,0,1)` |
 | Page transition | 180 ms | `ease-out` |
-| Button press | 80 ms | `ease-out`, `scale(0.97)` |
-| Number change (points, balance) | 400 ms | count-up, `ease-out` |
-| Toast in / out | 200 ms | `ease-out` |
+| Button press | 70 ms | `ease-out`, `scale(.98)` |
+| Toast in / out | 180 ms | `ease-out` |
 
-All motion respects `prefers-reduced-motion: reduce` by collapsing to opacity-only changes.
+Short and mechanical. Nothing eases in slowly; a control that takes 300 ms to acknowledge a tap feels soft, and this interface should not.
+
+There are no page-load reveal animations and no count-ups. A list that slides in from the left every time you open Home makes the first thing you see the last thing to arrive, and a figure that counts up is a figure you cannot read for 400 ms. All motion respects `prefers-reduced-motion: reduce`.
 
 ---
 
 ## 3. Navigation
 
-**Changed in 2.0.** Five destinations became six, and one of them appears
-conditionally.
+**Rewritten in 3.0.** 2.0 had three navigations that did not agree: a bottom bar, a sidebar of thirty plain links in seven groups, and `/more` as a single ungrouped column of twenty-two cards. Food was a tab, a sidebar group and a More card — three routes to the same screen, which teaches people the menu is not worth reading.
 
-### 3.1 Mobile — bottom tab bar
+Every one of them now renders from `components/layout/destinations.ts`. A destination cannot appear in two of them with different words, or be missing from one by accident.
 
-```
-┌──────────────────────────────────────────┐
-│  🏠 Chennai Flat  ▾            🔔 3  RK  │
-├──────────────────────────────────────────┤
-│                                          │
-│              screen content              │
-│                                          │
-├──────────────────────────────────────────┤
-│  🏠     ☀️     ✅     ➕     ₹     🍛     │
-│ Home  Today  Chores  Add  Money  Food    │
-└──────────────────────────────────────────┘
-```
+### 3.1 The bar never changes
 
-Six primary destinations, one of which — Add — is a control rather than a place:
+Five fixed slots and a raised Add:
 
-| Tab | Route | Contains |
-|-----|-------|----------|
-| Home | `/home` | The Home overview: headline numbers, what is pending, entry points |
-| Today | `/today` | Presence, today's chores, today's money, today's food, what needs me |
-| Chores | `/chores` | Week view, my chores, confirmations, standing |
-| **Add** | — | Raised centre button. The universal quick-add. |
-| Money | `/money` | Expenses, balances, who owes whom, settle |
-| Food | `/food` | Add meal, suggestions, library, history, preferences |
+| Slot | Route |
+|------|-------|
+| Home | `/home` |
+| Today | `/today` |
+| **Add** | — a control, not a place |
+| Chores | `/chores` |
+| Money | `/expenses` |
+| Food | `/food` |
 
-**Insights** and **Approvals** are the two destinations that do not have a fixed
-slot:
+Insights is the sixth primary destination and lives in the sidebar, in More and in the command palette — it is the only primary destination that is never urgent. Approvals is **not** in the bar at any time.
 
-- **Insights** lives in More on mobile and is a primary item from 640 px up. It
-  is the only primary destination that is never urgent, so it is the one that
-  yields the slot.
-- **Approvals** is in More when nothing is pending, and **replaces Insights in
-  the bar, with its count, the moment anything is waiting on the caller.** It
-  returns to More when the queue empties.
+### 3.2 The header, at every width
 
-At 360 px the bar therefore holds at most six items and never seven. If it does
-not fit on a real device, Insights moves permanently to More — not Food, and
-never Approvals while something is pending.
+Home switcher · search · approvals · notifications.
 
-The centre Add button is 56 px, raised 12 px above the bar, in `--primary`. It is
-the single most-used control in the app.
-
-### 3.2 The Home switcher
-
-The header carries the Home's name and a chevron. Tapping it opens the Home
-list — every Home the person is Active in, with their role in each, plus Create
-Home. The currently selected Home is always visible and never ambiguous (HM-04).
-
-A person in exactly one Home still sees the name, without the chevron.
+The switcher is in the header rather than the sidebar because a member of more than one home had no way to switch on a phone — a defect that could not show up until somebody belonged to two homes. Approvals and notifications sit together because they are the two things that can be waiting on you, and their counts should be visible from every screen rather than only from the one showing the tab.
 
 ### 3.3 Badges
 
-| Where | When |
-|-------|------|
-| Chores | An assignment is due today, or a confirmation is waiting on the caller |
-| Money | An expense awaits the caller's approval |
-| Approvals | Anything at all is waiting on the caller — this is also what promotes it into the bar |
-| Bell | Unread notifications |
+A badge is a count, never a dot: "three things" and "one thing" are different decisions about whether to tap. Approvals is the one indicator drawn in the accent red, because it is the only one that means somebody else is blocked on you.
 
-A badge is a count, never a dot, because "three things" and "one thing" are
-different decisions about whether to tap.
+### 3.4 Groups, by the question they answer
 
-### 3.4 More
+More and the sidebar render the same six groups: **Your week**, **Money**, **Food**, **The home**, **You**, **Admin**. The grouping is by the question a person is asking, not by the module that owns the screen — "when am I around" and "who is staying" are the same question, so availability and guests sit together.
 
-```text
-More
+Groups and items are filtered by the home's shape: a pot household has no Settle up, a rota household has no standing, only a lead sees Close the month, only an admin sees Admin.
 
-Members          Calendar         Approvals
-Rules            Categories       History
-Home settings    Governance       AI settings
-Export           Reserve
-```
+### 3.5 Search — Cmd+K, Ctrl+K, or `/`
 
-Everything rarely used, and nothing that is urgent. Daily, weekly and monthly
-reports are **not** here and are not anywhere: they are filters inside the module
-they belong to.
+The honest answer to fifty-six routes: however well the menu is organised, somebody who knows they want "away days" should be able to type it. It searches the same `destinations.ts`, so it can never offer a screen the menu does not have.
 
-### 3.5 Desktop — left sidebar
+### 3.6 The desktop composition
 
-Same destinations, plus the sub-items of More promoted to visible entries, and
-Insights always visible. The Home name with its switcher and the caller's effort
-standing sit at the top of the sidebar.
+Above `lg`, a screen declares two things: what it is *about* and what sits *beside* it. `<Columns main aside>` stacks them on a phone and turns the second into a sticky 340 px rail on a desktop.
 
-### 3.6 The universal quick-add
+What belongs in the rail is what a person glances at — counts, standing, who is here, the figures a ledger is read against. What stays in the main column is what they came to read.
+
+| Screen | Main | Rail |
+|--------|------|------|
+| Home | who owes whom, standing, the house | waiting on you, unfinished setup |
+| Today | my chores, needs you, announcements | who is in, what today cost, food, the week ahead |
+| Money | the ledger | the two figures, the month, the filters |
+| Food | planned and recently eaten | record a meal, what to try, the rest of the module |
+| Chores | the selected day | chores nobody is holding |
+| Insights | two columns of cards | — (figures span both) |
+| House settings | the settings themselves, grouped | the invite link, and Save |
+| Notifications settings | what reaches you, quiet hours | this device, your devices |
+
+`asideFirst` puts the rail above the main column when they stack, for screens whose rail holds the thing the screen opens with.
+
+Collections — homes, rooms, guests — are card grids at `sm` and `xl`, not full-width rows: a card 1100 px wide holding two lines of text is a banner.
+
+### 3.7 The universal quick-add
 
 ```text
 +
-──────────────
-
+--------------
 Expense
 Meal
 Chore done
 Absence
 ```
 
-An Admin's sheet additionally offers **Chore**, **Rule** and **Category**. A
-Co-Admin's offers Chore and Category. The sheet shows only what the caller may
-actually do — an option that opens and then refuses is worse than an option that
-was never there.
+An Admin's sheet additionally offers **Chore**, **Rule** and **Category**; a Co-Admin's offers Chore and Category. The sheet shows only what the caller may actually do — an option that opens and then refuses is worse than one that was never there.
 
 ---
 
@@ -1092,7 +1047,22 @@ The Money answer to "where do we stand", distinct from the ledger of entries
 
 ## 5. Component inventory
 
-Built on shadcn/ui primitives. These are the composed components the screens above require.
+### 5.1 Layout primitives — added in 3.0
+
+| Component | File | What it is |
+|-----------|------|-----------|
+| `Section` | `components/layout/section.tsx` | A labelled hairline, optionally with a link on the right. Replaces the 16 px heading inside a card that every screen used to stack. |
+| `List` | `components/layout/section.tsx` | The app's one list surface: a hairline box with hairline dividers. Every screen used to hand-roll this, and they had drifted — some to the radius token, some to a literal 10 px, some wrapped in a `<Card className="p-0">` that drew a second border round the first. |
+| `Columns` | `components/layout/columns.tsx` | Main plus a sticky 340 px rail above `lg`; stacked below it. |
+| `CardGrid` | `components/layout/columns.tsx` | Auto-filling grid for collections of objects. |
+| `Stepper` | `components/layout/stepper.tsx` | Back, a label, forward. Three screens had written their own with three different hit areas. |
+| `Readout` | `components/ui/readout.tsx` | A figure in the display face, with the currency symbol split into the mono face. |
+| `Switch` / `SwitchRow` | `components/ui/switch.tsx` | The app's one on/off control, and the settings row around it. A switch shows a *state*, so it is a fill — ink on, hairline off — never a button labelled with the word "On". `SwitchRow locked` is the setting that cannot be turned off and says so (D-30). |
+| `AppHeader` | `components/layout/app-header.tsx` | Switcher, search, approvals, notifications. |
+| `CommandPalette` | `components/layout/command-palette.tsx` | Cmd+K / Ctrl+K / `/`. |
+| `destinations.ts` | `components/layout/destinations.ts` | Every destination in the app, once. |
+
+### 5.2 Composed components
 
 | Component | Props | Used by |
 |-----------|-------|---------|
