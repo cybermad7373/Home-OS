@@ -6,7 +6,10 @@ import { Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Readout } from "@/components/ui/readout";
 import { useToast } from "@/components/ui/toast";
+import { Columns } from "@/components/layout/columns";
+import { List, Section } from "@/components/layout/section";
 import { formatMoney } from "@/lib/utils/money";
 import type { ShoppingItemView } from "@/lib/data/food";
 
@@ -101,64 +104,104 @@ export function ShoppingListClient({
     router.refresh();
   }
 
+  // What the list would cost if every unchecked item were bought at the price
+  // the plan estimated. Items with no estimate contribute nothing rather than
+  // being guessed at.
+  const estimatePaise = pending.reduce(
+    (total, item) => total + (item.estimatedPricePaise ?? 0),
+    0,
+  );
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex gap-2">
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Add an item"
-          onKeyDown={(e) => e.key === "Enter" && addItem()}
-        />
-        <Button onClick={addItem} loading={adding} aria-label="Add item">
-          <Plus size={16} aria-hidden />
-        </Button>
-      </div>
+    <Columns
+      asideFirst
+      main={
+        items.length === 0 ? (
+          <EmptyState
+            title="Nothing on the list yet"
+            body="Add an item, or generate one from the next 7 days of planned meals."
+          />
+        ) : (
+          <>
+            {pending.length > 0 ? (
+              <Section label="To buy" className="mt-0">
+                <List>
+                  {pending.map((item) => (
+                    <ShoppingRow
+                      key={item.id}
+                      item={item}
+                      currency={currency}
+                      canDelete={isLead || item.createdBy === myMemberId}
+                      busy={busyId === item.id}
+                      onToggle={() => toggle(item)}
+                      onDelete={() => remove(item)}
+                    />
+                  ))}
+                </List>
+              </Section>
+            ) : null}
 
-      <Button variant="secondary" onClick={generate} loading={generating} className="self-start">
-        <RefreshCw size={16} aria-hidden /> Generate from meals
-      </Button>
+            {checked.length > 0 ? (
+              <Section
+                label="Got it"
+                className={pending.length === 0 ? "mt-0" : undefined}
+              >
+                <List>
+                  {checked.map((item) => (
+                    <ShoppingRow
+                      key={item.id}
+                      item={item}
+                      currency={currency}
+                      canDelete={isLead || item.createdBy === myMemberId}
+                      busy={busyId === item.id}
+                      onToggle={() => toggle(item)}
+                      onDelete={() => remove(item)}
+                    />
+                  ))}
+                </List>
+              </Section>
+            ) : null}
+          </>
+        )
+      }
+      aside={
+        <Section label="Still to buy" className="mt-0">
+          <Readout value={String(pending.length)} size="lg" />
+          <p className="caption-text mt-2 text-text-muted">
+            {pending.length === 0
+              ? "Everything on the list is checked off."
+              : `${pending.length === 1 ? "item" : "items"}${
+                  estimatePaise > 0
+                    ? `, about ${formatMoney(estimatePaise, { currency })} where the plan estimated a price`
+                    : ""
+                }.`}
+          </p>
 
-      {items.length === 0 ? (
-        <EmptyState
-          title="Nothing on the list yet"
-          body="Add an item, or generate one from the next 7 days of planned meals."
-        />
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {pending.map((item) => (
-            <ShoppingRow
-              key={item.id}
-              item={item}
-              currency={currency}
-              canDelete={isLead || item.createdBy === myMemberId}
-              busy={busyId === item.id}
-              onToggle={() => toggle(item)}
-              onDelete={() => remove(item)}
+          <div className="mt-4 flex gap-2">
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Add an item"
+              aria-label="Add an item"
+              onKeyDown={(e) => e.key === "Enter" && addItem()}
             />
-          ))}
-        </ul>
-      )}
+            <Button onClick={addItem} loading={adding} aria-label="Add item">
+              <Plus size={16} aria-hidden />
+            </Button>
+          </div>
 
-      {checked.length > 0 ? (
-        <div>
-          <h2 className="caption-text mb-2 text-text-muted">This week</h2>
-          <ul className="flex flex-col gap-2">
-            {checked.map((item) => (
-              <ShoppingRow
-                key={item.id}
-                item={item}
-                currency={currency}
-                canDelete={isLead || item.createdBy === myMemberId}
-                busy={busyId === item.id}
-                onToggle={() => toggle(item)}
-                onDelete={() => remove(item)}
-              />
-            ))}
-          </ul>
-        </div>
-      ) : null}
-    </div>
+          <Button
+            block
+            variant="secondary"
+            className="mt-2"
+            onClick={generate}
+            loading={generating}
+          >
+            <RefreshCw size={16} aria-hidden /> Generate from meals
+          </Button>
+        </Section>
+      }
+    />
   );
 }
 
@@ -178,7 +221,7 @@ function ShoppingRow({
   onDelete: () => void;
 }) {
   return (
-    <li className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border bg-surface p-3">
+    <li className="flex items-center gap-3 px-4 py-3">
       <input
         type="checkbox"
         checked={item.checkedOff}
@@ -188,7 +231,7 @@ function ShoppingRow({
         aria-label={`Check off ${item.name}`}
       />
       <div className="flex-1">
-        <p className={item.checkedOff ? "text-[15px] text-text-muted line-through" : "text-[15px] text-text"}>
+        <p className={item.checkedOff ? "text-text-muted line-through" : "text-text"}>
           {item.name}
           {item.quantity ? ` · ${item.quantity}${item.unit ? ` ${item.unit}` : ""}` : ""}
         </p>

@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button-variants";
 import { PageHeader } from "@/components/layout/page-header";
 import { NotificationFeed } from "@/components/notifications/feed";
 import { getHouseContext, requireSession } from "@/lib/data/house";
@@ -26,14 +24,6 @@ export default async function NotificationsPage() {
       <PageHeader
         title="Notifications"
         subtitle="Everything the house has told you, whether or not your phone showed it"
-        action={
-          <Link
-            href="/house/notifications"
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
-          >
-            Settings
-          </Link>
-        }
       />
 
       <NotificationFeed

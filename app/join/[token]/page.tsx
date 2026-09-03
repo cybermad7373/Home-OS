@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { JoinRequestForm } from "@/components/forms/join-request-form";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { previewInvitation } from "@/lib/data/homes";
 import { getSession } from "@/lib/data/house";
 import { inviteTokenSchema } from "@/lib/validation/common";
@@ -17,7 +17,27 @@ export const metadata: Metadata = { title: "Join a home" };
  * grants nothing beyond that (SEC-15). An invalid, expired or revoked token
  * gets the same page as one that never existed, so this screen never confirms
  * that a home exists.
+ *
+ * Redrawn for 3.0 to the same shell as sign-in, which is the other screen a
+ * person meets before they have an account: the dot grid, the wordmark with
+ * its live dot, and the home's own name set in the display face. It was a card
+ * floating in the middle of a blank page with two hand-styled links that were
+ * the only rounded rectangles left in the product.
  */
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="dot-grid flex min-h-dvh flex-col justify-center px-4 py-10">
+      <div className="mx-auto w-full max-w-sm">
+        <p className="mb-8 flex items-center gap-2">
+          <span aria-hidden className="live-dot h-1.5 w-1.5 rounded-full bg-accent" />
+          <span className="eyebrow-text text-text">HouseOS</span>
+        </p>
+        {children}
+      </div>
+    </main>
+  );
+}
+
 export default async function JoinPage({
   params,
 }: {
@@ -30,51 +50,48 @@ export default async function JoinPage({
 
   if (!preview) {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-4">
-        <Card>
-          <CardTitle>This link is not valid</CardTitle>
-          <CardDescription>
-            It may have been replaced by a newer one. Ask whoever sent it for the
-            current link.
-          </CardDescription>
-        </Card>
-      </main>
+      <Shell>
+        <h1 className="title-text mb-2">This link is not valid</h1>
+        <p className="text-text-muted">
+          It may have been replaced by a newer one. Ask whoever sent it for the
+          current link.
+        </p>
+      </Shell>
     );
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-4">
-      <Card>
-        <CardTitle>{preview.houseName}</CardTitle>
-        <CardDescription>
-          {HOME_TYPE_LABEL[preview.homeType]} · {preview.memberCount}{" "}
-          {preview.memberCount === 1 ? "person" : "people"}
-        </CardDescription>
+    <Shell>
+      <p className="eyebrow-text">You have been invited to</p>
+      <h1 className="display-number mt-2 leading-[1.05]">{preview.houseName}</h1>
+      <p className="caption-text mt-2 text-text-muted">
+        {HOME_TYPE_LABEL[preview.homeType]} · {preview.memberCount}{" "}
+        {preview.memberCount === 1 ? "person" : "people"}
+      </p>
 
+      <div className="mt-8">
         {session ? (
-          <div className="mt-4">
-            <JoinRequestForm token={parsed.data!} houseName={preview.houseName} />
-          </div>
+          <JoinRequestForm token={parsed.data!} houseName={preview.houseName} />
         ) : (
-          <div className="mt-4 flex flex-col gap-2">
-            <p className="caption-text text-text-muted">
+          <div className="flex flex-col gap-2">
+            <p className="caption-text mb-1 text-text-muted">
               Sign in to ask to join. Nobody is added to a home without asking.
             </p>
             <Link
               href={`/signin?next=/join/${encodeURIComponent(token)}`}
-              className="rounded-xl bg-primary px-4 py-2.5 text-center font-medium text-primary-fg"
+              className={buttonVariants({ block: true })}
             >
               Sign in
             </Link>
             <Link
               href={`/signup?next=/join/${encodeURIComponent(token)}`}
-              className="rounded-xl border border-border px-4 py-2.5 text-center font-medium"
+              className={buttonVariants({ variant: "outline", block: true })}
             >
               Create an account
             </Link>
           </div>
         )}
-      </Card>
-    </main>
+      </div>
+    </Shell>
   );
 }

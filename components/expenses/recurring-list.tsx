@@ -5,12 +5,15 @@ import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/label";
 import { Input, Select } from "@/components/ui/input";
+import { Readout } from "@/components/ui/readout";
 import { BottomSheet } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
+import { Columns } from "@/components/layout/columns";
+import { List, Section } from "@/components/layout/section";
 import { formatMoney, paiseToRupeeString } from "@/lib/utils/money";
 import type {
   ExpenseCategoryRow,
@@ -25,6 +28,11 @@ import type { MemberView } from "@/lib/types/domain";
  * Rent, internet, the maid: the things that arrive every month whether or not
  * anybody remembers to log them. The daily job posts them; this screen only
  * defines them.
+ *
+ * Redrawn for 3.0. It was a card per item, so eight standing commitments read
+ * as eight unrelated objects — and the question the screen is actually opened
+ * with, *what does this house owe every month before anybody spends a rupee*,
+ * was not on it at all. The items are rows now and that figure is the rail.
  */
 export function RecurringList({
   recurring,
@@ -70,60 +78,103 @@ export function RecurringList({
   const categoryName = (id: string) =>
     categories.find((category) => category.id === id)?.name ?? "Other";
 
+  // Only what is actually posting. A paused item is a commitment the house has
+  // suspended, and counting it would overstate the month.
+  const active = recurring.filter((item) => item.active);
+  const monthlyPaise = active.reduce((total, item) => total + item.amount_paise, 0);
+
   return (
-    <div className="flex flex-col gap-3">
-      {error ? <Alert tone="danger">{error}</Alert> : null}
+    <>
+      <Columns
+        asideFirst
+        main={
+          <>
+            {error ? (
+              <Alert tone="danger" className="mb-4">
+                {error}
+              </Alert>
+            ) : null}
 
-      {isAdmin ? (
-        <Button block onClick={() => setEditing("new")}>
-          Add a recurring expense
-        </Button>
-      ) : null}
+            {recurring.length === 0 ? (
+              <EmptyState
+                title="Nothing recurring yet"
+                body="Rent, internet and the maid post themselves once they are set up here, on the day of the month you choose."
+                action={
+                  isAdmin ? (
+                    <Button size="sm" onClick={() => setEditing("new")}>
+                      Set one up
+                    </Button>
+                  ) : undefined
+                }
+              />
+            ) : (
+              <Section label="Standing commitments" className="mt-0">
+                <List>
+                  {recurring.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex items-center justify-between gap-3 px-4 py-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-2 font-medium">
+                          {item.name}
+                          {item.active ? null : <Badge tone="neutral">Paused</Badge>}
+                        </p>
+                        <p className="caption-text text-text-muted">
+                          {categoryName(item.category_id)} · day {item.day_of_month} of
+                          each month ·{" "}
+                          {item.split_basis === "room_rent"
+                            ? "split by room"
+                            : "split equally"}
+                        </p>
+                        <p className="caption-text text-text-subtle">
+                          {item.active
+                            ? `Next posts ${item.next_run_date}`
+                            : "Posts nothing until it is switched back on"}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-3">
+                        <span className="tabular font-semibold">
+                          {formatMoney(item.amount_paise, { currency })}
+                        </span>
+                        {isAdmin ? (
+                          <Button size="sm" variant="ghost" onClick={() => setEditing(item)}>
+                            Edit
+                          </Button>
+                        ) : null}
+                      </div>
+                    </li>
+                  ))}
+                </List>
+              </Section>
+            )}
+          </>
+        }
+        aside={
+          <Section label="Every month" className="mt-0">
+            <Readout value={formatMoney(monthlyPaise, { currency })} size="lg" />
+            <p className="caption-text mt-2 text-text-muted">
+              {active.length === 0
+                ? "Nothing is posting automatically."
+                : `${active.length} ${
+                    active.length === 1 ? "item posts" : "items post"
+                  } on their own, at 6am house time.`}
+              {recurring.length > active.length
+                ? ` ${recurring.length - active.length} paused.`
+                : ""}
+            </p>
 
-      {recurring.length === 0 ? (
-        <EmptyState
-          title="Nothing recurring yet"
-          body="Rent, internet and the maid post themselves once they are set up here, on the day of the month you choose."
-          action={
-            isAdmin ? (
-              <Button size="sm" onClick={() => setEditing("new")}>
-                Set one up
+            {isAdmin ? (
+              <Button block className="mt-4" onClick={() => setEditing("new")}>
+                Add a recurring expense
               </Button>
-            ) : undefined
-          }
-        />
-      ) : null}
+            ) : null}
+          </Section>
+        }
+      />
 
-      {recurring.map((item) => (
-        <Card key={item.id}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="flex items-center gap-2 font-medium">
-                {item.name}
-                {item.active ? null : <Badge tone="neutral">Paused</Badge>}
-              </p>
-              <p className="caption-text text-text-muted">
-                {categoryName(item.category_id)} · day {item.day_of_month} of each month ·{" "}
-                {item.split_basis === "room_rent" ? "split by room" : "split equally"}
-              </p>
-              <p className="caption-text text-text-subtle">
-                Next posts {item.next_run_date}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="tabular font-semibold">
-                {formatMoney(item.amount_paise, { currency })}
-              </p>
-              {isAdmin ? (
-                <Button size="sm" variant="ghost" onClick={() => setEditing(item)}>
-                  Edit
-                </Button>
-              ) : null}
-            </div>
-          </div>
-        </Card>
-      ))}
-
+      {/* Outside `Columns`: a sheet is an overlay, and a grid child that happens
+          to be `position: fixed` is a coincidence rather than a design. */}
       {editing ? (
         <RecurringSheet
           item={editing === "new" ? null : editing}
@@ -143,7 +194,7 @@ export function RecurringList({
           }
         />
       ) : null}
-    </div>
+    </>
   );
 }
 
@@ -252,16 +303,13 @@ function RecurringSheet({
       </Field>
 
       <div className="mb-6 flex items-center justify-between gap-3">
-        <span className="label-text">Active</span>
-        <Button
-          type="button"
-          size="sm"
-          variant={active ? "primary" : "outline"}
-          aria-pressed={active}
-          onClick={() => setActive((value) => !value)}
-        >
-          {active ? "Posting" : "Paused"}
-        </Button>
+        <span className="label-text">
+          Posting
+          <span className="ml-1 font-normal text-text-subtle">
+            — off pauses it without deleting it
+          </span>
+        </span>
+        <Switch label="Posting" checked={active} onChange={setActive} />
       </div>
 
       <Button

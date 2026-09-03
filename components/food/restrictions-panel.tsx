@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Field } from "@/components/ui/label";
-import { Card, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { List, Section } from "@/components/layout/section";
 import { useToast } from "@/components/ui/toast";
 import type { RestrictionView } from "@/lib/data/food";
 
@@ -65,57 +65,74 @@ export function RestrictionsPanel({
   }
 
   return (
-    <Card>
-      <CardTitle>Restrictions</CardTitle>
-      <p className="caption-text mb-3 text-text-muted">
-        Allergy, intolerance or diet — a hard exclusion no suggestion ever outranks. Private to you.
-      </p>
+    <>
+      <Section label="Restrictions" className="mt-0">
+        <p className="caption-text mb-3 text-text-muted">
+          Allergy, intolerance or diet — a hard exclusion no suggestion ever outranks.
+          Private to you.
+        </p>
 
-      {restrictions.length === 0 ? (
-        <EmptyState title="None set" body="Add what you cannot eat, and it is excluded everywhere from now on." />
-      ) : (
-        <ul className="mb-3 flex flex-col gap-2">
-          {restrictions.map((r) => (
-            <li key={r.id} className="flex items-center justify-between rounded-[var(--radius-sm)] bg-surface-2 px-3 py-2">
-              <span className="text-[14px] text-text">
-                {r.itemName} <span className="text-text-subtle">· {SEVERITY_LABEL[r.severity]}</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => onRemove(r.id)}
-                className="caption-text text-danger"
-              >
-                Remove
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <div className="flex gap-2">
-        <Field label="Item" htmlFor="restriction-item">
-          <Input
-            id="restriction-item"
-            value={itemName}
-            onChange={(e) => setItemName(e.target.value)}
-            placeholder="e.g. Peanut"
+        {restrictions.length === 0 ? (
+          <EmptyState
+            title="None set"
+            body="Add what you cannot eat, and it is excluded everywhere from now on."
           />
-        </Field>
-        <Field label="Severity" htmlFor="restriction-severity">
-          <Select
-            id="restriction-severity"
-            value={severity}
-            onChange={(e) => setSeverity(e.target.value as typeof severity)}
-          >
-            <option value="allergy">Allergy</option>
-            <option value="intolerance">Intolerance</option>
-            <option value="diet">Diet</option>
-          </Select>
-        </Field>
-      </div>
-      <Button block onClick={onAdd} loading={saving}>
-        Add restriction
-      </Button>
-    </Card>
+        ) : (
+          <List>
+            {restrictions.map((r) => (
+              <li
+                key={r.id}
+                className="flex items-center justify-between gap-3 px-4 py-3"
+              >
+                <span>
+                  {r.itemName}{" "}
+                  <span className="text-text-subtle">
+                    · {SEVERITY_LABEL[r.severity]}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onRemove(r.id)}
+                  className="caption-text text-danger underline-offset-2 hover:underline"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </List>
+        )}
+      </Section>
+
+      <Section label="Add one">
+        <div className="flex flex-wrap gap-3">
+          <div className="min-w-[12rem] flex-1">
+            <Field label="Item" htmlFor="restriction-item">
+              <Input
+                id="restriction-item"
+                value={itemName}
+                onChange={(e) => setItemName(e.target.value)}
+                placeholder="e.g. Peanut"
+              />
+            </Field>
+          </div>
+          <div className="min-w-[10rem] flex-1">
+            <Field label="Severity" htmlFor="restriction-severity">
+              <Select
+                id="restriction-severity"
+                value={severity}
+                onChange={(e) => setSeverity(e.target.value as typeof severity)}
+              >
+                <option value="allergy">Allergy</option>
+                <option value="intolerance">Intolerance</option>
+                <option value="diet">Diet</option>
+              </Select>
+            </Field>
+          </div>
+        </div>
+        <Button block onClick={onAdd} loading={saving}>
+          Add restriction
+        </Button>
+      </Section>
+    </>
   );
 }

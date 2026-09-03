@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Readout } from "@/components/ui/readout";
 import { useToast } from "@/components/ui/toast";
+import { Columns } from "@/components/layout/columns";
+import { List, Section } from "@/components/layout/section";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -181,47 +183,39 @@ export function NotificationFeed({
     else groups.push({ label, items: [item] });
   }
 
+
   return (
-    <div>
-      {unread > 0 ? (
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="caption-text text-text-muted">
-            {unread} unread {unread === 1 ? "entry" : "entries"}
-          </p>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={markAllRead}
-            loading={busy === "all"}
-          >
-            <Check size={16} aria-hidden /> Mark all read
-          </Button>
-        </div>
-      ) : null}
+    <Columns
+      asideFirst
+      main={
+        <>
+          {groups.map((group, index) => (
+            <Section
+              key={group.label}
+              label={group.label}
+              className={index === 0 ? "mt-0" : undefined}
+            >
+              <List>
+                {group.items.map((item) => {
+                  const action = INLINE_ACTION[item.type];
+                  const canAct = action && typeof item.payload.assignment_id === "string";
 
-      {groups.map((group) => (
-        <section key={group.label} className="mb-5">
-          <h2 className="caption-text mb-2 font-medium uppercase tracking-wide text-text-muted">
-            {group.label}
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {group.items.map((item) => {
-              const action = INLINE_ACTION[item.type];
-              const canAct = action && typeof item.payload.assignment_id === "string";
+                  return (
+                    <li
+                      key={item.id}
+                      className={cn(
+                        "relative px-4 py-3",
+                        // Unread is a rule down the left edge, in ink. It was a
+                        // tint across the whole row, which on a monochrome
+                        // surface is a grey that reads as "disabled" rather
+                        // than "new".
+                        item.readAt
+                          ? null
+                          : "before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-primary",
+                      )}
+                    >
+                      {item.readAt ? null : <span className="sr-only">Unread</span>}
 
-              return (
-                <li key={item.id}>
-                  <Card
-                    className={cn(
-                      "flex items-start gap-3 overflow-hidden",
-                      item.readAt
-                        ? null
-                        : "pl-4 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-primary",
-                    )}
-                  >
-                    {item.readAt ? null : <span className="sr-only">Unread</span>}
-
-                    <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-3">
                         <p className="truncate font-medium">{item.title}</p>
                         <span className="caption-text shrink-0 text-text-subtle">
@@ -230,7 +224,7 @@ export function NotificationFeed({
                       </div>
                       <p className="caption-text text-text-muted">{item.body}</p>
 
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <div className="mt-2 flex flex-wrap items-center gap-3">
                         {item.deepLink ? (
                           <Link
                             href={item.deepLink}
@@ -262,20 +256,55 @@ export function NotificationFeed({
                           </button>
                         )}
                       </div>
-                    </div>
-                  </Card>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
+                    </li>
+                  );
+                })}
+              </List>
+            </Section>
+          ))}
 
-      {cursor ? (
-        <Button variant="ghost" block loading={busy === "more"} onClick={loadMore}>
-          Older
-        </Button>
-      ) : null}
-    </div>
+          {cursor ? (
+            <Button
+              variant="ghost"
+              block
+              className="mt-4"
+              loading={busy === "more"}
+              onClick={loadMore}
+            >
+              Older
+            </Button>
+          ) : null}
+        </>
+      }
+      aside={
+        <Section label="Waiting" className="mt-0">
+          <Readout value={String(unread)} size="lg" />
+          <p className="caption-text mt-2 text-text-muted">
+            {unread === 0
+              ? "Nothing unread. Everything here stays whether or not your phone showed it."
+              : `unread ${unread === 1 ? "entry" : "entries"} of ${items.length} loaded.`}
+          </p>
+
+          {unread > 0 ? (
+            <Button
+              className="mt-4"
+              block
+              variant="outline"
+              onClick={markAllRead}
+              loading={busy === "all"}
+            >
+              <Check size={16} aria-hidden /> Mark all read
+            </Button>
+          ) : null}
+
+          <Link
+            href="/house/notifications"
+            className="caption-text mt-3 inline-block underline"
+          >
+            What reaches you, and when
+          </Link>
+        </Section>
+      }
+    />
   );
 }
