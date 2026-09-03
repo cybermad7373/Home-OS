@@ -49,9 +49,13 @@ export function HomeOwesWhom({
             key={`${row.fromMemberId}-${row.toMemberId}`}
             className="flex items-center gap-3 px-4 py-3"
           >
-            <MemberAvatar name={iPay ? "You" : row.fromName} size="sm" />
-            <ArrowRight size={13} className="shrink-0 text-text-subtle" aria-hidden />
-            <MemberAvatar name={iAmPaid ? "You" : row.toName} size="sm" />
+            {/* The two faces and the arrow are a nicety; below 400px they cost
+                the sentence its last two words, so they go. */}
+            <span className="hidden items-center gap-3 sm:flex">
+              <MemberAvatar name={iPay ? "You" : row.fromName} size="sm" />
+              <ArrowRight size={13} className="shrink-0 text-text-subtle" aria-hidden />
+              <MemberAvatar name={iAmPaid ? "You" : row.toName} size="sm" />
+            </span>
             <p className="min-w-0 flex-1 truncate text-[15px]">
               <span className={cn(iPay && "font-medium")}>{iPay ? "You" : row.fromName}</span>
               <span className="text-text-muted">{iPay ? " owe " : " owes "}</span>
@@ -59,7 +63,7 @@ export function HomeOwesWhom({
             </p>
             <span
               className={cn(
-                "readout shrink-0 text-[17px] leading-none",
+                "readout shrink-0 text-[15px] leading-none sm:text-[17px]",
                 iPay ? "text-danger" : iAmPaid ? "text-success" : "text-text",
               )}
             >

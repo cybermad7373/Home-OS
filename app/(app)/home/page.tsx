@@ -176,15 +176,16 @@ export default async function HomeOverviewPage() {
 
       {/*
         The main column is the record — who owes whom, who is carrying the
-        week. The rail is what you glance at: what is blocked on you, the
-        setup you have not finished, and who lives here.
+        week, who lives here. The rail is the short list of things blocked on
+        you and the setup you have not finished.
 
-        On a phone the two stack in that order, which puts "waiting on you"
-        directly under the two figures, exactly where it was before there was
-        a rail at all.
+        The rail stacks first on a phone, which puts "waiting on you" directly
+        under the two figures — exactly where it was before there was a rail at
+        all, and where the one urgent thing on this screen belongs.
       */}
       <Columns
         className="mt-8"
+        asideFirst
         main={
           <>
             {owes.length > 0 ? (
@@ -207,15 +208,16 @@ export default async function HomeOverviewPage() {
                 <HomeStanding ranked={ranked} meId={context.me.id} />
               </Section>
             ) : null}
+
+            <Section label="The house" href="/house/members">
+              <HomeHouseMembers active={active} meId={context.me.id} />
+            </Section>
           </>
         }
         aside={
           <>
             <HomePendingBlock pending={pending} />
             <SetupNudges nudges={nudges} />
-            <Section label="The house" href="/house/members">
-              <HomeHouseMembers active={active} meId={context.me.id} />
-            </Section>
           </>
         }
       />
