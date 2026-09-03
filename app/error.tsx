@@ -16,7 +16,10 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-3 px-4 text-center">
+    <main className="dot-grid flex min-h-dvh flex-col items-center justify-center gap-3 px-4 text-center">
+      <p className="display-xl text-text-subtle" aria-hidden>
+        500
+      </p>
       <p className="title-text">Something went wrong</p>
       <p className="caption-text max-w-[40ch] text-text-muted">
         The screen could not load. This is usually a connection problem rather than

@@ -9,7 +9,8 @@ export const metadata: Metadata = { title: "Offline" };
  */
 export default function OfflinePage() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-2 px-4 text-center">
+    <main className="dot-grid flex min-h-dvh flex-col items-center justify-center gap-2 px-4 text-center">
+      <p className="eyebrow-text mb-2">No connection</p>
       <p className="title-text">You are offline</p>
       <p className="caption-text max-w-[40ch] text-text-muted">
         HouseOS opens without a connection, but it cannot load fresh house data. It will
