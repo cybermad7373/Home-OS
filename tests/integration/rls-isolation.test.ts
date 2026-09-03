@@ -384,7 +384,7 @@ describeIfConfigured("routine privilege posture", () => {
 
   // Functions that MUST be callable from an authenticated browser client
   const allowedForBrowser = [
-    { name: "create_expense", args: { p_category_id: "00000000-0000-0000-0000-000000000000", p_amount_paise: 100, p_expense_date: "2026-08-28", p_split_basis: "equal", p_splits: [], p_description: "test", p_paid_by_member_id: "00000000-0000-0000-0000-000000000000" } },
+    { name: "create_expense", args: { p_house_id: "00000000-0000-0000-0000-000000000000", p_category_id: "00000000-0000-0000-0000-000000000000", p_amount_paise: 100, p_expense_date: "2026-08-28", p_split_basis: "equal", p_splits: [], p_description: "test", p_paid_by_member_id: "00000000-0000-0000-0000-000000000000" } },
     { name: "mark_chore_done", args: { p_assignment_id: "00000000-0000-0000-0000-000000000000", p_photo_url: null } },
     { name: "confirm_chore", args: { p_assignment_id: "00000000-0000-0000-0000-000000000000" } },
     { name: "create_house", args: { p_name: "Test", p_address: null, p_timezone: "Asia/Kolkata", p_currency: "INR", p_type: "shared", p_country_code: null, p_state: null, p_city: null, p_area: null } },

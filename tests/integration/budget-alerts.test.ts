@@ -147,6 +147,7 @@ describeIfConfigured("budget alerts", () => {
     const remainder = amountPaise - base * memberIds.length;
 
     const { data, error } = await payer.rpc("create_expense", {
+      p_house_id: houseId,
       p_category_id: categoryId,
       p_amount_paise: amountPaise,
       p_expense_date: jobToday(),

@@ -379,6 +379,7 @@ describe("the chore lifecycle", () => {
 
   it("generates a week, assigns everything, and never double-assigns", async () => {
     const { data: runId, error } = await ravi.rpc("publish_schedule", {
+      p_house_id: houseId,
       p_week_start: "2026-09-07",
       p_assignments: [
         {
@@ -437,6 +438,7 @@ describe("the chore lifecycle", () => {
     const week = "2026-09-14";
 
     await ravi.rpc("publish_schedule", {
+      p_house_id: houseId,
       p_week_start: week,
       p_assignments: [
         {
@@ -469,6 +471,7 @@ describe("the chore lifecycle", () => {
 
     // Regenerate the same week with a different plan.
     await ravi.rpc("publish_schedule", {
+      p_house_id: houseId,
       p_week_start: week,
       p_assignments: [
         {

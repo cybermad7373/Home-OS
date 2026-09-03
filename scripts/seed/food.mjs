@@ -109,7 +109,17 @@ export async function seedFood(context) {
   must("insert food_preferences", await admin.from("food_preferences").insert(preferences).select("id"));
 
   // ------------------------------------------------------------- the meals
+  // Written as rows rather than through `create_meal`, because that function
+  // resolves the caller through `auth.uid()` and the seed has no session — it
+  // answers NOT_A_MEMBER to the service role. What the function also does, and
+  // what therefore has to be done here, is maintain `foods.times_eaten` and
+  // `last_eaten_on`: the deterministic half of Try Today filters on
+  // `times_eaten > 0`, so meals written without it leave every food invisible
+  // to the suggestion engine and the screen renders empty for no visible reason.
   const catalogue = [...foods.values()];
+  const eatenCount = new Map();
+  const lastEaten = new Map();
+
   for (let offset = 14; offset >= 1; offset -= 1) {
     const date = addDays(today, -offset);
     const food = catalogue[offset % catalogue.length];
@@ -178,6 +188,17 @@ export async function seedFood(context) {
       });
     }
     must("insert meal_participants", await admin.from("meal_participants").insert(rows).select("id"));
+
+    eatenCount.set(food.id, (eatenCount.get(food.id) ?? 0) + 1);
+    const previous = lastEaten.get(food.id);
+    if (!previous || date > previous) lastEaten.set(food.id, date);
+  }
+
+  for (const [foodId, count] of eatenCount) {
+    await admin
+      .from("foods")
+      .update({ times_eaten: count, last_eaten_on: lastEaten.get(foodId) })
+      .eq("id", foodId);
   }
 
   // ------------------------------------------------------------- the plan

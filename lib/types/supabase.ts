@@ -1670,6 +1670,7 @@ export type Database = {
           daily_budget_paise: number | null
           effort_mode: Database["public"]["Enums"]["effort_mode"]
           expense_approval_threshold_paise: number
+          game_layer_enabled: boolean
           house_id: string
           llm_scheduling_enabled: boolean
           money_mode: Database["public"]["Enums"]["money_mode"]
@@ -1686,6 +1687,7 @@ export type Database = {
           daily_budget_paise?: number | null
           effort_mode?: Database["public"]["Enums"]["effort_mode"]
           expense_approval_threshold_paise?: number
+          game_layer_enabled?: boolean
           house_id: string
           llm_scheduling_enabled?: boolean
           money_mode?: Database["public"]["Enums"]["money_mode"]
@@ -1702,6 +1704,7 @@ export type Database = {
           daily_budget_paise?: number | null
           effort_mode?: Database["public"]["Enums"]["effort_mode"]
           expense_approval_threshold_paise?: number
+          game_layer_enabled?: boolean
           house_id?: string
           llm_scheduling_enabled?: boolean
           money_mode?: Database["public"]["Enums"]["money_mode"]
@@ -3712,6 +3715,7 @@ export type Database = {
           p_category_id: string
           p_description?: string
           p_expense_date: string
+          p_house_id: string
           p_paid_by_member_id?: string
           p_receipt_url?: string
           p_split_basis: Database["public"]["Enums"]["split_basis"]
@@ -3815,6 +3819,7 @@ export type Database = {
           p_category_id: string
           p_description?: string
           p_expense_date: string
+          p_house_id: string
           p_is_adjustment?: boolean
           p_paid_by_member_id?: string
           p_period?: string
@@ -4132,6 +4137,7 @@ export type Database = {
         Args: {
           p_assignments: Json
           p_generator?: Database["public"]["Enums"]["assignment_source"]
+          p_house_id: string
           p_llm_accepted?: boolean
           p_llm_rationale?: string
           p_max_deviation?: number

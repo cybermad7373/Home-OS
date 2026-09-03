@@ -217,6 +217,7 @@ describeIfConfigured("a family home", () => {
 
     // Three heads at ₹1,400: two parents, and Meera on Amma's row.
     const expenseId = await appa.rpc("create_expense", {
+      p_house_id: houseId,
       p_category_id: (category as { id: string }).id,
       p_amount_paise: 420000,
       p_expense_date: new Date().toISOString().slice(0, 10),
@@ -255,6 +256,7 @@ describeIfConfigured("a family home", () => {
       .single();
 
     const { error } = await appa.rpc("create_expense", {
+      p_house_id: houseId,
       p_category_id: (category as { id: string }).id,
       p_amount_paise: 420000,
       p_expense_date: new Date().toISOString().slice(0, 10),
@@ -278,6 +280,7 @@ describeIfConfigured("a family home", () => {
       .single();
 
     const { data: expenseId, error } = await appa.rpc("create_expense", {
+      p_house_id: houseId,
       p_category_id: (category as { id: string }).id,
       p_amount_paise: 312500,
       p_expense_date: new Date().toISOString().slice(0, 10),

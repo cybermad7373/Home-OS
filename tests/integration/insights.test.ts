@@ -151,6 +151,7 @@ describeIfReady("insights reads", () => {
     const remainder = amountPaise - base * members.length;
 
     const { data, error } = await lead.client.rpc("create_expense", {
+      p_house_id: houseId,
       p_category_id: categoryId,
       p_amount_paise: amountPaise,
       p_expense_date: TODAY,

@@ -487,9 +487,17 @@ export async function deleteRecurring(
   if (error) throw apiErrorFromPostgres(error);
 }
 
-/** Writes the expense and its splits in one transaction — see migration 017. */
+/**
+ * Writes the expense and its splits in one transaction — see migration 017.
+ *
+ * `houseId` is passed rather than inferred. The function used to work out the
+ * Home for itself, which for anybody in more than one Home meant an expense
+ * could be booked against the wrong household — see migration
+ * 20260903000001.
+ */
 export async function createExpense(
   session: Session,
+  houseId: string,
   input: {
     categoryId: string;
     amountPaise: number;
@@ -505,6 +513,7 @@ export async function createExpense(
   },
 ): Promise<string> {
   const { data, error } = await session.supabase.rpc("create_expense", {
+    p_house_id: houseId,
     p_category_id: input.categoryId,
     p_amount_paise: input.amountPaise,
     p_expense_date: input.expenseDate,

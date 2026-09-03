@@ -797,6 +797,10 @@ export async function generateWeek(
   });
 
   const { data: runId, error } = await session.supabase.rpc("publish_schedule", {
+    // Named rather than inferred: the function used to pick one of the
+    // caller's memberships and could refuse an admin of this Home, or publish
+    // into another one — see migration 20260903000001.
+    p_house_id: houseId,
     p_week_start: weekStart,
     p_assignments: payload,
     p_generator: generator,

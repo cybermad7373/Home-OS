@@ -281,6 +281,7 @@ describeIfConfigured("notifications", () => {
       .single();
 
     const { error } = await ravi.rpc("create_expense", {
+      p_house_id: houseId,
       p_category_id: (category as { id: string }).id,
       p_amount_paise: 500000,
       p_expense_date: "2026-08-18",

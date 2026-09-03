@@ -52,11 +52,15 @@ export const PROVIDERS: ProviderDescriptor[] = [
     // The rolling aliases lead, because they survive the next retirement; the
     // pinned id is kept for a house that wants a fixed model.
     models: [
-      { id: "gemini-flash-latest", label: "Gemini Flash (latest)", free: true },
       { id: "gemini-flash-lite-latest", label: "Gemini Flash Lite (latest)", free: true },
+      { id: "gemini-flash-latest", label: "Gemini Flash (latest)", free: true },
       { id: "gemini-3.6-flash", label: "Gemini 3.6 Flash", free: true },
     ],
-    defaultModel: "gemini-flash-latest",
+    // Lite leads on the free tier's terms rather than on capability: measured
+    // against a real key it answers in about a second where Flash takes two to
+    // five, and Flash was returning 503 UNAVAILABLE under load while Lite kept
+    // answering. Nothing this app asks a model to do is hard.
+    defaultModel: "gemini-flash-lite-latest",
     jsonMode: "schema",
     keyHint: { pattern: "^AIza[A-Za-z0-9_\\-]{20,}$", example: "AIza…" },
     consoleUrl: "https://aistudio.google.com/apikey",

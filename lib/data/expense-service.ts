@@ -168,7 +168,7 @@ export async function createExpenseWithSplit(
     );
   }
 
-  const id = await createExpense(session, {
+  const id = await createExpense(session, houseId, {
     categoryId: input.categoryId,
     amountPaise: prepared.amountPaise,
     expenseDate: input.expenseDate,

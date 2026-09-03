@@ -220,7 +220,7 @@ LLM_KEY_ENCRYPTION_KEY=             # 32 bytes base64; `npm run gen:llmkey`
 # The ordinary path is a key the house admin enters during house creation.)
 LLM_PROVIDER=gemini                 # any id in the provider registry
 LLM_API_KEY=
-LLM_MODEL=gemini-flash-latest
+LLM_MODEL=gemini-flash-lite-latest
 
 # App
 NEXT_PUBLIC_APP_URL=

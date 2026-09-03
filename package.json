@@ -24,7 +24,8 @@
     "gen:llmkey": "node scripts/generate-llmkey.mjs",
     "seed": "node scripts/seed-demo.mjs",
     "seed:reset": "node scripts/seed-demo.mjs --reset",
-    "seed:verify": "node scripts/seed-demo.mjs --verify"
+    "seed:verify": "node scripts/seed-demo.mjs --verify",
+    "seed:ai": "node scripts/seed-ai.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

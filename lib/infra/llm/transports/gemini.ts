@@ -78,9 +78,24 @@ export const geminiTransport: Transport = async (config, req, signal) => {
  * Gemini's `responseSchema` is OpenAPI-shaped rather than JSON Schema:
  * uppercase types, and it rejects the vocabulary it does not know —
  * `additionalProperties` among it — with a 400 rather than ignoring it.
+ *
+ * The bounds are forwarded, and that is not cosmetic. They were dropped here
+ * until 2026-09-03, so the model was never told the limits that
+ * `validateAgainst` then enforced on the way back: a food-ideas response whose
+ * second description ran to 130 characters was discarded whole, and the Home
+ * saw the AI half of Try Today silently disappear. Verified against a live key
+ * that Gemini accepts `maxLength`, `minLength`, `maxItems`, `minItems`,
+ * `minimum`, `maximum`, `format` and `description` and answers within them.
+ *
+ * This does not make the schema a guarantee. A prompt is a request and a
+ * filter is a guarantee (BR-225): the local validator still runs, and still has
+ * the last word. Forwarding the bounds only stops us asking for something we
+ * were always going to reject.
  */
 export function toGeminiSchema(schema: JsonSchema): Record<string, unknown> {
   const out: Record<string, unknown> = {};
+
+  if (schema.description) out.description = schema.description;
 
   if (schema.enum) {
     out.type = "STRING";
@@ -102,19 +117,27 @@ export function toGeminiSchema(schema: JsonSchema): Record<string, unknown> {
     case "array": {
       out.type = "ARRAY";
       if (schema.items) out.items = toGeminiSchema(schema.items);
+      if (schema.maxItems !== undefined) out.maxItems = schema.maxItems;
       return out;
     }
     case "integer":
       out.type = "INTEGER";
+      if (schema.minimum !== undefined) out.minimum = schema.minimum;
+      if (schema.maximum !== undefined) out.maximum = schema.maximum;
       return out;
     case "number":
       out.type = "NUMBER";
+      if (schema.minimum !== undefined) out.minimum = schema.minimum;
+      if (schema.maximum !== undefined) out.maximum = schema.maximum;
       return out;
     case "boolean":
       out.type = "BOOLEAN";
       return out;
     default:
       out.type = "STRING";
+      if (schema.minLength !== undefined) out.minLength = schema.minLength;
+      if (schema.maxLength !== undefined) out.maxLength = schema.maxLength;
+      if (schema.format) out.format = schema.format;
       return out;
   }
-};
+}
