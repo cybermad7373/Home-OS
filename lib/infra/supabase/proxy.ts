@@ -26,6 +26,11 @@ const PUBLIC_PREFIXES = [
 ];
 
 function isPublic(pathname: string): boolean {
+  // The design-system pages render no household data and exist to be looked at
+  // while signed out. The route itself 404s in production, so this only ever
+  // matches on a developer's machine.
+  if (process.env.NODE_ENV !== "production" && pathname.startsWith("/dev/")) return true;
+
   return PUBLIC_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );

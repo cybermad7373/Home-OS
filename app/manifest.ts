@@ -9,8 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "Shared-house management: chores that are visible and fairly distributed, money that is tracked and settled.",
     start_url: "/home",
     display: "standalone",
-    background_color: "#0C0A09",
-    theme_color: "#0F766E",
+    background_color: "#000000",
+    theme_color: "#000000",
     orientation: "portrait",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

@@ -1,121 +1,295 @@
 @import "tailwindcss";
 
 /*
- * Design tokens — docs/08-UI-UX-SPEC.md section 2.
+ * ============================================================================
+ * HouseOS design tokens — 3.0 "Monochrome"
+ * ============================================================================
  *
- * Light is the base palette. Dark applies when the viewer's system asks for it,
- * or when the theme toggle has stamped data-theme="dark" on the root. An
- * explicit data-theme="light" always wins over the system preference.
+ * The interface is black and white. The only colour in the entire app is your
+ * money.
+ *
+ * That is the whole system, and everything below is a consequence of it. The
+ * 2.0 sheet spent colour freely — a teal brand, a blue info, seven chore hues —
+ * so by the time a screen wanted to say something urgent about money it had no
+ * colour left that meant anything. Here, ink is the brand: buttons are black on
+ * white and white on black, navigation is ink, emphasis is weight and scale.
+ * Green and red are never decorative and never brand. Green means the house
+ * owes you. Red means you owe the house. If there is colour on the screen, it
+ * is about the money, and it is worth looking at.
+ *
+ * Three consequences worth naming:
+ *
+ * 1. **Hairlines, not shadows.** Depth comes from a 1px rule and honest
+ *    spacing. The elevation ladder survives for the three things that genuinely
+ *    float — a sheet, a modal, the raised add button — and is close to
+ *    invisible below that.
+ *
+ * 2. **Structure is visible.** Dot grids, rules and uppercase technical labels
+ *    show the frame rather than hiding it. A household ledger is an instrument;
+ *    it should look like one.
+ *
+ * 3. **Numbers are the display face.** Doto is a dot-matrix variable font, and
+ *    every large figure in the app is set in it. Money in a dot matrix reads as
+ *    a readout rather than as body text, which is exactly what it is.
+ *
+ * Every token name from 2.0 survives, so the 44 screens inherit this without an
+ * edit.
  */
 
 :root {
-  /* surfaces */
-  --bg: #fafaf9;
+  /* ---- surfaces ----
+     True neutrals. No warm bias, no cool bias — a tint here is the difference
+     between "monochrome" and "beige", and it is visible the moment two greys
+     sit next to each other. */
+  --bg: #ffffff;
   --surface: #ffffff;
-  --surface-2: #f5f5f4;
-  --border: #e7e5e4;
-  --border-strong: #d6d3d1;
+  --surface-2: #f4f4f4;
+  --surface-3: #ebebeb;
+  --border: #e2e2e2;
+  --border-strong: #c2c2c2;
 
-  /* text */
-  --text: #1c1917;
-  --text-muted: #78716c;
-  --text-subtle: #a8a29e;
+  /* ---- text ---- */
+  --text: #000000;
+  --text-muted: #6b6b6b;
+  --text-subtle: #9a9a9a;
 
-  /* brand */
-  --primary: #0f766e;
-  --primary-hover: #0d9488;
+  /* ---- brand ----
+     The brand is ink. A primary button is black on white; in dark it is white
+     on black. There is no brand hue to compete with the money. */
+  --primary: #000000;
+  --primary-hover: #262626;
   --primary-fg: #ffffff;
+  --primary-soft: #f0f0f0;
+  --primary-ring: #00000033;
 
-  /* semantic — green means the house owes you, red means you owe the house */
-  --success: #15803d;
-  --success-bg: #dcfce7;
-  --warning: #b45309;
-  --warning-bg: #fef3c7;
-  --danger: #b91c1c;
-  --danger-bg: #fee2e2;
-  --info: #1d4ed8;
-  --info-bg: #dbeafe;
+  /* ---- accent ----
+     One red, and it is spent on almost nothing: the live indicator, the game
+     layer's streak, an alert that cannot wait. It is the same red as `danger`
+     on purpose — in this product "urgent" and "you owe" are the same feeling,
+     and two nearly-identical reds would be a distinction nobody can see. */
+  --accent: #d71921;
+  --accent-fg: #ffffff;
+  --accent-soft: #fdeceb;
 
-  /* chore categories — the coloured left rail on chore cards */
-  --cat-cooking: #ea580c;
-  --cat-kitchen: #ca8a04;
-  --cat-bathroom: #0891b2;
-  --cat-room: #7c3aed;
-  --cat-common: #059669;
-  --cat-mopping: #2563eb;
-  --cat-other: #64748b;
+  /* ---- semantic ----
+     The only colour in the system. Green means the house owes you, red means
+     you owe the house. This mapping never inverts, anywhere. */
+  --success: #067a4c;
+  --success-bg: #e6f4ed;
+  --warning: #8a6a00;
+  --warning-bg: #f7f0da;
+  --danger: #d71921;
+  --danger-bg: #fdeceb;
+  /* Info is not a colour here. It is plain ink on a plain panel, because an
+     informational message is the ordinary case and the ordinary case should be
+     the quietest thing on the screen. */
+  --info: #000000;
+  --info-bg: #f4f4f4;
 
-  /* radius and elevation */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 24px;
-  --radius-2xl: 32px;
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.06);
-  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.08);
-  --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.12);
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 1px rgb(255 255 255 / 0.08) inset;
-  --shadow-elevated: 0 8px 24px rgb(0 0 0 / 0.1), 0 1px 1px rgb(255 255 255 / 0.1) inset;
+  /* ---- chart ----
+     A greyscale ramp, dark to light. A monochrome chart forces the label to do
+     the work, which is the right outcome: eight hues let a designer skip the
+     legend, and the reader pays for it. Semantic series override with green or
+     red where the series genuinely is money direction. */
+  --chart-1: #000000;
+  --chart-2: #333333;
+  --chart-3: #4d4d4d;
+  --chart-4: #696969;
+  --chart-5: #8a8a8a;
+  --chart-6: #a8a8a8;
+  --chart-7: #c4c4c4;
+  --chart-8: #dcdcdc;
+  --chart-grid: #ebebeb;
+  --chart-axis: #9a9a9a;
 
-  /* motion tokens */
+  /* ---- chore categories ----
+     The rail on a chore card. Greyscale, because the card already says
+     "Clean bathroom" in words and a seventh hue would be decoration. What the
+     rail encodes is weight: heavier work is darker. */
+  --cat-cooking: #000000;
+  --cat-kitchen: #333333;
+  --cat-bathroom: #4d4d4d;
+  --cat-room: #696969;
+  --cat-common: #8a8a8a;
+  --cat-mopping: #a8a8a8;
+  --cat-other: #c4c4c4;
+
+  /* ---- radius ----
+     Generous on containers, full on controls. A pill button against a hairline
+     card is the shape language; a 6px rounded rectangle is not. */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-2xl: 36px;
+  --radius-full: 999px;
+
+  /* ---- elevation ----
+     Only three things in this app float, and they are all temporary: a sheet, a
+     modal, and the raised add button. Everything else is a hairline. */
+  --elev-1: none;
+  --elev-2: 0 1px 2px rgb(0 0 0 / 0.04);
+  --elev-3: 0 8px 32px rgb(0 0 0 / 0.10);
+  --elev-4: 0 24px 64px rgb(0 0 0 / 0.18);
+
+  --shadow-sm: var(--elev-1);
+  --shadow-md: var(--elev-2);
+  --shadow-lg: var(--elev-3);
+  --shadow-card: var(--elev-1);
+  --shadow-elevated: var(--elev-3);
+
+  /* ---- density ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 56px;
+
+  /* ---- motion ----
+     Short and mechanical. Nothing here eases in slowly; a control that takes
+     300ms to acknowledge a tap feels soft, and this interface should not. */
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --duration-fast: 80ms;
-  --duration-base: 180ms;
-  --duration-sheet: 240ms;
+  --duration-fast: 70ms;
+  --duration-base: 160ms;
+  --duration-sheet: 220ms;
   --duration-count: 400ms;
-  --duration-toast: 200ms;
+  --duration-toast: 180ms;
+
+  /* The dot grid, used as a background on empty states and section breaks. */
+  --dot: #dcdcdc;
 }
 
+/*
+ * Dark is the inversion this system was designed for rather than a second
+ * palette bolted on: ink and paper swap, the greys mirror, and the two
+ * semantic hues are re-picked so a red balance and a green balance stay
+ * equally legible on black — which a literal inversion does not preserve.
+ */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0c0a09;
-    --surface: #1c1917;
-    --surface-2: #292524;
-    --border: #292524;
-    --border-strong: #44403c;
-    --text: #fafaf9;
-    --text-muted: #a8a29e;
-    --text-subtle: #78716c;
-    --primary: #2dd4bf;
-    --primary-hover: #5eead4;
-    --primary-fg: #0c0a09;
-    --success: #4ade80;
-    --success-bg: #14532d;
-    --warning: #fbbf24;
-    --warning-bg: #451a03;
-    --danger: #f87171;
-    --danger-bg: #450a0a;
-    --info: #60a5fa;
-    --info-bg: #172554;
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.2), 0 1px 1px rgb(255 255 255 / 0.03) inset;
-    --shadow-elevated: 0 8px 24px rgb(0 0 0 / 0.3), 0 1px 1px rgb(255 255 255 / 0.05) inset;
+    --bg: #000000;
+    --surface: #0a0a0a;
+    --surface-2: #151515;
+    --surface-3: #1f1f1f;
+    --border: #262626;
+    --border-strong: #3d3d3d;
+
+    --text: #ffffff;
+    --text-muted: #a0a0a0;
+    --text-subtle: #6b6b6b;
+
+    --primary: #ffffff;
+    --primary-hover: #e0e0e0;
+    --primary-fg: #000000;
+    --primary-soft: #1a1a1a;
+    --primary-ring: #ffffff44;
+
+    --accent: #ff4a4a;
+    --accent-fg: #1a0000;
+    --accent-soft: #2a1010;
+
+    --success: #3ddc84;
+    --success-bg: #0d2818;
+    --warning: #e0b040;
+    --warning-bg: #2a2210;
+    --danger: #ff4a4a;
+    --danger-bg: #2a1010;
+    --info: #ffffff;
+    --info-bg: #151515;
+
+    --chart-1: #ffffff;
+    --chart-2: #d4d4d4;
+    --chart-3: #b0b0b0;
+    --chart-4: #8f8f8f;
+    --chart-5: #6f6f6f;
+    --chart-6: #545454;
+    --chart-7: #3d3d3d;
+    --chart-8: #2a2a2a;
+    --chart-grid: #1f1f1f;
+    --chart-axis: #6b6b6b;
+
+    --cat-cooking: #ffffff;
+    --cat-kitchen: #d4d4d4;
+    --cat-bathroom: #b0b0b0;
+    --cat-room: #8f8f8f;
+    --cat-common: #6f6f6f;
+    --cat-mopping: #545454;
+    --cat-other: #3d3d3d;
+
+    --elev-1: none;
+    --elev-2: 0 1px 2px rgb(0 0 0 / 0.6);
+    --elev-3: 0 8px 32px rgb(0 0 0 / 0.7);
+    --elev-4: 0 24px 64px rgb(0 0 0 / 0.85);
+
+    --dot: #262626;
+
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --bg: #0c0a09;
-  --surface: #1c1917;
-  --surface-2: #292524;
-  --border: #292524;
-  --border-strong: #44403c;
-  --text: #fafaf9;
-  --text-muted: #a8a29e;
-  --text-subtle: #78716c;
-  --primary: #2dd4bf;
-  --primary-hover: #5eead4;
-  --primary-fg: #0c0a09;
-  --success: #4ade80;
-  --success-bg: #14532d;
-  --warning: #fbbf24;
-  --warning-bg: #451a03;
-  --danger: #f87171;
-  --danger-bg: #450a0a;
-  --info: #60a5fa;
-  --info-bg: #172554;
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.2), 0 1px 1px rgb(255 255 255 / 0.03) inset;
-  --shadow-elevated: 0 8px 24px rgb(0 0 0 / 0.3), 0 1px 1px rgb(255 255 255 / 0.05) inset;
+  --bg: #000000;
+  --surface: #0a0a0a;
+  --surface-2: #151515;
+  --surface-3: #1f1f1f;
+  --border: #262626;
+  --border-strong: #3d3d3d;
+
+  --text: #ffffff;
+  --text-muted: #a0a0a0;
+  --text-subtle: #6b6b6b;
+
+  --primary: #ffffff;
+  --primary-hover: #e0e0e0;
+  --primary-fg: #000000;
+  --primary-soft: #1a1a1a;
+  --primary-ring: #ffffff44;
+
+  --accent: #ff4a4a;
+  --accent-fg: #1a0000;
+  --accent-soft: #2a1010;
+
+  --success: #3ddc84;
+  --success-bg: #0d2818;
+  --warning: #e0b040;
+  --warning-bg: #2a2210;
+  --danger: #ff4a4a;
+  --danger-bg: #2a1010;
+  --info: #ffffff;
+  --info-bg: #151515;
+
+  --chart-1: #ffffff;
+  --chart-2: #d4d4d4;
+  --chart-3: #b0b0b0;
+  --chart-4: #8f8f8f;
+  --chart-5: #6f6f6f;
+  --chart-6: #545454;
+  --chart-7: #3d3d3d;
+  --chart-8: #2a2a2a;
+  --chart-grid: #1f1f1f;
+  --chart-axis: #6b6b6b;
+
+  --cat-cooking: #ffffff;
+  --cat-kitchen: #d4d4d4;
+  --cat-bathroom: #b0b0b0;
+  --cat-room: #8f8f8f;
+  --cat-common: #6f6f6f;
+  --cat-mopping: #545454;
+  --cat-other: #3d3d3d;
+
+  --elev-1: none;
+  --elev-2: 0 1px 2px rgb(0 0 0 / 0.6);
+  --elev-3: 0 8px 32px rgb(0 0 0 / 0.7);
+  --elev-4: 0 24px 64px rgb(0 0 0 / 0.85);
+
+  --dot: #262626;
+
   color-scheme: dark;
 }
 
@@ -123,14 +297,22 @@
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-text: var(--text);
   --color-text-muted: var(--text-muted);
   --color-text-subtle: var(--text-subtle);
+
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-fg: var(--primary-fg);
+  --color-primary-soft: var(--primary-soft);
+
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+
   --color-success: var(--success);
   --color-success-bg: var(--success-bg);
   --color-warning: var(--warning);
@@ -140,20 +322,35 @@
   --color-info: var(--info);
   --color-info-bg: var(--info-bg);
 
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-axis: var(--chart-axis);
+
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-dot: var(--font-doto), var(--font-geist-mono), ui-monospace, monospace;
 
+  --radius-xs: var(--radius-xs);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-xl);
   --radius-2xl: var(--radius-2xl);
 
-  --shadow-sm: var(--shadow-sm);
-  --shadow-md: var(--shadow-md);
-  --shadow-lg: var(--shadow-lg);
-  --shadow-card: var(--shadow-card);
-  --shadow-elevated: var(--shadow-elevated);
+  --shadow-sm: var(--elev-1);
+  --shadow-md: var(--elev-2);
+  --shadow-lg: var(--elev-3);
+  --shadow-xl: var(--elev-4);
+  --shadow-elev-2: var(--elev-2);
+  --shadow-elev-3: var(--elev-3);
+  --shadow-elev-4: var(--elev-4);
 
   --ease-spring: var(--ease-spring);
   --ease-out: var(--ease-out);
@@ -176,48 +373,88 @@
     font-size: 15px;
     line-height: 22px;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
-  /* Every number in a column aligns. Amounts that do not read as untrustworthy. */
+  /*
+   * Every number in a column aligns. Amounts that do not read as untrustworthy,
+   * and a leaderboard whose points jitter as it animates reads as a toy.
+   */
   .tabular,
   input[inputmode="decimal"],
+  input[inputmode="numeric"],
   input[type="number"] {
     font-variant-numeric: tabular-nums;
     font-family: var(--font-geist-mono), ui-monospace, monospace;
+    letter-spacing: -0.01em;
   }
 
-  /* A visible focus ring on every interactive element, never removed. */
+  /* A visible focus ring on every interactive element, never removed. On a
+     monochrome interface the ring has to be thicker than the usual 2px, because
+     it cannot rely on being a different hue from everything around it. */
   :focus-visible {
-    outline: 2px solid var(--primary);
+    outline: 2px solid var(--text);
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
   }
 
   ::selection {
-    background: var(--primary);
-    color: var(--primary-fg);
+    background: var(--text);
+    color: var(--bg);
+  }
+
+  * {
+    scrollbar-color: var(--border-strong) transparent;
+    scrollbar-width: thin;
   }
 }
 
 @layer utilities {
-  .display-number {
-    font-size: 32px;
-    line-height: 38px;
-    font-weight: 700;
+  /* ---- the readout ------------------------------------------------------
+     Doto is a dot-matrix face, and it is the app's display voice. It is used
+     for exactly one thing: a number somebody is meant to read at a glance —
+     what the house owes, what the week scored, how many days left. Set it on a
+     sentence and it becomes unreadable, which is a useful constraint. */
+
+  .readout {
+    font-family: var(--font-doto), var(--font-geist-mono), ui-monospace, monospace;
     font-variant-numeric: tabular-nums;
-    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-weight: 700;
+    letter-spacing: 0.02em;
   }
+
+  .display-xl {
+    font-family: var(--font-doto), var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 44px;
+    line-height: 46px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .display-number {
+    font-family: var(--font-doto), var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 32px;
+    line-height: 36px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- type scale ---- */
 
   .title-text {
     font-size: 22px;
     line-height: 28px;
     font-weight: 600;
+    letter-spacing: -0.02em;
   }
 
   .heading-text {
-    font-size: 17px;
-    line-height: 24px;
+    font-size: 16px;
+    line-height: 22px;
     font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
   .label-text {
@@ -231,30 +468,95 @@
     line-height: 16px;
   }
 
-  /* Minimum touch target, 44 x 44 (WCAG and section 7 of the UI spec). */
+  /* The technical label. Wide tracking, small, uppercase — the thing that makes
+     an interface read as an instrument rather than a document. */
+  .eyebrow-text {
+    font-size: 10px;
+    line-height: 14px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-subtle);
+  }
+
   .touch-target {
     min-height: 44px;
     min-width: 44px;
   }
 
-  /* Double-bezel card shell */
+  /* ---- surfaces ---------------------------------------------------------
+     A card is a hairline and some space. The double bezel of 2.0 is gone: two
+     nested rounded rectangles on every card was the single biggest reason the
+     old screens read as busy. */
+
   .card-shell {
-    @apply relative bg-surface/50 dark:bg-surface/50 ring-1 ring-border dark:ring-border rounded-[1.5rem] p-1.5 shadow-[var(--shadow-card)];
+    @apply relative rounded-[var(--radius-lg)] border border-border bg-surface;
   }
 
   .card-core {
-    @apply rounded-[1.25rem] bg-surface dark:bg-surface shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] p-4;
+    @apply rounded-[var(--radius-lg)] p-4;
+  }
+
+  .card-interactive {
+    @apply transition-[border-color,background-color] duration-[var(--duration-base)] ease-[var(--ease-out)];
+    @apply hover:border-border-strong active:bg-surface-2;
+  }
+
+  .panel {
+    @apply rounded-[var(--radius-md)] border border-border bg-surface-2 p-3;
   }
 
   .sheet-shell {
-    @apply relative bg-surface/50 dark:bg-surface/50 ring-1 ring-border dark:ring-border rounded-[2rem] p-2 shadow-[var(--shadow-elevated)];
+    @apply relative rounded-t-[var(--radius-2xl)] border border-border bg-surface shadow-[var(--elev-4)];
   }
 
   .sheet-core {
-    @apply rounded-[1.75rem] bg-surface dark:bg-surface p-6;
+    @apply rounded-t-[var(--radius-2xl)] p-6;
   }
 
-  /* Magnetic button press */
+  /* A left rail that says what kind of thing this is without a word of legend. */
+  .rail {
+    @apply relative overflow-hidden;
+  }
+
+  .rail::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 3px;
+    background: var(--rail-color, var(--border-strong));
+  }
+
+  /* ---- structure --------------------------------------------------------
+     The frame, made visible. A dot grid behind an empty state, and a hairline
+     rule with a label on it between sections. */
+
+  .dot-grid {
+    background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+    background-size: 12px 12px;
+    background-position: -1px -1px;
+  }
+
+  .dot-grid-lg {
+    background-image: radial-gradient(var(--dot) 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+  }
+
+  /* A hairline that carries a label, the way a technical drawing does. */
+  .rule-label {
+    @apply flex items-center gap-3 text-text-subtle;
+  }
+
+  .rule-label::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: var(--border);
+  }
+
+  /* ---- interaction ---- */
+
   .pressable {
     @apply transition-transform duration-[var(--duration-fast)] ease-[var(--ease-out)] active:scale-[0.98];
   }
@@ -263,34 +565,59 @@
     @apply transition-transform duration-[var(--duration-fast)] ease-[var(--ease-out)] group-hover:translate-x-1 group-hover:-translate-y-[1px] group-hover:scale-105;
   }
 
-  /* Scroll reveal stagger */
   .reveal-up {
-    @apply opacity-0 translate-y-6 transition-all duration-600 ease-[var(--ease-spring)];
+    @apply translate-y-4 opacity-0 transition-all duration-500 ease-[var(--ease-spring)];
   }
 
   .reveal-up.in-view {
-    @apply opacity-100 translate-y-0;
+    @apply translate-y-0 opacity-100;
   }
 
-  /* Number count-up animation */
   .count-up {
     @apply inline-block;
   }
 
-  /* Shimmer for skeletons */
+  /* ---- loading ---- */
+
   @keyframes shimmer {
     0% { background-position: -200% 0; }
     100% { background-position: 200% 0; }
   }
 
   .shimmer {
-    background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
+    background: linear-gradient(
+      90deg,
+      var(--surface-2) 25%,
+      var(--surface-3) 50%,
+      var(--surface-2) 75%
+    );
     background-size: 200% 100%;
-    animation: shimmer 1.5s infinite ease-in-out;
+    animation: shimmer 1.4s infinite ease-in-out;
+  }
+
+  /* The live dot. One of the two places the accent red is allowed. */
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  .live-dot {
+    animation: pulse-dot 2s infinite ease-in-out;
   }
 
   @media (prefers-reduced-motion: reduce) {
     .shimmer { animation: none; background: var(--surface-2); }
+    .live-dot { animation: none; }
+  }
+
+  /* Wide content scrolls inside itself. The page body never scrolls sideways. */
+  .scroll-x {
+    @apply -mx-4 overflow-x-auto px-4;
+    scrollbar-width: none;
+  }
+
+  .scroll-x::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -305,7 +632,7 @@
     scroll-behavior: auto !important;
   }
 
-  .reveal-up { @apply opacity-100 translate-y-0 transition-none; }
+  .reveal-up { @apply translate-y-0 opacity-100 transition-none; }
   .pressable { @apply active:scale-100; }
   .magnetic-icon { @apply group-hover:translate-x-0 group-hover:-translate-y-0 group-hover:scale-100; }
 }

@@ -29,7 +29,6 @@
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
-    "@phosphor-icons/react": "^2.1.10",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
     "class-variance-authority": "^0.7.1",

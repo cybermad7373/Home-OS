@@ -7,16 +7,21 @@ import { cn } from "@/lib/utils/cn";
  * (docs/08-UI-UX-SPEC.md section 7).
  */
 const badgeVariants = cva(
-  "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12px] font-medium leading-4 transition-colors",
+  [
+    "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5",
+    "text-[11px] font-medium leading-[18px] tracking-[0.02em] transition-colors",
+  ].join(" "),
   {
     variants: {
       tone: {
-        neutral: "bg-surface-2 text-text-muted",
-        success: "bg-success-bg text-success",
-        warning: "bg-warning-bg text-warning",
-        danger: "bg-danger-bg text-danger",
-        info: "bg-info-bg text-info",
-        primary: "bg-primary text-primary-fg",
+        // Outlined rather than filled, so a row of five badges reads as a row
+        // of five labels instead of five blocks of colour.
+        neutral: "border-border bg-transparent text-text-muted",
+        success: "border-success/30 bg-success-bg text-success",
+        warning: "border-warning/30 bg-warning-bg text-warning",
+        danger: "border-danger/30 bg-danger-bg text-danger",
+        info: "border-border bg-surface-2 text-text",
+        primary: "border-primary bg-primary text-primary-fg",
       },
     },
     defaultVariants: { tone: "neutral" },
