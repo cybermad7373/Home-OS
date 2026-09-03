@@ -1,201 +1,153 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Card } from "@/components/ui/card";
+import { ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { MemberAvatar } from "@/components/ui/avatar";
+import { WAITING, visibleGroups } from "@/components/layout/destinations";
 import { getHouseContext, requireSession } from "@/lib/data/house";
+import { countDecisionsAwaiting } from "@/lib/data/governance";
+import { getUnreadCount } from "@/lib/data/notifications";
 import { HOME_TYPE_LABEL, RESIDENCY_LABEL } from "@/lib/types/domain";
-import type { HouseSettingsRowExtended } from "@/lib/types/database";
 
 export const metadata: Metadata = { title: "More" };
 
-interface MoreLink {
-  href: string;
-  label: string;
-  body: string;
-}
-
 /**
- * Two entries are conditional, for the same reason they are in the sidebar: a
- * pot household has nothing to settle, and a rota household has asked not to be
- * shown scores. Listing a screen that can only ever be empty teaches people to
- * stop reading the menu.
+ * Everything that is not one of the five things on the bar.
+ *
+ * The 2.0 version was a single ungrouped column of twenty-two link cards, each
+ * with a sentence under it — a wall that took the same effort to scan whether
+ * you were looking for "away days" or "rooms". It was the clearest symptom of
+ * the navigation problem: a dumping ground is what a menu becomes when nothing
+ * decides what belongs in it.
+ *
+ * Now it renders the same groups the sidebar and the command palette do, from
+ * `destinations.ts`. The grouping is by the question a person is asking — "when
+ * am I around" and "who is staying" are the same question, so availability and
+ * guests sit together even though they belong to different modules.
  */
-function links({ isPot, isRota, gameLayerEnabled }: { isPot: boolean; isRota: boolean; gameLayerEnabled: boolean }): MoreLink[] {
-  return [
-    {
-      href: "/more/calendar",
-      label: "Calendar",
-      body: "Chores, money, food and decisions on one timeline — day, week or month",
-    },
-    {
-      href: "/notifications",
-      label: "Notifications",
-      body: "Everything the house has told you, and what it may interrupt you for",
-    },
-    {
-      href: "/food",
-      label: "Food",
-      body: "What the house ate, what it cost, and two ideas for tonight",
-    },
-    {
-      href: "/money/daily",
-      label: "Running cost",
-      body: "What the house costs a day, and whether that is more than it means to",
-    },
-    ...(isRota
-      ? []
-      : [
-          {
-            href: "/chores/standing",
-            label: "House standing",
-            body: "Who is carrying the house, and who is coasting",
-          },
-        ]),
-    ...(isPot
-      ? []
-      : [
-          {
-            href: "/settle",
-            label: "Settle up",
-            body: "Who pays whom this month, and what is confirmed",
-          },
-        ]),
-    {
-      href: "/more/approvals",
-      label: "Approvals",
-      body: "Everything the house is asking you to decide, in one queue",
-    },
-    {
-      href: "/more/decisions",
-      label: "Decisions",
-      body: "Everything the house has been asked, and how it answered",
-    },
-    {
-      href: "/expenses/approvals",
-      label: "Expense approvals",
-      body: "Expenses waiting on somebody other than the payer",
-    },
-    {
-      href: "/expenses/recurring",
-      label: "Recurring expenses",
-      body: "Rent, the electricity bill and the maid, posted automatically",
-    },
-    {
-      href: "/more/rules",
-      label: "House rules",
-      body: "What this home agreed, in its own words — and every version of it",
-    },
-    {
-      href: "/house/categories",
-      label: "Categories and budgets",
-      body: "What the house buys, and what it means to spend on each",
-    },
-    {
-      href: "/house/availability",
-      label: "My week",
-      body: "When the house can call on you, and when it cannot",
-    },
-    {
-      href: "/house/away",
-      label: "Away days",
-      body: "Declare a day off — the schedule moves, and so does your target",
-    },
-    {
-      href: "/house/guests",
-      label: "Guests",
-      body: "Who is staying, and whose bill and chores they are",
-    },
-    {
-      href: "/house/members",
-      label: "Members",
-      body: "Everyone who lives here, accounts and dependents alike",
-    },
-    { href: "/house/rooms", label: "Rooms", body: "Rooms, rent and who sleeps where" },
-    {
-      href: "/house/notifications",
-      label: "Notification settings",
-      body: "What reaches you, quiet hours, and which devices",
-    },
-    ...(gameLayerEnabled
-      ? [
-          {
-            href: "/more/game",
-            label: "Game layer",
-            body: "Streaks, badges and game points — your personal progress",
-          },
-        ]
-      : []),
-    { href: "/onboarding/profile", label: "My profile", body: "Cooking, UPI ID, your room" },
-  ];
-}
-
-const ADMIN_LINKS = [
-  {
-    href: "/admin/chores",
-    label: "Chore list",
-    body: "What needs doing, and what each job is worth",
-  },
-  {
-    href: "/admin/schedule",
-    label: "Schedule runs",
-    body: "Generate a week, and see how past ones were produced",
-  },
-  { href: "/admin/settings", label: "House settings", body: "Penalty rate, thresholds, invite code" },
-];
-
 export default async function MorePage() {
   const session = await requireSession();
   const context = await getHouseContext(session);
+
+  const [pendingApprovals, unread] = await Promise.all([
+    countDecisionsAwaiting(session, context.house.id, context.me.id),
+    getUnreadCount(session),
+  ]);
+
+  const groups = visibleGroups({
+    isPot: context.shape.isPot,
+    isRota: context.shape.effortMode === "rota",
+    isAdmin: context.isAdmin,
+    isLead: context.isLead,
+    isFamily: context.shape.homeType === "family",
+    gameLayer: context.settings.game_layer_enabled ?? false,
+    hasDependents: context.members.some((member) => member.kind === "dependent"),
+  });
+
+  const counts: Record<string, number> = {
+    "/more/approvals": pendingApprovals,
+    "/notifications": unread,
+  };
 
   return (
     <>
       <PageHeader title="More" />
 
-      <Card className="mb-4 flex items-center gap-3">
-        <MemberAvatar
-          name={context.me.displayName}
-          avatarUrl={context.me.avatarUrl}
-          size="lg"
-        />
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{context.me.displayName}</p>
-          <p className="caption-text text-text-muted">
-            {context.me.username ? `@${context.me.username} · ` : ""}
-            {context.house.name} · {HOME_TYPE_LABEL[context.shape.homeType]}{" "}
-            · {RESIDENCY_LABEL[context.me.residency]}
-          </p>
+      <Link href="/onboarding/profile" className="block">
+        <div className="card-shell card-interactive mb-6 flex items-center gap-3 p-3">
+          <MemberAvatar
+            name={context.me.displayName}
+            avatarUrl={context.me.avatarUrl}
+            size="lg"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-medium">{context.me.displayName}</p>
+            <p className="caption-text truncate text-text-muted">
+              {context.me.username ? `@${context.me.username} · ` : ""}
+              {context.house.name} · {HOME_TYPE_LABEL[context.shape.homeType]} ·{" "}
+              {RESIDENCY_LABEL[context.me.residency]}
+            </p>
+          </div>
+          <ChevronRight size={16} className="shrink-0 text-text-subtle" aria-hidden />
         </div>
-      </Card>
+      </Link>
 
-      <nav aria-label="More">
-        <ul className="flex flex-col gap-2">
-          {[
-            ...links({
-              isPot: context.shape.isPot,
-              isRota: context.shape.effortMode === "rota",
-              gameLayerEnabled: context.settings.game_layer_enabled ?? false,
-            }),
-            ...(context.isAdmin ? ADMIN_LINKS : []),
-          ].map((link) => (
-            <li key={link.href}>
-              <Link href={link.href}>
-                <Card className="transition-colors hover:border-primary">
-                  <p className="font-medium">{link.label}</p>
-                  <p className="caption-text text-text-muted">{link.body}</p>
-                </Card>
-              </Link>
-            </li>
+      {/* The two things that can be waiting on you lead, because they are the
+          only entries here that are ever urgent. */}
+      <Section heading="Waiting on you">
+        {WAITING.map((item) => (
+          <Row key={item.href} item={item} count={counts[item.href] ?? 0} />
+        ))}
+      </Section>
+
+      {groups.map((group) => (
+        <Section key={group.heading} heading={group.heading} note={group.note}>
+          {group.items.map((item) => (
+            <Row key={`${group.heading}-${item.href}`} item={item} count={counts[item.href] ?? 0} />
           ))}
-        </ul>
-      </nav>
+        </Section>
+      ))}
 
-      <div className="mt-6 flex items-center justify-between gap-3">
+      <div className="mt-8 flex items-center justify-between gap-3 border-t border-border pt-4">
         <ThemeToggle />
         <SignOutButton />
       </div>
     </>
+  );
+}
+
+function Section({
+  heading,
+  note,
+  children,
+}: {
+  heading: string;
+  note?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mb-6">
+      <p className="eyebrow-text mb-1">{heading}</p>
+      {note ? <p className="caption-text mb-2 text-text-subtle">{note}</p> : null}
+      {/* One hairline-divided list per group rather than one card per link.
+          Twenty-two separate cards was most of what made this screen a wall. */}
+      <ul className="divide-y divide-border overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface">
+        {children}
+      </ul>
+    </section>
+  );
+}
+
+function Row({
+  item,
+  count,
+}: {
+  item: { href: string; label: string; blurb?: string; icon: React.ComponentType<{ size?: number; className?: string }> };
+  count: number;
+}) {
+  const Icon = item.icon;
+  return (
+    <li>
+      <Link
+        href={item.href}
+        className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2"
+      >
+        <Icon size={17} className="shrink-0 text-text-subtle" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[15px]">{item.label}</span>
+          {item.blurb ? (
+            <span className="caption-text block truncate text-text-muted">{item.blurb}</span>
+          ) : null}
+        </span>
+        {count > 0 ? (
+          <span className="tabular shrink-0 rounded-full bg-primary px-1.5 text-[10px] font-semibold leading-4 text-primary-fg">
+            {count}
+          </span>
+        ) : null}
+        <ChevronRight size={15} className="shrink-0 text-text-subtle" aria-hidden />
+      </Link>
+    </li>
   );
 }

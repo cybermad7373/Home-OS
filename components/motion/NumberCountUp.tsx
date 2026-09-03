@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "@/lib/utils/media-query";
+import { formatMoney } from "@/lib/utils/money";
 
 interface NumberCountUpProps {
   value: number;
@@ -101,28 +102,34 @@ export function CountUpNumber({
 
 interface CountUpMoneyProps {
   paise: number;
+  /** The house's ISO currency code — "INR", not a symbol. */
   currency?: string;
   className?: string;
   duration?: number;
 }
 
+/**
+ * Money, counting up.
+ *
+ * It formats through `formatMoney` rather than building a string here. The
+ * version this replaces took a `currency` prop and special-cased the literal
+ * "₹", falling back to `` `${currency} ` `` for anything else — and what every
+ * caller actually passes is `house.currency`, the ISO code. So the Home screen
+ * rendered "INR 9,658.00" while every other amount on the same screen, going
+ * through `formatMoney`, rendered "₹9,658". One formatter, one boundary.
+ */
 export function CountUpMoney({
   paise,
-  currency = "₹",
+  currency = "INR",
   className,
   duration = 400,
 }: CountUpMoneyProps) {
   return (
     <NumberCountUp
-      value={paise / 100}
-      decimals={2}
-      prefix={currency === "₹" ? "₹" : `${currency} `}
+      value={paise}
       className={className}
       duration={duration}
-      formatter={(v) => `${currency === "₹" ? "₹" : `${currency} `}${v.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })}`}
+      formatter={(value) => formatMoney(Math.round(value), { currency })}
     />
   );
 }

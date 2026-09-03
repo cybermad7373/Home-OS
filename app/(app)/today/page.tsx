@@ -3,11 +3,9 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription } from "@/components/ui/card";
 import { PageHeader } from "@/components/layout/page-header";
-import { NotificationBell } from "@/components/notifications/bell";
 import { ChoreCard } from "@/components/chores/chore-card";
 import { AnnouncementsBlock } from "@/components/announcements/announcements-block";
 import { getHouseContext, requireSession } from "@/lib/data/house";
-import { getUnreadCount } from "@/lib/data/notifications";
 import { getToday } from "@/lib/data/today";
 import { presenceLabel } from "@/lib/domain/home/today";
 import { formatMoney } from "@/lib/utils/money";
@@ -29,9 +27,8 @@ export default async function TodayPage() {
   const session = await requireSession();
   const context = await getHouseContext(session);
 
-  const [today, unread] = await Promise.all([
+  const [today] = await Promise.all([
     getToday(session, context),
-    getUnreadCount(session),
   ]);
 
   const currency = context.house.currency;
@@ -46,7 +43,6 @@ export default async function TodayPage() {
           day: "numeric",
           month: "short",
         })}
-        action={<NotificationBell unread={unread} />}
       />
 
       {/* People — who is here, and who is not. */}

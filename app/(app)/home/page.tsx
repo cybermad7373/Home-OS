@@ -4,10 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardShell, CardCore, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { MemberAvatar } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/layout/page-header";
-import { NotificationBell } from "@/components/notifications/bell";
 import { Leaderboard } from "@/components/chores/leaderboard";
 import { getDailyCost } from "@/lib/data/analytics";
-import { getUnreadCount } from "@/lib/data/notifications";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listExpenses, listPendingApprovals } from "@/lib/data/expenses";
 import { countDecisionsAwaiting } from "@/lib/data/governance";
@@ -58,7 +56,6 @@ export default async function HomeOverviewPage() {
     myChores,
     standing,
     dailyCost,
-    unread,
     position,
   ] = await Promise.all([
     listExpenses(session, context.house.id, context.me.id, { period }),
@@ -68,7 +65,6 @@ export default async function HomeOverviewPage() {
     listAssignments(session, context.house.id, { from: dates[0], to: dates[6] }, context.me.id),
     getStanding(session, context.house.id, weekStart),
     getDailyCost(session, context.house, context.settings),
-    getUnreadCount(session),
     // A pot household nets nothing, so the read that produces the transfer list
     // is skipped rather than computed and then hidden.
     context.shape.isPot
@@ -114,7 +110,6 @@ export default async function HomeOverviewPage() {
           day: "numeric",
           month: "long",
         })} · ${active.length} ${active.length === 1 ? "member" : "members"}`}
-        action={<NotificationBell unread={unread} />}
       />
 
       {/* Pending Block - unified card with urgency gradient */}
