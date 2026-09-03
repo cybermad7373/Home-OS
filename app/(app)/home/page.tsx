@@ -179,12 +179,22 @@ export default async function HomeOverviewPage() {
 
       {/*
         The main column is the record — who owes whom, who is carrying the
-        week, who lives here. The rail is the short list of things blocked on
-        you and the setup you have not finished.
+        week. The rail is what a person glances at: the short list of things
+        blocked on you, the setup you have not finished, and who lives here.
+
+        The roster is in the rail because D-74 says it is ("counts, standing,
+        who is here"), and because leaving it in the main column made this
+        screen the worst example of the imbalance that decision exists to
+        prevent. `/home` is exactly one viewport tall and never scrolls, so a
+        rail that ran out at half its height left a third of the landing screen
+        permanently empty, with the main column carrying everything. Moving the
+        one piece of reference data across balances the two.
 
         The rail stacks first on a phone, which puts "waiting on you" directly
         under the two figures — exactly where it was before there was a rail at
-        all, and where the one urgent thing on this screen belongs.
+        all, and where the one urgent thing on this screen belongs. The roster
+        stays last in that stack, because on a phone it is the least urgent
+        thing on the screen.
       */}
       <Columns
         className="mt-8"
@@ -211,16 +221,15 @@ export default async function HomeOverviewPage() {
                 <HomeStanding ranked={ranked} meId={context.me.id} />
               </Section>
             ) : null}
-
-            <Section label="The house" href="/house/members">
-              <HomeHouseMembers active={active} meId={context.me.id} />
-            </Section>
           </>
         }
         aside={
           <>
             <HomePendingBlock pending={pending} />
             <SetupNudges nudges={nudges} />
+            <Section label="The house" href="/house/members">
+              <HomeHouseMembers active={active} meId={context.me.id} />
+            </Section>
           </>
         }
       />

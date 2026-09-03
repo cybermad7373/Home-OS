@@ -27,8 +27,12 @@ export function HomeHouseMembers({ active, meId }: { active: Member[]; meId: str
 
   return (
     // A sideways strip on a phone, where horizontal room is the scarce thing;
-    // a wrapping grid in the desktop rail, where vertical room is.
-    <ul className="scroll-x flex gap-1 py-1 lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0">
+    // a wrapping grid in the desktop rail, where vertical room is — and in the
+    // rail the cells are tighter, because a 340px rail fits three 84px cells
+    // and seven members then cost three rows and 360px of height. That
+    // overshot the main column by as much as leaving the roster out of the
+    // rail undershot it. Four to a row is two rows for a full house.
+    <ul className="scroll-x flex gap-1 py-1 lg:mx-0 lg:flex-wrap lg:gap-0 lg:overflow-visible lg:px-0">
       {active.map((member) => {
         const isMe = member.id === meId;
         const lead = member.role === "admin" || member.role === "co_admin";
@@ -36,14 +40,24 @@ export function HomeHouseMembers({ active, meId }: { active: Member[]; meId: str
           <li key={member.id} className="shrink-0">
             <Link
               href="/house/members"
-              className="flex w-[84px] flex-col items-center gap-2 rounded-[var(--radius-md)] px-1 py-2 transition-colors hover:bg-surface-2"
+              className="flex w-[84px] flex-col items-center gap-2 rounded-[var(--radius-md)] px-1 py-2 transition-colors hover:bg-surface-2 lg:w-[72px] lg:gap-1.5 lg:py-1.5"
             >
-              <MemberAvatar
-                name={isMe ? "You" : member.displayName}
-                avatarUrl={member.avatarUrl}
-                size="lg"
-                ring={isMe}
-              />
+              <span className="lg:hidden">
+                <MemberAvatar
+                  name={isMe ? "You" : member.displayName}
+                  avatarUrl={member.avatarUrl}
+                  size="lg"
+                  ring={isMe}
+                />
+              </span>
+              <span className="hidden lg:block">
+                <MemberAvatar
+                  name={isMe ? "You" : member.displayName}
+                  avatarUrl={member.avatarUrl}
+                  size="md"
+                  ring={isMe}
+                />
+              </span>
               <span className="w-full text-center">
                 <span className={cn("block truncate text-[12px]", isMe && "font-medium")}>
                   {isMe ? "You" : member.displayName.split(/\s+/)[0]}
