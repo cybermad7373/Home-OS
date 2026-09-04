@@ -434,6 +434,35 @@ itself a fault.
 
 ---
 
+## 10b. Third pass — 2026-09-04, the elements themselves
+
+The first pass proved the screens render. The second read them for proportion
+and placement. This one looked at the elements, and found that what made the
+interface feel unfinished was not spacing or shape: the design system's headline
+rule had been applied to about half the surfaces and left on the rest, so a
+strict black-and-white app kept meeting pastel chips from the version before it.
+
+| # | Found | Fix |
+|---|---|---|
+| 26 | The chores screen carried a green Confirmed, a red Rejected and an amber "Nobody assigned" — the whole of what D-71 removed, on the surface it most wanted them gone from | Ink. Filled means settled, outlined means not; the word in the chip was always doing the work |
+| 27 | The decision log answered a question about a house rule in green and a declined one in red; an approved expense was green; a Critical decision was amber in one place and red in another; a rule version that never took effect was amber | All ink, by the same rule |
+| 28 | The kitchen sink demonstrated the money tones *on chore states*, teaching the opposite of D-71 from the page that documents it | Two rows — the ink states and the money states — each with a sentence saying which is which |
+| 29 | The dot-matrix face was set at 12–15px in calendar cells, week-strip dates and leaderboard ranks, where the dots are smaller than the gaps between them | D-72 puts Doto at 28–44px; those figures are in the mono face, which is tabular and legible at the size the cell is |
+| 30 | The chore category rail ran to `#c4c4c4`, lighter than the hairline border of the card it sits in, so light categories read as a bar that failed to load | The ramp stops at `#999` in light, `#5c5c5c` in dark |
+| 31 | `disabled:opacity-40` on a filled ink button is a mid-grey slab that reads as a third variant, label at about 2.3:1 | 55% |
+
+**Two colours survive and both earn it.** A missed chore keeps its red, because
+a miss charges the member in a scored household and `chore_penalties` is a money
+table — so the one coloured chore state is the one that costs money, which is
+what the rule says colour is for. Budget verdicts and "Owes money" keep theirs
+for the same reason.
+
+**Alerts were deliberately left alone.** An alert saying a month cannot close is
+a genuine warning rather than a decorative state chip, and flattening those would
+hide the thing they exist to raise.
+
+---
+
 ## 11. Sign-off
 
 | Question | Answer |
