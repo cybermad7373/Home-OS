@@ -8,16 +8,17 @@
 people, work, money, food, calendar and decisions in one household, where
 everything is visible, everyone contributes, and important decisions are shared.
 
-**Status:** Specification version 2.0 adopted on 2026-08-26. Product phase 1
-(web/PWA) is in progress. Engineering phases 1–8 are built against
-specification 1.0 and phase 9 is built but not yet applied to an environment;
-phases 10–15 implement the version-2.0 additions — governance, rules, food,
-calendar, navigation and insights. Product phase 2 (native Android/iOS,
+**Status:** Specification version 2.0 adopted on 2026-08-26. Every engineering
+phase of it is built. On 2026-09-04 the hosted project was written to for the
+first time — 38 migrations, the LLM master key, and all eight Edge Functions —
+so phase 9 is no longer unapplied. What remains before the web release is in
+[18-GO-LIVE.md](18-GO-LIVE.md), and the largest item is that the deployed web
+app is not yet built from the revision the database now matches. Product phase 2 (native Android/iOS,
 engineering phase 17) follows the web launch. See
 [`../PROGRESS.md`](../PROGRESS.md) for the current state and
 [`../DECISIONS.md`](../DECISIONS.md) for the choices made while building.
 
-**Last updated:** 2026-08-27
+**Last updated:** 2026-09-04
 
 ---
 
@@ -65,6 +66,7 @@ distributes the load automatically according to who is actually home and when.
 | 15 | [FOOD-SPEC.md](15-FOOD-SPEC.md) — §5.2a | Restrictions: the hard exclusions no recommendation score may outrank, and what each severity does when a meal is recorded anyway | Developer |
 | 16 | [COMPETITIVE-POSITIONING.md](16-COMPETITIVE-POSITIONING.md) | Every competitor capability and complaint in [`Competitor_Analysis.txt`](Competitor_Analysis.txt), mapped to the requirement that carries it, the commitment that answers it, or the reason we do not build it | Product owner, developer |
 | 17 | [UAT.md](17-UAT.md) | The acceptance pass: every screen and every feature with what must happen, what was observed, what is deferred and what is not built — plus the layout sweep that checks proportion, placement and reach on every screen | Product owner, developer |
+| 18 | [GO-LIVE.md](18-GO-LIVE.md) | What is left before the web release, in the order it has to happen: the two things to do first, the web host's environment, the release order, the smoke test on a real domain, the gaps that are true on the day, and how to roll back | Whoever presses deploy |
 
 ### Source documents
 
