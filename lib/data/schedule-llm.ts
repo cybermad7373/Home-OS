@@ -1,3 +1,5 @@
+import "server-only";
+
 import type { Session } from "@/lib/data/house";
 import {
   SCHEDULE_MAX_TOKENS,

@@ -18,6 +18,8 @@
  *    falls back to storing plaintext.
  */
 
+import "server-only";
+
 export interface SealedKey {
   ciphertext: Uint8Array;
   iv: Uint8Array;

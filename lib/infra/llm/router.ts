@@ -1,3 +1,5 @@
+import "server-only";
+
 import { readCapabilities } from "@/lib/data/llm";
 import { isCapabilityOn, type Capability } from "@/lib/domain/llm/capabilities";
 import { resolveLlm } from "./resolve";

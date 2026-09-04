@@ -28,10 +28,31 @@ export default function GlobalError({
       <Button className="mt-2" onClick={reset}>
         Try again
       </Button>
-      <details className="caption-text mt-4 max-w-[40ch] text-text-subtle">
-        <summary className="cursor-pointer">Details</summary>
-        <p className="mt-1 break-words">{error.message}</p>
-      </details>
+      {/*
+        The digest, not the message.
+        
+        Next redacts a server error's message in production and replaces it with
+        a digest, which is the only thing that ties what a person saw to a line
+        in the server log — so it is the one detail worth putting in front of
+        them, and the one thing support will ask for. A client-side error's
+        message is not redacted, and showing it here would undo the same
+        information-disclosure fix the API just had: an internal string in front
+        of whoever triggered it.
+        
+        In development the message is what you actually want, and there is
+        nobody to disclose it to.
+      */}
+      {error.digest ? (
+        <p className="caption-text mt-4 text-text-subtle">
+          Reference <span className="tabular">{error.digest}</span>
+        </p>
+      ) : null}
+      {process.env.NODE_ENV !== "production" ? (
+        <details className="caption-text mt-2 max-w-[40ch] text-text-subtle">
+          <summary className="cursor-pointer">Details (development only)</summary>
+          <p className="mt-1 break-words">{error.message}</p>
+        </details>
+      ) : null}
     </main>
   );
 }

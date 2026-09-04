@@ -1,3 +1,5 @@
+import "server-only";
+
 import { route } from "@/lib/infra/llm/router";
 import {
   FOOD_IDEAS_MAX_TOKENS,

@@ -1,3 +1,5 @@
+import "server-only";
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ApiError, apiErrorFromPostgres } from "@/lib/api/errors";
 import type { Session } from "@/lib/data/house";

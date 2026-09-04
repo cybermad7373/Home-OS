@@ -1,3 +1,5 @@
+import "server-only";
+
 import { getProvider, resolveBaseUrl, resolveModel, type ProviderDescriptor } from "./providers";
 import { parseJson, validateAgainstSchema } from "./schema";
 import { anthropicTransport } from "./transports/anthropic";
