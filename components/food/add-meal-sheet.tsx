@@ -88,6 +88,7 @@ export function AddMealSheet({
       const clear = setTimeout(() => setMatch(null), 0);
       return () => clearTimeout(clear);
     }
+    let cancelled = false;
     const timeout = setTimeout(async () => {
       const response = await fetch("/api/food/library/match", {
         method: "POST",
@@ -97,8 +98,35 @@ export function AddMealSheet({
       if (!response.ok) return;
       const body = await response.json();
       setMatch(body);
+
+      /*
+        The model half, asked only once edit distance has come back with
+        nothing, and never awaited by the panel above. Folding it into the same
+        request made every keystroke in this field wait on a
+        `house_llm_credentials` lookup — for every household, including the
+        overwhelming majority with no key at all — to answer a question that
+        only arises when the deterministic pass has already failed.
+
+        A stale reply is dropped: `cancelled` is set by the cleanup below, so a
+        suggestion for a name the person has since typed past never lands.
+      */
+      if (!body?.isNew || cancelled) return;
+      const ai = await fetch("/api/food/library/match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, half: "ai" }),
+      }).catch(() => null);
+      if (!ai?.ok || cancelled) return;
+      const aiBody = await ai.json().catch(() => null);
+      if (aiBody?.aiSuggestion && !cancelled) {
+        setMatch((current) => (current ? { ...current, aiSuggestion: aiBody.aiSuggestion } : current));
+      }
     }, 350);
-    return () => clearTimeout(timeout);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
   }, [name, foodId]);
 
   function toggleParticipant(memberId: string) {

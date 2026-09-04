@@ -25,7 +25,11 @@ export interface MatchResult {
    * "Paruppu Sadham" and is the same food. Kept in its own field rather than
    * mixed into `suggestions` so that the deterministic result stays exactly
    * what it was, and so the screen can say where the suggestion came from.
-   * Absent unless this Home has a key with `food_normalise` switched on.
+   *
+   * Never set by `matchFoodName`, which is pure and fast and is what the
+   * did-you-mean panel is built on. The screen asks for it in a second request
+   * and merges it in, because the two are answers with very different costs and
+   * a household with no key should not pay for this one on every keystroke.
    */
   aiSuggestion?: LibraryCandidate | null;
 }

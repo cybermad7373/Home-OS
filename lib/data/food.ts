@@ -367,24 +367,40 @@ export async function matchFood(
     name: f.name,
     timesEaten: f.timesEaten,
   }));
-  const result = matchFoodName(candidateName, library);
+  return matchFoodName(candidateName, library);
+}
 
-  /*
-   * Call site 6 (FD-10), and only in the one case the deterministic matcher
-   * cannot serve. An exact match is already the answer; a set of near
-   * neighbours is already a did-you-mean panel. What is left is the name edit
-   * distance filed as new, which is where a transliteration hides: the spec's
-   * own example, "Parupu Rice" against "Paruppu Sadham", is seven edits apart
-   * and the same dish.
-   *
-   * The deterministic result is not altered by any of this. The model's answer
-   * arrives in its own field, is one candidate the Home already has or nothing,
-   * and is a suggestion somebody confirms — never a merge.
-   */
-  if (!result.isNew) return result;
+/**
+ * Call site 6, asked separately — docs/10-LLM-SPEC.md section 3.6a, FD-10.
+ *
+ * Two requests rather than one, for the same reason Try Today is two (section
+ * 9.5): they are two answers with very different costs. The deterministic match
+ * is a read of rows already in memory and it is what the did-you-mean panel is
+ * built on, so it must come back at typing speed. This one may route to a
+ * provider, and making every keystroke wait for a `house_llm_credentials`
+ * lookup — which is what folding it into `matchFood` did — slowed the panel for
+ * every household, including the overwhelming majority that have no key at all.
+ *
+ * Only worth asking when the deterministic pass found nothing: an exact match
+ * is already the answer, and near neighbours are already a panel.
+ */
+export async function aiMatchFood(
+  session: Session,
+  houseId: string,
+  candidateName: string,
+): Promise<LibraryCandidate | null> {
+  const foods = await listFoods(session, houseId);
+  const library: LibraryCandidate[] = foods.map((f) => ({
+    id: f.id,
+    name: f.name,
+    timesEaten: f.timesEaten,
+  }));
 
-  const aiSuggestion = await suggestFoodMatch(houseId, candidateName, library);
-  return aiSuggestion ? { ...result, aiSuggestion } : result;
+  // Never second-guess a deterministic answer. If edit distance found anything
+  // at all, that is the answer and the model is not asked.
+  if (!matchFoodName(candidateName, library).isNew) return null;
+
+  return suggestFoodMatch(houseId, candidateName, library);
 }
 
 export async function createFoodLibraryEntry(
