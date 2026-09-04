@@ -20,6 +20,7 @@ import type {
   CreateShoppingItemInput,
   ConfirmMealPlanInput,
   UpdateFoodPreferenceInput,
+  UpdateMealInput,
   UpdateShoppingItemInput,
 } from "@/lib/validation/food";
 import type { Database } from "@/lib/types/database";
@@ -255,6 +256,37 @@ export async function listMeals(
   const { data, error } = await query;
   if (error) throw apiErrorFromPostgres(error);
   return (data as unknown as MealJoinRow[] ?? []).map(toMealView);
+}
+
+/**
+ * Correct a recorded meal (S-45).
+ *
+ * The total is not written: `total_cost_paise` is derived from the four
+ * components by a trigger, so sending one here would let a caller state a total
+ * that disagrees with its own parts. Who may edit is decided by the
+ * `meals_update` policy — the creator or a lead — rather than by anything here.
+ */
+export async function updateMeal(
+  session: Session,
+  mealId: string,
+  input: UpdateMealInput,
+): Promise<void> {
+  const patch: Tables["meals"]["Update"] = {};
+  if (input.name !== undefined) patch.name = input.name;
+  if (input.mealDate !== undefined) patch.meal_date = input.mealDate;
+  if (input.source !== undefined) patch.source = input.source;
+  if (input.mealType !== undefined) patch.meal_type = input.mealType;
+  if (input.baseCostPaise !== undefined) patch.base_cost_paise = input.baseCostPaise;
+  if (input.prepCostPaise !== undefined) patch.prep_cost_paise = input.prepCostPaise;
+  if (input.deliveryCostPaise !== undefined) patch.delivery_cost_paise = input.deliveryCostPaise;
+  if (input.otherCostPaise !== undefined) patch.other_cost_paise = input.otherCostPaise;
+  // Null is a value here, not an absence: it is how a note or a recipe is
+  // cleared, and `undefined` is how it is left alone.
+  if (input.recipeInstructions !== undefined) patch.recipe_instructions = input.recipeInstructions;
+  if (input.note !== undefined) patch.note = input.note;
+
+  const { error } = await session.supabase.from("meals").update(patch).eq("id", mealId);
+  if (error) throw apiErrorFromPostgres(error);
 }
 
 export async function deleteMeal(session: Session, mealId: string): Promise<void> {

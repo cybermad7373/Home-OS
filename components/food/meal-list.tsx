@@ -1,6 +1,10 @@
+"use client";
+
+import { useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { List } from "@/components/layout/section";
 import { LinkExpenseChip } from "./link-expense-chip";
+import { MealDetailSheet } from "./meal-detail-sheet";
 import { formatDate } from "@/lib/utils/date";
 import { formatMoney } from "@/lib/utils/money";
 import type { MealView } from "@/lib/data/food";
@@ -33,6 +37,8 @@ function ate(participants: { displayName: string }[]): { short: string; full: st
 
 /** Meal History (S-42/S-44) — the Home's food history, everyone's, in one list. */
 export function MealList({ meals, currency }: { meals: MealView[]; currency: string }) {
+  const [openMeal, setOpenMeal] = useState<MealView | null>(null);
+
   if (meals.length === 0) {
     return (
       <EmptyState
@@ -43,11 +49,26 @@ export function MealList({ meals, currency }: { meals: MealView[]; currency: str
   }
 
   return (
+    <>
     <List>
       {meals.map((meal) => (
         <li key={meal.id} className="px-4 py-3">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+            {/*
+              The whole left side opens the meal (S-45). Until this existed a
+              recorded meal could never be looked at again — a mistyped amount
+              or a wrong date was permanent, and the recipe instructions the
+              schema has carried since migration 081 had nowhere to be read.
+              The row's own expense chip stays outside the button, because it is
+              a second action and nesting one inside the other would make the
+              whole row ambiguous to a keyboard.
+            */}
+            <button
+              type="button"
+              onClick={() => setOpenMeal(meal)}
+              className="min-w-0 flex-1 rounded-[var(--radius-xs)] text-left"
+              aria-label={`Open ${meal.name}`}
+            >
               <p className="text-[15px] font-medium text-text">{meal.name}</p>
               <p className="caption-text truncate text-text-muted">
                 {formatDate(meal.mealDate)} · {SOURCE_LABEL[meal.source] ?? meal.source}
@@ -56,7 +77,7 @@ export function MealList({ meals, currency }: { meals: MealView[]; currency: str
                   return who ? <span title={who.full}> · {who.short}</span> : null;
                 })()}
               </p>
-            </div>
+            </button>
             <div className="flex items-center gap-2">
               {meal.totalCostPaise > 0 ? (
                 <span className="tabular text-[15px]">
@@ -69,5 +90,13 @@ export function MealList({ meals, currency }: { meals: MealView[]; currency: str
         </li>
       ))}
     </List>
+
+    <MealDetailSheet
+      meal={openMeal}
+      currency={currency}
+      open={openMeal !== null}
+      onClose={() => setOpenMeal(null)}
+    />
+    </>
   );
 }

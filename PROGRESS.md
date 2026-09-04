@@ -1401,12 +1401,33 @@ shared check-off, creator-or-lead delete) are new; the other three pieces
 reused backends that already had — or, for meal plans, still lack —
 integration coverage of their own.
 
-**Still deferred, not started:** a meal detail/edit view (S-44); recipe-
-instructions entry; Calendar and Insights integration (section 9's table);
-N-45/N-46 notifications; a `meal_plans` integration-test suite (the plan
-lifecycle — create, list, confirm, already-confirmed refusal, delete — has
-no test below the new E2E steps, the same gap merge and link-expense had
-before this pass and still have).
+**Since built (2026-09-04):** the meal detail and edit view (S-45), reached by
+tapping any row in Meal History or on Food. It shows what the record actually
+holds — the cost broken into its four parts, who ate, the per-person figure, the
+items, the note, the recipe instructions the schema has carried since migration
+081 and had nowhere to display, and the linked expense. Editing is narrower than
+recording on purpose: the name, date, source, type, four costs, note and recipe
+can be corrected; participants and items cannot, because changing who ate a meal
+changes a per-person figure the Home may already have settled against, and doing
+that silently is worse than making somebody delete and re-record.
+
+Writing it turned up a defect that could not exist before it: `total_cost_paise`
+was computed in the body of `create_meal` and by nothing else, so any UPDATE of
+a cost component left the total at its old value. A meal corrected from ₹150 to
+₹200 would have kept reporting ₹150 to Meal History, to the per-person figure
+and to the library's rolling median of what a dish costs. Migration
+`20260904000000` moves the invariant into a trigger, where AGENTS.md says an
+invariant belongs, and backfills any row that had already drifted.
+`tests/integration/meal-edit.test.ts` covers the policy and the arithmetic:
+creator edits, lead edits, null clears a note, another house sees nothing and
+changes nothing, and the total is recomputed from its parts.
+
+**Still deferred, not started:** recipe-instructions entry at *record* time (it
+is editable on the meal, not yet on the add sheet); Calendar and Insights
+integration (section 9's table); N-45/N-46 notifications; a `meal_plans`
+integration-test suite (the plan lifecycle — create, list, confirm,
+already-confirmed refusal, delete — has no test below the E2E steps, the same
+gap merge and link-expense had before this pass and still have).
 
 ---
 

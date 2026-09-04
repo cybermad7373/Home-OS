@@ -55,6 +55,39 @@ export const createMealSchema = z.object({
 
 export type CreateMealInput = z.infer<typeof createMealSchema>;
 
+/**
+ * Editing a recorded meal (S-45).
+ *
+ * Deliberately narrower than creating one. The four cost components, the name,
+ * the date, the source and the type are corrections a person makes when they
+ * mistyped something; participants and items are not editable here, because
+ * changing who ate a meal after the fact changes a per-person figure the home
+ * may already have settled an expense against. Correcting that is a delete and
+ * a re-record, which is visible, rather than an edit, which is not.
+ *
+ * Every field is optional and at least one must be present: a PATCH that
+ * changes nothing is a mistake worth reporting rather than a no-op worth
+ * accepting.
+ */
+export const updateMealSchema = z
+  .object({
+    name: z.string().trim().min(1, "Name it").max(120).optional(),
+    mealDate: isoDate.optional(),
+    source: mealSourceSchema.optional(),
+    mealType: mealTypeSchema.optional(),
+    baseCostPaise: paise.optional(),
+    prepCostPaise: paise.optional(),
+    deliveryCostPaise: paise.optional(),
+    otherCostPaise: paise.optional(),
+    recipeInstructions: z.string().trim().max(4000).nullable().optional(),
+    note: z.string().trim().max(1000).nullable().optional(),
+  })
+  .refine((value) => Object.values(value).some((field) => field !== undefined), {
+    message: "Change something",
+  });
+
+export type UpdateMealInput = z.infer<typeof updateMealSchema>;
+
 export const updateFoodPreferenceSchema = z
   .object({
     foodId: z.string().uuid().optional(),
