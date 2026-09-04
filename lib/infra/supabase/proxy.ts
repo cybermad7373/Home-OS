@@ -21,6 +21,8 @@ const PUBLIC_PREFIXES = [
   "/join",
   "/api/join",
   "/offline",
+  // Read before signing up, and by a store reviewer who has no account at all.
+  "/legal",
   "/manifest.webmanifest",
   "/sw.js",
 ];

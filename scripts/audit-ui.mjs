@@ -75,7 +75,7 @@ const ROUTES = [
 ];
 
 /** Screens reached without a session. */
-const PUBLIC_ROUTES = ["/signin", "/signup", "/offline"];
+const PUBLIC_ROUTES = ["/signin", "/signup", "/offline", "/legal/privacy", "/legal/support"];
 
 const findings = [];
 

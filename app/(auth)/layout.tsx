@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 /**
  * The first screen anybody sees, and the only place the product introduces
@@ -29,6 +30,20 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           </p>
         </div>
         {children}
+
+        {/*
+          Reachable before there is an account. A person deciding whether to
+          sign up is exactly the person who wants to read what the product does
+          with a household's money, and a store reviewer has no other way in.
+        */}
+        <nav aria-label="Documents" className="mt-8 flex items-center justify-center gap-5">
+          <Link href="/legal/privacy" className="tap-44 caption-text text-text-muted hover:text-text">
+            Privacy
+          </Link>
+          <Link href="/legal/support" className="tap-44 caption-text text-text-muted hover:text-text">
+            Support
+          </Link>
+        </nav>
       </div>
     </main>
   );
