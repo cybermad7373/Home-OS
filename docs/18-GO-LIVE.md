@@ -175,11 +175,37 @@ until there is a deployed origin.
 
 ---
 
+## 5a. What the application now does for itself
+
+Added on 2026-09-04, so the deploy does not have to.
+
+| | |
+|---|---|
+| **Security headers** | Set in `next.config.ts` for every route: `X-Frame-Options: DENY` and `Content-Security-Policy: frame-ancestors 'none'` (this product is mostly approvals, and an un-framed app cannot be click-jacked through one), `nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` denying camera, microphone and geolocation, and two-year HSTS. Verified present on a production build |
+| **Errors say nothing** | A 500 carries its code and its sentence. The raw Postgres message an unmapped database error arrives with is logged and stripped, rather than spread into the response as it used to be |
+| **The error screen shows a reference** | The digest, which is what ties what a person saw to a line in your log. The message is development-only |
+| **Server code is guarded** | `import "server-only"` on every module that touches the database or the LLM master key, so a client component reaching for one fails the build rather than the request |
+
+---
+
 ## 6. Known gaps at go-live
 
 These are true on the day you release. None of them blocks a release; all of
 them should be stated rather than discovered.
 
+- **There is no `Content-Security-Policy` beyond `frame-ancestors`.** Next
+  injects inline bootstrap script and the app uses inline styles, so a correct
+  policy needs per-request nonces threaded through the proxy. Worth doing, and
+  worth doing as its own change with its own testing rather than inside a
+  headers pass. The comment in `next.config.ts` says so, so the omission stays
+  a decision rather than becoming an oversight.
+- **There is no application-level rate limiting.** Supabase rate-limits auth
+  upstream — `/api/auth/signup` already handles `EMAIL_RATE_LIMITED` — and every
+  other route requires a session. What is not protected is a signed-in member
+  hammering a write endpoint. An in-memory limiter is worse than none on a
+  multi-instance deploy, because it silently limits a fraction of traffic, so
+  this belongs at the host or CDN: Vercel's firewall, Cloudflare, or whatever
+  sits in front. Decide which.
 - **No push has reached a real device.** The bytes are proved correct — the
   Edge Function's own test plays the receiver and decrypts them — but the last
   hop through FCM or Mozilla's push service to a handset has never happened.
