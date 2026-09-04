@@ -1673,9 +1673,10 @@ Three things the pass established that were not previously written down:
   connection rather than on a defect" is gone with it. The hosted project has
   since been written to once, on 2026-09-04 and by explicit request; see the
   entry above. It is still not a test target and never becomes one.
-- **End-to-end coverage now runs to phase 15.** Every phase from 11 onward has
-  its own journey, and the suite is 92 cases across the mobile and desktop
-  projects. `docs/12-TEST-PLAN.md` section 4 still lists journeys nobody walks.
+- **End-to-end coverage now runs to phase 15, and covers money and chores.**
+  Every phase from 11 onward has its own journey, and money and chores — the two
+  things the product is most obviously for — have theirs as of 2026-09-04. The
+  suite is 128 cases across the mobile and desktop projects.
 - **A dependent's chores now have a screen**, at `/chores/dependents`, linked
   from a guardian's own chore page: each dependent in their care, today's work
   first, with a "Meera did it" button per chore. Confirming is still refused —
@@ -1698,9 +1699,13 @@ Three things the pass established that were not previously written down:
   more, from one screen with filters; `/analytics` and the `/api/analytics/*`
   endpoints remain as aliases through the transition, reading through the same
   repositories the insights endpoints do so the two cannot drift.
-- Expenses, close and chores still have no browser-level journey of their own,
-  though the food, rules, governance, Today and insights journeys cross all
-  three.
+- Expenses, close and chores have browser journeys of their own now
+  (`money.spec.ts`, `chores.spec.ts`). The money journey records an expense on
+  the keypad, reads the figure back off the ledger, off the summary and off
+  Insights under the category it was filed against, and walks the close dry run
+  and Settle. The chores journey generates and publishes a week, claims a chore,
+  marks it done, and asserts the one-member quorum: with nobody to ask, it
+  confirms itself rather than waiting in a queue that can never clear.
 - Edge Functions must be deployed manually (`npx supabase functions deploy …`).
   Until they are, the cron jobs fire into a 404. Every job is idempotent, so a
   late deployment catches up rather than losing work. All eight were deployed on
