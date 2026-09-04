@@ -2,7 +2,7 @@ import "server-only";
 
 import { ApiError, apiErrorFromPostgres } from "@/lib/api/errors";
 import { rupeesToPaise } from "@/lib/utils/money";
-import type { Session } from "./house";
+import { houseDateNow, type Session } from "./house";
 import type {
   EffortMode,
   MemberRole,
@@ -214,9 +214,19 @@ export async function removeDependent(
   houseId: string,
   memberId: string,
 ): Promise<void> {
+  /*
+   * The Home's date, not UTC's. `left_date` is a date column and it decides
+   * whether somebody counted as resident on a given day — which chores they
+   * were owed and which meals they shared in. Taken from
+   * `new Date().toISOString()`, a dependent removed at 02:00 in Asia/Kolkata
+   * was recorded as having left the previous day, and a day of their share
+   * moved onto everybody else.
+   */
+  const today = await houseDateNow(session, houseId);
+
   const { data, error } = await session.supabase
     .from("house_members")
-    .update({ status: "inactive", left_date: new Date().toISOString().slice(0, 10) })
+    .update({ status: "inactive", left_date: today })
     .eq("id", memberId)
     .eq("house_id", houseId)
     .eq("member_kind", "dependent")

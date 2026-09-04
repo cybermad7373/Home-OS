@@ -13,7 +13,7 @@ import {
 } from "@/lib/domain/settlement/netting";
 import { buildUpiLink, settlementNote } from "@/lib/domain/settlement/upi";
 import { endOfMonth } from "./expenses";
-import type { Session } from "./house";
+import { houseDateNow, type Session } from "./house";
 import type { MonthlyPeriodRow, SettlementStatus } from "@/lib/types/database";
 
 /**
@@ -228,7 +228,7 @@ export async function getPeriodPosition(
     .sort((a, b) => b.netPaise - a.netPaise);
 
   const monthEnd = endOfMonth(period);
-  const houseToday = await currentHouseDate(session, houseId);
+  const houseToday = await houseDateNow(session, houseId);
 
   return {
     period,
@@ -244,21 +244,6 @@ export async function getPeriodPosition(
       .map(([name, entry]) => ({ name, icon: entry.icon, totalPaise: entry.totalPaise }))
       .sort((a, b) => b.totalPaise - a.totalPaise),
   };
-}
-
-async function currentHouseDate(session: Session, houseId: string): Promise<string> {
-  const { data } = await session.supabase
-    .from("houses")
-    .select("timezone")
-    .eq("id", houseId)
-    .single();
-
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: data?.timezone ?? "Asia/Kolkata",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
 }
 
 export interface ClosePreview {

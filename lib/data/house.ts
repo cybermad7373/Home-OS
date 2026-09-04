@@ -14,6 +14,7 @@ import type {
   RoomView,
 } from "@/lib/types/domain";
 import { houseShapeOf } from "@/lib/types/domain";
+import { houseToday } from "@/lib/utils/date";
 
 /**
  * The house repository. SQL lives here and in the migrations, nowhere else
@@ -131,6 +132,28 @@ export async function requireAdminMembership(session: Session): Promise<Membersh
 export interface OccupancyRow {
   member_id: string | null;
   room_id: string | null;
+}
+
+/**
+ * Today, in the Home's own timezone.
+ *
+ * AGENTS.md states the rule as non-negotiable — "evaluate dates in the house
+ * timezone; persist timestamps in UTC" — and the difference is not academic. A
+ * house in Asia/Kolkata is five and a half hours ahead of UTC, so between
+ * midnight and 05:30 local, `new Date().toISOString().slice(0, 10)` is
+ * yesterday's date for everybody in it.
+ *
+ * This lived privately inside `settlement.ts` and so was not available to the
+ * one other place that needed it, which duly got it wrong.
+ */
+export async function houseDateNow(session: Session, houseId: string): Promise<string> {
+  const { data } = await session.supabase
+    .from("houses")
+    .select("timezone")
+    .eq("id", houseId)
+    .single();
+
+  return houseToday(data?.timezone ?? undefined);
 }
 
 export function roomByMemberFrom(rows: OccupancyRow[] | null): Map<string, string> {

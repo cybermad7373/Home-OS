@@ -31,16 +31,34 @@ export function errorResponse(error: unknown): NextResponse {
     console.error("[api] unhandled error", error);
   }
 
-  return NextResponse.json(
-    {
-      error: {
-        code: apiError.code,
-        message: apiError.message,
-        ...(apiError.details ? { details: apiError.details } : {}),
-      },
-    },
-    { status: apiError.status },
-  );
+  /*
+   * `cause` never leaves the server.
+   *
+   * `apiErrorFromPostgres` is the fallback for every database error the
+   * catalogue does not recognise, and it carried the raw Postgres message in
+   * `details.cause` — which was then spread into the response body. So an
+   * unmapped error anywhere in the API returned its Postgres text, and on
+   * `/api/auth/signup`, which is public, it returned the error's `details` and
+   * `hint` as well: constraint names, column names and schema hints, to an
+   * unauthenticated caller.
+   *
+   * The value is worth keeping — it is what makes a 500 diagnosable — so it is
+   * logged here and stripped from the body rather than removed at the six
+   * places that set it.
+   */
+  const { cause, ...safeDetails } = apiError.details ?? {};
+  if (cause !== undefined) {
+    console.error(`[api] ${apiError.code}`, cause);
+  }
+
+  // A 500 tells the client nothing beyond its own sentence. Anything a caller
+  // could act on has a code of its own in the catalogue.
+  const body =
+    apiError.code === "INTERNAL" || Object.keys(safeDetails).length === 0
+      ? { code: apiError.code, message: apiError.message }
+      : { code: apiError.code, message: apiError.message, details: safeDetails };
+
+  return NextResponse.json({ error: body }, { status: apiError.status });
 }
 
 export function jsonResponse<T>(body: T, status = 200): NextResponse {

@@ -163,6 +163,28 @@ describe("house-timezone dates", () => {
     expect(houseToday("Europe/London", at)).toBe("2026-08-23");
   });
 
+  it("disagrees with UTC on the other side of midnight, which is the whole point", () => {
+    /*
+     * The case that made `left_date` wrong. 02:00 in Asia/Kolkata is 20:30 the
+     * previous day in UTC, so a date column filled from
+     * `new Date().toISOString().slice(0, 10)` records yesterday for everybody
+     * in an Indian household between midnight and 05:30.
+     *
+     * `left_date` decides whether somebody counted as resident on a given day —
+     * which chores they were owed and which meals they shared in — so a day's
+     * share moved onto everybody else.
+     */
+    const earlyMorningInKolkata = new Date("2026-09-04T20:30:00Z");
+
+    expect(houseToday("Asia/Kolkata", earlyMorningInKolkata)).toBe("2026-09-05");
+    expect(earlyMorningInKolkata.toISOString().slice(0, 10)).toBe("2026-09-04");
+  });
+
+  it("agrees with UTC in a zone that is UTC", () => {
+    const at = new Date("2026-09-04T20:30:00Z");
+    expect(houseToday("UTC", at)).toBe(at.toISOString().slice(0, 10));
+  });
+
   it("describes recent timestamps in relative terms", () => {
     const now = new Date("2026-08-23T12:00:00Z");
     expect(relativeTime("2026-08-23T10:00:00Z", now)).toContain("2 hours");
