@@ -24,11 +24,11 @@ import { weekDates } from "@/lib/domain/scheduling/capacity";
 import { formatDate, houseToday } from "@/lib/utils/date";
 import { Columns } from "@/components/layout/columns";
 import { Section } from "@/components/layout/section";
-import { HomeFigures } from "./HomeFigures";
-import { HomeOwesWhom } from "./HomeOwesWhom";
-import { HomeStanding } from "./HomeStanding";
-import { HomePendingBlock } from "./HomePendingBlock";
-import { HomeHouseMembers } from "./HomeHouseMembers";
+import { HomeFigures } from "@/components/home/figures";
+import { HomeOwesWhom } from "@/components/home/owes-whom";
+import { HomeStanding } from "@/components/home/standing";
+import { HomePendingBlock } from "@/components/home/pending-block";
+import { HomeHouseMembers } from "@/components/home/house-members";
 
 export const metadata: Metadata = {
   title: "Home",

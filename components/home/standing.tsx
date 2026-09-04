@@ -2,7 +2,7 @@ import { MemberAvatar } from "@/components/ui/avatar";
 import { concentrationRatio } from "@/lib/domain/fairness/targets";
 import type { StandingRow } from "@/lib/domain/fairness/targets";
 import { cn } from "@/lib/utils/cn";
-import { Meter } from "./HomeFigures";
+import { Meter } from "./figures";
 
 /**
  * Who is carrying the week.

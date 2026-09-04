@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { KitchenSink } from "./KitchenSink";
+import { KitchenSink } from "@/components/dev/kitchen-sink";
 
 export const metadata: Metadata = { title: "Kitchen sink" };
 
