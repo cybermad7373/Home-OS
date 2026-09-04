@@ -155,7 +155,8 @@ export function WeekView({
               <span className="eyebrow-text text-current opacity-70">
                 {formatDate(date, timezone, { weekday: "short" }).slice(0, 1)}
               </span>
-              <span className="readout text-[15px] leading-none">
+              {/* Mono at this size, not the dot matrix — see the calendar. */}
+              <span className="tabular text-[15px] leading-none">
                 {formatDate(date, timezone, { day: "numeric" })}
               </span>
               <span

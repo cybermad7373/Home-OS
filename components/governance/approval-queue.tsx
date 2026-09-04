@@ -238,8 +238,9 @@ function DecisionSummary({ decision }: { decision: DecisionView }) {
           {DECISION_TYPE_LABEL[decision.type]}
           {decision.subjectMember ? ` — ${decision.subjectMember.displayName}` : ""}
         </p>
+        {/* Ink. Red is money, and a decision's level is not money. */}
         {decision.level === "critical" ? (
-          <Badge tone="danger">Critical</Badge>
+          <Badge tone="primary">Critical</Badge>
         ) : decision.level === "important" ? (
           <Badge>Important</Badge>
         ) : null}

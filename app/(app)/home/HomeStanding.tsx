@@ -57,7 +57,7 @@ export function HomeStanding({
               key={row.memberId}
               className={cn("flex items-center gap-3 px-4 py-3", isMe && "bg-surface-2")}
             >
-              <span className="readout w-5 shrink-0 text-[15px] leading-none text-text-subtle">
+              <span className="tabular w-5 shrink-0 text-[15px] leading-none text-text-subtle">
                 {rank}
               </span>
               <MemberAvatar

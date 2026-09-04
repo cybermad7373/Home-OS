@@ -247,17 +247,39 @@ export const CHORE_STATUS_LABEL: Record<ChoreStatus, string> = {
   cancelled: "Cancelled",
 };
 
+/**
+ * D-71 applied to effort, which is where it was hardest to finish and where it
+ * had been left half-done.
+ *
+ * The decision reserves green and red for money — green means the house owes
+ * you, red means you owe the house — and says in terms that the mapping is
+ * "deliberately *not* extended to effort: being behind on chores is not a
+ * financial state". It also names the amber badge on "anything that was merely
+ * waiting" as the thing 2.0 got wrong. `RULE_STATUS_TONE` was rewritten to
+ * neutral for exactly this reason; this map was not, so the chores screen —
+ * the most-used screen in the app — still carried a green Confirmed, a red
+ * Rejected and an amber "Nobody assigned", which is the whole of what the
+ * decision removed, on the one surface it most wanted them gone from.
+ *
+ * What carries the difference now is weight and fill, as D-71 says it should:
+ * a confirmed chore is filled ink, everything else is an outlined label.
+ *
+ * `missed` keeps its red, and that is not an exception to the rule but an
+ * instance of it. A missed chore charges the member in a scored household —
+ * `chore_penalties` is a money table — so the one coloured chore state is the
+ * one that costs money, which is precisely what the rule says colour is for.
+ */
 export const CHORE_STATUS_TONE: Record<
   ChoreStatus,
-  "neutral" | "success" | "warning" | "danger" | "info"
+  "neutral" | "success" | "warning" | "danger" | "info" | "primary"
 > = {
   assigned: "neutral",
-  open: "warning",
+  open: "neutral",
   // Neutral, not amber: a chore waiting on a signature is the normal path
   // through the app, not a warning about anything.
   done_pending: "neutral",
-  confirmed: "success",
-  rejected: "danger",
+  confirmed: "primary",
+  rejected: "neutral",
   missed: "danger",
   cancelled: "neutral",
 };

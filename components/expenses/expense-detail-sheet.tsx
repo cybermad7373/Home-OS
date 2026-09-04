@@ -220,8 +220,15 @@ export function ExpenseDetailSheet({
         {expense.status === "pending_approval" ? (
           <Badge>Waiting for approval</Badge>
         ) : null}
-        {expense.status === "approved" ? <Badge tone="success">Approved</Badge> : null}
-        {expense.status === "rejected" ? <Badge tone="danger">Rejected</Badge> : null}
+        {/*
+          Ink, not green and red. An approved expense is not "the house owes
+          you" and a rejected one is not "you owe the house", which is the only
+          thing those two colours are allowed to mean (D-71). The state is a
+          workflow step, so it is carried by fill: settled states are filled,
+          everything else is an outlined label.
+        */}
+        {expense.status === "approved" ? <Badge tone="primary">Approved</Badge> : null}
+        {expense.status === "rejected" ? <Badge tone="neutral">Rejected</Badge> : null}
         {expense.status === "void" ? <Badge tone="neutral">Void</Badge> : null}
       </div>
 

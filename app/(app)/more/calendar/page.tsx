@@ -691,7 +691,12 @@ function DayCell({
     >
       <span
         className={cn(
-          "readout text-[12px] leading-none lg:text-[13px]",
+          // Mono, not the dot matrix. D-72 sets Doto at 28–44px, where a dot
+          // grid resolves into a digit; a date in a calendar cell is 12px, and
+          // at that size the dots are smaller than the gaps between them and
+          // "31" is a smudge. The mono face is tabular, reads as a figure, and
+          // is legible at the size the cell actually is.
+          "tabular text-[12px] leading-none lg:text-[13px]",
           isToday ? "text-text" : "text-text-muted",
         )}
       >

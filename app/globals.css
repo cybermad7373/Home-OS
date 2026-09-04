@@ -105,14 +105,19 @@
   /* ---- chore categories ----
      The rail on a chore card. Greyscale, because the card already says
      "Clean bathroom" in words and a seventh hue would be decoration. What the
-     rail encodes is weight: heavier work is darker. */
+     rail encodes is weight: heavier work is darker.
+
+     The ramp stops at #999 rather than running to #c4c4c4. Past that a 4px
+     rail is lighter than the hairline border of the card it sits inside, so
+     the lightest categories read as a bar that failed to load rather than as
+     light work — and a scale whose bottom end looks broken is not a scale. */
   --cat-cooking: #000000;
-  --cat-kitchen: #333333;
-  --cat-bathroom: #4d4d4d;
-  --cat-room: #696969;
-  --cat-common: #8a8a8a;
-  --cat-mopping: #a8a8a8;
-  --cat-other: #c4c4c4;
+  --cat-kitchen: #2b2b2b;
+  --cat-bathroom: #414141;
+  --cat-room: #575757;
+  --cat-common: #6d6d6d;
+  --cat-mopping: #838383;
+  --cat-other: #999999;
 
   /* ---- radius ----
      Generous on containers, full on controls. A pill button against a hairline
@@ -215,12 +220,12 @@
     --chart-axis: #6b6b6b;
 
     --cat-cooking: #ffffff;
-    --cat-kitchen: #d4d4d4;
-    --cat-bathroom: #b0b0b0;
-    --cat-room: #8f8f8f;
-    --cat-common: #6f6f6f;
-    --cat-mopping: #545454;
-    --cat-other: #3d3d3d;
+    --cat-kitchen: #dcdcdc;
+    --cat-bathroom: #c2c2c2;
+    --cat-room: #a8a8a8;
+    --cat-common: #8e8e8e;
+    --cat-mopping: #757575;
+    --cat-other: #5c5c5c;
 
     --elev-1: none;
     --elev-2: 0 1px 2px rgb(0 0 0 / 0.6);
@@ -276,12 +281,12 @@
   --chart-axis: #6b6b6b;
 
   --cat-cooking: #ffffff;
-  --cat-kitchen: #d4d4d4;
-  --cat-bathroom: #b0b0b0;
-  --cat-room: #8f8f8f;
-  --cat-common: #6f6f6f;
-  --cat-mopping: #545454;
-  --cat-other: #3d3d3d;
+  --cat-kitchen: #dcdcdc;
+  --cat-bathroom: #c2c2c2;
+  --cat-room: #a8a8a8;
+  --cat-common: #8e8e8e;
+  --cat-mopping: #757575;
+  --cat-other: #5c5c5c;
 
   --elev-1: none;
   --elev-2: 0 1px 2px rgb(0 0 0 / 0.6);

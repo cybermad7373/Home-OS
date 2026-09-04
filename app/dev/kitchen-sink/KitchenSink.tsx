@@ -189,14 +189,33 @@ export function KitchenSink() {
       </Section>
 
       <Section title="Badges and chips">
+        {/*
+          Demonstrated with the labels the tones are actually *for*, which this
+          page previously got wrong in the one place it most needed to be
+          right: it showed the money tones on chore states — a green
+          "Confirmed", an amber "Waiting on you", a pink "Missed" — and so
+          taught the opposite of D-71 from the page that documents it.
+        */}
         <div className="flex flex-wrap gap-2">
-          <Badge>Neutral</Badge>
-          <Badge tone="success">Confirmed</Badge>
-          <Badge tone="warning">Waiting on you</Badge>
-          <Badge tone="danger">Missed</Badge>
+          <Badge>To do</Badge>
+          <Badge tone="primary">Confirmed</Badge>
           <Badge tone="info">Rota</Badge>
-          <Badge tone="primary">Critical</Badge>
         </div>
+        <p className="caption-text text-text-muted">
+          Ink and paper for everything that is not money. A state is carried by
+          fill and by its own words: filled means settled, outlined means not.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Badge tone="success">Owed to you</Badge>
+          <Badge tone="danger">You owe</Badge>
+          <Badge tone="danger">Over budget</Badge>
+        </div>
+        <p className="caption-text text-text-muted">
+          The two money hues, and the only three labels in the app entitled to
+          them. Green is the house owing you, red is you owing the house — and a
+          missed chore, because in a scored home a miss charges you, which makes
+          it money rather than an exception to the rule.
+        </p>
         <ChipRow label="Filter">
           {[
             ["all", "Everything", 34],

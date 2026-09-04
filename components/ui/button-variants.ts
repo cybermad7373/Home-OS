@@ -20,7 +20,13 @@ export const buttonVariants = cva(
     "font-medium tracking-[-0.01em] whitespace-nowrap",
     "transition-[background-color,color,border-color,opacity,transform]",
     "duration-[var(--duration-fast)] ease-[var(--ease-out)]",
-    "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40",
+    // 55%, not 40%. At 40% a filled ink button is a flat mid-grey slab that
+    // reads as a third variant rather than as the primary one made
+    // unavailable, and its white label falls to about 2.3:1 against what is
+    // effectively #999 — legible only because nothing is asking you to read
+    // it. At 55% the shape still says "this is the button you wanted" and the
+    // label survives.
+    "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-55",
   ].join(" "),
   {
     variants: {

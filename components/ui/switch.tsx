@@ -51,7 +51,7 @@ export function Switch({
       className={cn(
         "relative inline-flex h-[26px] w-[46px] shrink-0 items-center rounded-full border",
         "transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out)]",
-        "disabled:pointer-events-none disabled:opacity-40",
+        "disabled:pointer-events-none disabled:opacity-55",
         // The control is 26px tall because a 44px pill would be the loudest
         // thing on a settings screen. The *target* is still 44px, carried by
         // `tap-44`, which is the whole reason the minimum exists.

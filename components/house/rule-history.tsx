@@ -66,7 +66,9 @@ export function RuleHistory({
                     {formatDateTime(version.createdAt, timezone)}
                   </p>
                 </div>
-                <Badge tone={inForce ? "success" : version.activatedAt ? "neutral" : "warning"}>
+                {/* A rule version is not money, so it gets no money colour
+                    (D-71). Filled means in force; outlined means it is not. */}
+                <Badge tone={inForce ? "primary" : "neutral"}>
                   {inForce
                     ? "In force"
                     : version.activatedAt

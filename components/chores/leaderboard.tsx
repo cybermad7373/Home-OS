@@ -78,7 +78,7 @@ export function Leaderboard({
               row.memberId === myMemberId && "bg-surface-2",
             )}
           >
-            <span className="readout w-5 shrink-0 text-[15px] leading-none text-text-subtle">
+            <span className="tabular w-5 shrink-0 text-[15px] leading-none text-text-subtle">
               {row.rank}
             </span>
 

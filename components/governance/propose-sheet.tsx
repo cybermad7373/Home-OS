@@ -194,7 +194,11 @@ export function ProposeSheet({
           <section className="mb-3 rounded-[var(--radius-sm)] bg-surface-2 p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <p className="label-text">Who will be asked</p>
-              <Badge tone={preview.level === "critical" ? "warning" : "neutral"}>
+              {/* Ink, not amber. A Critical decision is weighty, not a warning
+                  about money, and amber on "anything that was merely waiting"
+                  is the thing D-71 removed. Weight carries it: filled for
+                  Critical, outlined for the ordinary case. */}
+              <Badge tone={preview.level === "critical" ? "primary" : "neutral"}>
                 {preview.level === "critical" ? "Critical" : "Needs a response"}
               </Badge>
             </div>

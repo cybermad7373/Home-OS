@@ -61,14 +61,16 @@ export function DecisionLog({
                       : ""}
                   </p>
                 </div>
+                {/*
+                  How the house answered is not money, so it gets no money
+                  colour (D-71). Green here meant "the house owes you" on a
+                  decision about a house rule, and red meant "you owe the
+                  house" on one that was simply declined. A settled decision is
+                  filled ink; everything else is an outlined label, and the
+                  word in it is what says which.
+                */}
                 <Badge
-                  tone={
-                    decision.status === "rejected"
-                      ? "danger"
-                      : decision.status === "applied"
-                        ? "success"
-                        : "neutral"
-                  }
+                  tone={decision.status === "applied" ? "primary" : "neutral"}
                   className="shrink-0"
                 >
                   {DECISION_STATUS_LABEL[decision.status]}

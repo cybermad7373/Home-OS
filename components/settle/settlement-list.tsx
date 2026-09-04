@@ -151,7 +151,7 @@ export function SettlementList({
                 </div>
 
                 {settlement.status === "confirmed" ? (
-                  <Badge tone="success">Confirmed by {settlement.toName}</Badge>
+                  <Badge tone="primary">Confirmed by {settlement.toName}</Badge>
                 ) : (
                   <div className="flex flex-col gap-2">
                     {settlement.upiLink ? (
@@ -211,7 +211,7 @@ export function SettlementList({
                 </div>
 
                 {settlement.status === "confirmed" ? (
-                  <Badge tone="success">Confirmed</Badge>
+                  <Badge tone="primary">Confirmed</Badge>
                 ) : (
                   <Button
                     block
