@@ -119,12 +119,17 @@ governance, rules, food, Today/Calendar/navigation, and insights — are built a
 verified against the local stack, with migrations 045–089 applied there.
 
 What remains before product phase 1 (web/PWA) can be called launched is not a
-phase. It is the gate listed under "Known gaps and follow-ups" in `PROGRESS.md`:
-migration 045 and the LLM master key applied to a real environment, the
-`weekly-digest` redeploy, a push delivered to a real device, and the production
-release checks. **Nothing in this repository has been pushed to the hosted
-project**; local Supabase is the test target, and writing to the hosted project
-is always a separately requested action.
+phase. It is the gate listed under "Known gaps and follow-ups" in `PROGRESS.md`.
+Three of its five items were closed on 2026-09-04 by an explicitly requested
+push to the hosted project `foxzpnofcpyeouwnoqjp`: all 37 pending migrations are
+applied there, `LLM_KEY_ENCRYPTION_KEY` is set as an Edge Function secret, and
+all eight functions are redeployed against the new schema. What is still open is
+a push delivered to a real device and the production release checks.
+
+**Local Supabase remains the test target**, and writing to the hosted project is
+still always a separately requested action — it is not a step inside a
+verification run, and the fact that it has been done once does not make it
+routine.
 
 `PROGRESS.md` is the authority on what is built and what has actually been
 applied to a database. Product phase 2 is native Android/iOS (engineering phase

@@ -324,7 +324,7 @@ Each of these is built. None can be accepted in this environment.
 | D-01 | Push delivered to a real Android device (N-09) | An installed PWA on a phone, over HTTPS |
 | D-02 | Push subscription in a browser (N-08) | A deployed origin; a service worker registers only over HTTPS or on localhost |
 | D-03 | The scheduled jobs firing on their cron | Deployed Edge Functions; `weekly-digest` is one deploy behind |
-| D-04 | The intelligence migration and master key in a real environment | Migration 045 and the key applied to a hosted project — a separately requested action |
+| D-04 | ~~The intelligence migration and master key in a real environment~~ | **Closed 2026-09-04.** Migrations 045–089 and the three dated ones applied to `foxzpnofcpyeouwnoqjp`; `LLM_KEY_ENCRYPTION_KEY` set as an Edge Function secret. The same value must also be set on whatever host runs the Next server, or the app will seal credentials the jobs cannot open |
 | D-05 | Two people acting at once on one decision | A second real session; the property is covered by property tests and integration instead |
 | D-06 | Offline write queue | See NOT BUILT below — the contract exists, the queue does not |
 | D-07 | Native Android and iOS clients | Engineering phase 17, not started |
@@ -441,5 +441,5 @@ itself a fault.
 | Does every screen render, at every width, in both themes, with real data? | Yes — 246 renders, 0 findings |
 | Does every feature in the specification work end to end? | Yes, except the eleven deferred and three not-built items above |
 | Is anything shown to a member that is not true? | No. The last of it — the game layer's invented figures — was removed on 2026-09-03 |
-| Is anything written to the hosted project? | No. Everything here ran against local Supabase |
+| Is anything written to the hosted project? | Yes, once, on 2026-09-04 and by explicit request: 37 migrations, the master key as an Edge Function secret, and all eight functions redeployed. Every test and sweep in this document ran against local Supabase |
 | Can the product be released on this evidence? | Not yet: the launch gate in `PROGRESS.md` — the migration and key applied to a real environment, the `weekly-digest` redeploy, a push delivered to a real device, and the production release checks |

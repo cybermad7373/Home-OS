@@ -12,8 +12,8 @@ How the rest of the build runs. The reasoning is D-59; this is the summary.
 
 | | |
 |---|---|
-| **Next piece of work** | Every engineering phase of specification 2.0 is built, and as of 2026-09-03 so is the surface overhaul: the seed, the AI paths, the design system, the navigation and all 44 screens. What remains is not a phase: the launch gate in "Known gaps" — migration 045 and the LLM master key applied to an environment, the `weekly-digest` redeploy, a real-device push test, and the production release checks. |
-| **Test target** | The local stack. The hosted project is written to only by an explicitly requested `db:push`. |
+| **Next piece of work** | Every engineering phase of specification 2.0 is built, and as of 2026-09-03 so is the surface overhaul. On 2026-09-04 the hosted project was written to for the first time, by explicit request: 37 migrations, the LLM master key as an Edge Function secret, and all eight functions redeployed. What remains of the launch gate in "Known gaps" is a real-device push test and the production release checks — privacy and support pages, monitoring, and backups. |
+| **Test target** | The local stack, still. The hosted project is written to only by an explicitly requested `db:push`; that this has now happened once does not make it routine, and no test or sweep in this repository points at it. |
 | **Scope** | The whole of specification 2.0: finish phase 11, then 12 to 15 in the roadmap's order. Nothing trimmed. |
 | **Phase-11 order** | Jobs and notifications, then S-37 proposers, then absence, then shared assignment and `change_confirmation_policy`, then governed close with adjustments, then expected contributions and the reserve. |
 | **Commits** | One per slice, on `main`, as each is finished. |
@@ -1625,12 +1625,27 @@ Three things the pass established that were not previously written down:
   `membership.test.ts` and `chore-quorum.test.ts` cover them, including that a
   decision does not complete on the proposer's own responses and that a
   service-role key cannot apply an unapproved one.
-- **The web/PWA launch gate is not yet met.** Intelligence is built but not
-  applied to any environment (migration 045, the master key, and a redeploy of
-  `weekly-digest`), and production release checks — privacy and support pages,
-  monitoring, backups, and a real-device smoke test — still need to be completed
-  before calling product phase 1 launched. Specification 2.0 widens what phase 1
-  contains; it does not change that gate.
+- **The web/PWA launch gate is partly met.** On 2026-09-04, by explicit request,
+  the hosted project `foxzpnofcpyeouwnoqjp` was written to for the first time.
+  What was applied, and verified afterwards:
+
+  | Item | State |
+  |---|---|
+  | Migrations | All 37 pending applied — 045 to 089 plus `20260901000000`, `20260903000000` and `20260903000001`. `migration list` reports 75 of 75 applied, 0 pending |
+  | Existing data | Intact. A full schema and data dump was taken first. No table lost rows; two gained them (`governance_policy`, `invitations`), which the new migrations seed |
+  | The `member_status` rename | Landed. The remote enum is `requested, active, inactive` where it was `pending, active, inactive` |
+  | `LLM_KEY_ENCRYPTION_KEY` | Set as an Edge Function secret. Freshly generated rather than copied, because `house_llm_credentials` was created by migration 045 and had nothing sealed in it yet |
+  | Edge Functions | All eight redeployed against the new schema, not only `weekly-digest`. The other seven were a schema behind, having last been deployed on 2026-08-24 against 044 |
+
+  **Two things this does not mean.** The Next server that seals house credentials
+  must be given the *same* `LLM_KEY_ENCRYPTION_KEY` value, or it will seal
+  credentials the scheduled jobs cannot open; that host is outside this
+  repository. And the app deployed against that project must be built from this
+  revision — the schema moved 37 migrations under it, including function
+  signatures that `20260903000001` changed.
+
+  **Still open:** a push delivered to a real device, and the production release
+  checks — privacy and support pages, monitoring, and backups.
 - **`food_normalise` is built**, and all six documented call sites are now
   implemented. It is consulted only where the deterministic matcher in food
   specification section 4.1 found no candidate at all — the case a
@@ -1655,8 +1670,9 @@ Three things the pass established that were not previously written down:
   `gen:types` and all 92 end-to-end cases run against `supabase start`, with
   migrations 045–089 plus `20260901000000`, `20260903000000` and
   `20260903000001` applied there. The whole class of "failed on a dropped
-  connection rather than on a defect" is gone with it. Nothing in this
-  repository has been written to the hosted project.
+  connection rather than on a defect" is gone with it. The hosted project has
+  since been written to once, on 2026-09-04 and by explicit request; see the
+  entry above. It is still not a test target and never becomes one.
 - **End-to-end coverage now runs to phase 15.** Every phase from 11 onward has
   its own journey, and the suite is 92 cases across the mobile and desktop
   projects. `docs/12-TEST-PLAN.md` section 4 still lists journeys nobody walks.
