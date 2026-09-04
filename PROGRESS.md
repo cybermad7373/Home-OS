@@ -1422,12 +1422,23 @@ invariant belongs, and backfills any row that had already drifted.
 creator edits, lead edits, null clears a note, another house sees nothing and
 changes nothing, and the total is recomputed from its parts.
 
+**Since covered (2026-09-04):** `tests/integration/meal-plans.test.ts`. The plan
+lifecycle had no test below the end-to-end steps, so `meal_plans` RLS had never
+been held to its own policy and BR-217 — the rule the table exists for — had
+never been checked at all. Nine cases: any member may plan with only a name and
+a date; a fresh plan creates no meal, no expense and no participants, which is
+BR-217 and the reason a plan is a separate table rather than a meal with a flag;
+the whole house sees it, not only whoever filed it; a plan cannot be filed under
+somebody else's name; another house sees nothing and changes nothing; confirming
+links the plan to the meal it became; deleting a plan leaves that meal standing;
+and a delete is refused from a member who neither planned it nor leads the home.
+Verified to fail when the impersonation check is bypassed.
+
 **Still deferred, not started:** recipe-instructions entry at *record* time (it
 is editable on the meal, not yet on the add sheet); Calendar and Insights
-integration (section 9's table); N-45/N-46 notifications; a `meal_plans`
-integration-test suite (the plan lifecycle — create, list, confirm,
-already-confirmed refusal, delete — has no test below the E2E steps, the same
-gap merge and link-expense had before this pass and still have).
+integration (section 9's table); N-45/N-46 notifications; integration coverage
+for food-library merge and link-expense, which have the gap meal plans just
+lost.
 
 ---
 
