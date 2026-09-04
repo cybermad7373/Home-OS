@@ -91,6 +91,14 @@ runtime; Vercel, Fly, Railway, Render or a container all work.
 
 **Build:** `npm ci && npm run build`  ·  **Start:** `npm start`  ·  **Node 20+**
 
+**Build from a clean `.next`.** This is not hygiene advice. An incremental
+build over a stale `.next` served a proxy bundle that did not know `/legal` was
+a public route, so `/legal/privacy` and `/legal/support` answered `307` to
+`/signin` in production while both returned `200` in development. A store
+reviewer or a prospective member would have found a privacy page that demanded
+an account. `rm -rf .next` before building, and check the two public pages after
+every deploy — step 3 of the smoke test exists for this.
+
 ### 3.1 Environment variables
 
 Required. The app will not work correctly without every one of these.
