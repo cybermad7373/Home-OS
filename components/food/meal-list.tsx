@@ -66,7 +66,7 @@ export function MealList({ meals, currency }: { meals: MealView[]; currency: str
             <button
               type="button"
               onClick={() => setOpenMeal(meal)}
-              className="min-w-0 flex-1 rounded-[var(--radius-xs)] text-left"
+              className="tap-44 min-w-0 flex-1 rounded-[var(--radius-xs)] text-left"
               aria-label={`Open ${meal.name}`}
             >
               <p className="text-[15px] font-medium text-text">{meal.name}</p>

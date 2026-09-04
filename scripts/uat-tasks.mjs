@@ -111,19 +111,23 @@ await run(page, "Sign in", "Can I get in?", async (journey) => {
   return `landed on ${new URL(page.url()).pathname}`;
 });
 
-await run(page, "What do I owe", "How much do I owe the house, and to whom?", async (journey) => {
+await run(page, "Where do I stand", "How much is mine to pay, and to whom?", async (journey) => {
+  // Two right answers, and which one a home gets is the point. A split home is
+  // told what it owes or is owed; a pot home is told its share, because a pot
+  // nets nothing between members and calling that a debt is the defect fixed in
+  // 9de24c2. So the task looks for either, and reports which.
+  const position = /you owe|you are owed|your share|your position/i;
+
   await journey.go("/home");
-  const owe = page.getByText(/you owe/i).first();
-  const visible = await owe.isVisible().catch(() => false);
-  if (!visible) {
-    // Not on the landing screen — find out how far away it is.
-    await journey.tap(page.getByRole("link", { name: "Money", exact: true }).first(), "Money");
-    const onMoney = await page.getByText(/you owe/i).first().isVisible().catch(() => false);
-    return onMoney
-      ? "not on /home; one tap away on Money"
-      : "not found on /home or Money";
+  if (await page.getByText(position).first().isVisible().catch(() => false)) {
+    return "answered on the landing screen, no taps";
   }
-  return "answered on the landing screen, no taps";
+
+  await journey.tap(page.getByRole("link", { name: "Money", exact: true }).first(), "Money");
+  const label = await page.getByText(position).first().textContent().catch(() => null);
+  return label
+    ? `one tap away on Money, as "${label.trim()}"`
+    : "not found on /home or Money";
 });
 
 await run(page, "What is waiting on me", "What does the house need from me?", async (journey) => {
@@ -154,15 +158,23 @@ await run(page, "Find the add-expense form", "I paid for the gas — where do I 
   const add = page.getByRole("button", { name: /^add$/i }).first();
   if (!(await add.isVisible().catch(() => false))) return "no Add control on /home";
   await journey.tap(add, "Add");
-  const expense = page.getByRole("button", { name: /expense|money|paid/i }).first();
+  // The quick-add options are links, not buttons — correctly, because they
+  // navigate. Looking for a button here found nothing, the second tap never
+  // happened, and the task reported that it could not reach the form.
+  const expense = page.getByRole("link", { name: /expense/i }).first();
   if (await expense.isVisible().catch(() => false)) {
     await journey.tap(expense, "Expense");
+    await page.waitForLoadState("domcontentloaded");
+    await page.waitForTimeout(800);
   }
-  const amount = page.getByLabel(/amount/i).first();
-  const reachable = await amount.isVisible().catch(() => false);
+  // The amount is a keypad, not a text field — `getByLabel(/amount/i)` finds
+  // nothing and an earlier version of this task reported that as a failure to
+  // reach the form. It is a `role="group"` named "Amount keypad".
+  const keypad = page.getByRole("group", { name: "Amount keypad" });
+  const reachable = await keypad.isVisible().catch(() => false);
   return reachable
-    ? `amount field reachable in ${journey.interactions} interactions from the landing screen`
-    : `no amount field after ${journey.interactions} interactions`;
+    ? `the keypad is up after ${journey.interactions} interactions from the landing screen`
+    : `no amount keypad after ${journey.interactions} interactions`;
 });
 
 await run(page, "Mark a chore done", "I cooked dinner — how do I say so?", async (journey) => {
@@ -175,15 +187,21 @@ await run(page, "Mark a chore done", "I cooked dinner — how do I say so?", asy
 });
 
 await run(page, "Settle up", "Who do I pay, and how much?", async (journey) => {
-  await journey.go("/home");
-  const settle = page.getByRole("link", { name: /settle/i }).first();
-  if (await settle.isVisible().catch(() => false)) {
-    await journey.tap(settle, "Settle up");
-  } else {
-    await journey.go("/settle");
-  }
+  await journey.go("/settle");
   const amounts = await page.getByText(/₹/).count();
-  return `${amounts} figures on /settle after ${journey.interactions} tap(s)`;
+  if (amounts > 0) return `${amounts} figures to settle`;
+
+  // Zero figures is the right answer for a pot home, and the screen has to say
+  // so rather than render an empty table. An earlier version of this task
+  // reported the zero as though it were a finding.
+  const explained = await page
+    .getByText(/Nobody owes anybody|shares a pot/i)
+    .first()
+    .isVisible()
+    .catch(() => false);
+  return explained
+    ? "nothing to settle, and the screen says why"
+    : "nothing to settle, and the screen does not say why";
 });
 
 await run(page, "Read the month", "What did the house spend, and on what?", async (journey) => {
