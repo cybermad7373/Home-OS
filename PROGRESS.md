@@ -1681,6 +1681,11 @@ Three things the pass established that were not previously written down:
   theme — so a visual regression can be seen rather than only reasoned about.
   What is still not automated is the comparison: the images are evidence a
   person reads, not a diff a run fails on.
+- **The layout holds from 320 px to 2560 px**, in both themes, on the
+  development server and on a production build: 902 screen renders, 0 findings.
+  The sweep runs eleven widths rather than three as of 2026-09-04, and adding
+  320 px is what found the header defect that had every screen in the app
+  scrolling sideways by one pixel on the smallest phones still in use.
 - **Native mobile is a separate product phase.** It must not be described as a
   wrapper with “no backend change”: native push uses a provider adapter and
   platform token lifecycle, while the shared API and device model remain the

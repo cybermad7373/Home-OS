@@ -25,7 +25,7 @@ Three commands produce the evidence:
 ```bash
 npm run test          # 942 unit, property and integration cases
 npm run test:e2e      # 92 browser cases, mobile and desktop projects
-npm run audit:ui      # every screen at 360/768/1280 px, light and dark
+npm run audit:ui      # every screen at 11 widths, 320 to 2560, light and dark
 npm run shoot:ui      # a full-page screenshot of all 38, to be read by eye
 npm run uat:tasks     # nine ordinary tasks, driven as a housemate would
 ```
@@ -50,7 +50,7 @@ composition says it is.
 | **Deferred** | 11 | 11 |
 | **Not built** | 5 | 4 — `food_normalise` is built |
 | **Failed** | 0 | 0 |
-| **Sweep findings** | 0 across 246 screen renders | 0, unchanged |
+| **Sweep findings** | 0 across 246 screen renders | 0 across 902 — eleven widths, 320 to 2560 px, both themes, and again on the production build |
 | **Found by reading the screens** | 16 | 9 more, all fixed |
 
 The second pass is the one worth reading. The first established that every
@@ -75,7 +75,7 @@ row each rather than one row per screen.
 
 | ID | What is checked | Rule | Status |
 |---|---|---|---|
-| X-01 | No screen scrolls horizontally | `scrollWidth == clientWidth` at 360, 768 and 1280 px | PASS (auto) |
+| X-01 | No screen scrolls horizontally | `scrollWidth == clientWidth` at 320, 360, 390, 430, 768, 1023, 1024, 1280, 1440, 1920 and 2560 px. 1023 and 1024 bracket the `lg` boundary from both sides, because the composition changes there | PASS (auto) |
 | X-02 | Content column is capped | ≤ 1120 px inside the 1400 px shell (spec §2.4) | PASS (auto) |
 | X-03 | The desktop rail is the declared width | exactly 340 px above `lg`, and `position: sticky` (spec §3.6) | PASS (auto) |
 | X-04 | Every control can be hit | ≥ 44 px target, counting a `tap-44` overlay and a wrapping label; inline links in a sentence exempt per WCAG 2.5.8 | PASS (auto) |
