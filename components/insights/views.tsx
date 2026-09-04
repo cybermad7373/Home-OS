@@ -227,18 +227,40 @@ export function MoneyView({
         */}
         <ul className="mt-2 flex flex-col gap-2">
           {report.paidVsShare.map((member) => (
+            /*
+              Two shapes, because three columns of rupees do not fit a 320px
+              screen. Below `sm` the name and the net share a line and the
+              "paid of share" sits under them, which keeps the one comparison
+              the card is read for — the net, down the right edge — and gives
+              up the middle column's alignment, which is the least useful of
+              the three. At `sm` and above all three line up, which is what the
+              card was rewritten for in the first place.
+            */
             <li
               key={member.memberId}
-              className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-4"
+              className="flex flex-col gap-0.5 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-baseline sm:gap-x-4"
             >
-              <span className="min-w-0 truncate">{member.name}</span>
-              <span className="tabular justify-self-end whitespace-nowrap">
+              <span className="flex items-baseline justify-between gap-3 sm:block sm:min-w-0 sm:truncate">
+                <span className="min-w-0 truncate">{member.name}</span>
+                <span
+                  className={cn(
+                    "tabular shrink-0 whitespace-nowrap sm:hidden",
+                    member.netPaise >= 0 ? "text-success" : "text-text-muted",
+                  )}
+                >
+                  {member.netPaise >= 0 ? "+" : ""}
+                  {money(member.netPaise)}
+                </span>
+              </span>
+
+              <span className="tabular whitespace-nowrap text-[13px] text-text-muted sm:justify-self-end sm:text-[15px] sm:text-text">
                 {money(member.paidPaise)}
                 <span className="text-text-muted"> of {money(member.fairSharePaise)}</span>
               </span>
+
               <span
                 className={cn(
-                  "tabular w-[7.5rem] justify-self-end text-right whitespace-nowrap",
+                  "tabular hidden w-[7.5rem] justify-self-end text-right whitespace-nowrap sm:block",
                   member.netPaise >= 0 ? "text-success" : "text-text-muted",
                 )}
               >

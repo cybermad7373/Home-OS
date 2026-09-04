@@ -62,7 +62,21 @@ export function AppHeader({
     <>
       <header className="sticky top-0 z-30 border-b border-border bg-bg/85 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-2 px-4 md:px-6">
-          <HomeSwitcher homes={homes} selectedId={selectedHouseId} />
+          {/*
+            `min-w-0` is load-bearing, for the same reason it is on the main
+            column. The switcher's label is `truncate`, which is
+            `white-space: nowrap`, and a flex item's default `min-width: auto`
+            floors it at its own min-content width — the whole unwrapped home
+            name. So a long name did not truncate; it pushed the three controls
+            to its right, and at 320px the notification bell ended one pixel
+            past the edge of the screen. Every screen in the app scrolled
+            sideways by that pixel, because the header is on every screen.
+          */}
+          <HomeSwitcher
+            homes={homes}
+            selectedId={selectedHouseId}
+            className="min-w-0"
+          />
 
           <div className="flex-1" />
 

@@ -27,10 +27,28 @@ const CONTENT_MAX = 1120;
 /** The desktop rail, section 3.6. */
 const RAIL = 340;
 
+/*
+ * The widths worth sweeping, and why each is here rather than a round number.
+ *
+ * 320 is the smallest screen still in real use and the one every "it works on
+ * mobile" claim quietly excludes. 1023 and 1024 are the `lg` boundary itself,
+ * checked from both sides: the app changes composition there — bottom bar to
+ * sidebar, stacked to two-column — and a layout that breaks does it at the
+ * switch rather than in the middle of a range. 2560 is the other end nobody
+ * looks at, where a capped column can leave a screen looking abandoned.
+ */
 const WIDTHS = [
+  { name: "320", width: 320, height: 720 },
   { name: "360", width: 360, height: 780 },
+  { name: "390", width: 390, height: 844 },
+  { name: "430", width: 430, height: 932 },
   { name: "768", width: 768, height: 1024 },
+  { name: "1023", width: 1023, height: 900 },
+  { name: "1024", width: 1024, height: 900 },
   { name: "1280", width: 1280, height: 900 },
+  { name: "1440", width: 1440, height: 900 },
+  { name: "1920", width: 1920, height: 1080 },
+  { name: "2560", width: 2560, height: 1440 },
 ];
 
 const ROUTES = [
