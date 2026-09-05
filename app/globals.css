@@ -425,7 +425,12 @@
     font-family: var(--font-doto), var(--font-geist-mono), ui-monospace, monospace;
     font-variant-numeric: tabular-nums;
     font-weight: 700;
-    letter-spacing: 0.02em;
+    /* Doto draws each glyph as a dot grid, so adjacent digits run together at
+       the tracking a continuous face wants. Widening it is what separates
+       1,931.60 into figures somebody can read at a glance rather than a texture
+       that reads as a rendering fault — the complaint D-72 has always been one
+       bad screenshot away from. The face itself is unchanged. */
+    letter-spacing: 0.06em;
   }
 
   .display-xl {
@@ -433,7 +438,7 @@
     font-size: 44px;
     line-height: 46px;
     font-weight: 700;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.05em;
     font-variant-numeric: tabular-nums;
   }
 
@@ -442,7 +447,7 @@
     font-size: 32px;
     line-height: 36px;
     font-weight: 700;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.06em;
     font-variant-numeric: tabular-nums;
   }
 

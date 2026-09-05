@@ -121,7 +121,7 @@ test("the calendar link reaches all three views", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Food" })).toBeVisible();
 });
 
-test("the quick-add offers an Admin exactly the seven actions they may take", async ({
+test("the quick-add offers an Admin every kind of thing a home makes", async ({
   page,
 }) => {
   await signIn(page);
@@ -131,6 +131,11 @@ test("the quick-add offers an Admin exactly the seven actions they may take", as
 
   // Asserted by destination rather than by label: "Chore" and "Chore done" are
   // two different options whose names contain one another.
+  //
+  // The list was four options for a member and seven for an admin while a Home
+  // makes fifteen kinds of thing, and everything it left out sat two or three
+  // taps down inside a sidebar group that is shut on arrival. Every entry here
+  // lands on the form rather than on the list the form lives on.
   const sheet = page.getByRole("dialog", { name: "Add" });
   const hrefs = await sheet.getByRole("link").evaluateAll((links) =>
     links.map((link) => link.getAttribute("href")),
@@ -141,9 +146,17 @@ test("the quick-add offers an Admin exactly the seven actions they may take", as
     "/food?add=1",
     "/chores/mine",
     "/house/away",
+    "/food/shopping",
+    "/house/guests",
     "/admin/chores",
-    "/house/categories",
+    "/house/categories?add=1",
+    "/house/rooms?add=1",
+    "/today?add=announcement",
+    "/more/decisions/new",
     "/more/rules/new",
+    "/house/members?add=1",
+    "/expenses/recurring?add=1",
+    "/homes",
   ]);
 });
 
