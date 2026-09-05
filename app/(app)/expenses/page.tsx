@@ -6,6 +6,7 @@ import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listCategories, listExpenses, listPendingApprovals } from "@/lib/data/expenses";
 import { getLlmConfig } from "@/lib/data/llm";
 import { houseToday } from "@/lib/utils/date";
+import { looksLikeIsoDate, looksLikeUuid } from "@/lib/validation/common";
 
 export const metadata: Metadata = {
   title: "Money",
@@ -37,7 +38,29 @@ export default async function ExpensesPage({
 }) {
   const session = await requireSession();
   const context = await getHouseContext(session);
-  const { period: requested, add, category, member, from, to } = await searchParams;
+  const {
+    period: requested,
+    add,
+    category: rawCategory,
+    member: rawMember,
+    from: rawFrom,
+    to: rawTo,
+  } = await searchParams;
+
+  /*
+    Everything here came off a URL, so everything here is whatever somebody
+    typed, pasted or mangled — and it used to go straight into a `select`.
+    `?member=not-a-uuid` raised 22P02 in Postgres and the ledger answered
+    "Something went wrong. It's been logged." for what is a bad link.
+
+    A filter that cannot be a filter is dropped rather than fatal: the screen
+    the person asked for is the ledger, and showing it unfiltered is a better
+    answer than showing them an error page.
+  */
+  const category = looksLikeUuid(rawCategory) ? rawCategory : undefined;
+  const member = looksLikeUuid(rawMember) ? rawMember : undefined;
+  const from = looksLikeIsoDate(rawFrom) ? rawFrom : undefined;
+  const to = looksLikeIsoDate(rawTo) ? rawTo : undefined;
 
   const today = houseToday(context.house.timezone);
   const periods = recentPeriods(today);

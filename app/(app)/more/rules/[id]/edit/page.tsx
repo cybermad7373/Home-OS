@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { RuleForm } from "@/components/house/rule-form";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listRules, ruleParseContext } from "@/lib/data/rules";
+import { looksLikeUuid } from "@/lib/validation/common";
 
 export const metadata: Metadata = {
   title: "Edit a rule",
@@ -24,6 +25,10 @@ export default async function EditRulePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  // Same guard as the history screen: a path segment that cannot be an id
+  // names nothing, and that is a 404 rather than a server fault.
+  if (!looksLikeUuid(id)) notFound();
+
   const session = await requireSession();
   const context = await getHouseContext(session);
 

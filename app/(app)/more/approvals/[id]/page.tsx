@@ -6,6 +6,7 @@ import { Section } from "@/components/layout/section";
 import { PageHeader } from "@/components/layout/page-header";
 import { DecisionActions } from "@/components/governance/decision-actions";
 import { ApiError } from "@/lib/api/errors";
+import { looksLikeUuid } from "@/lib/validation/common";
 import { getDecision } from "@/lib/data/governance";
 import { requireActiveMembership, requireSession } from "@/lib/data/house";
 import {
@@ -37,6 +38,9 @@ export default async function DecisionPage({
   const session = await requireSession();
   const { house, member } = await requireActiveMembership(session);
   const { id } = await params;
+  // A path segment is whatever was in the link. One that cannot be an id names
+  // nothing, and "that doesn't exist" is the true answer — it used to be a 500.
+  if (!looksLikeUuid(id)) notFound();
 
   let decision;
   try {

@@ -315,5 +315,20 @@ export function apiErrorFromPostgres(error: {
   if (error.code === "42501" || error.code === "PGRST301") {
     return new ApiError("NOT_HOUSE_MEMBER");
   }
+  /*
+    22P02 is `invalid_text_representation`: Postgres was handed something that
+    is not the type the column is. In this codebase that is always a value that
+    came off a URL — a mangled uuid in a path segment, a date that is not one —
+    and it is a bad request rather than a fault in the server. It used to
+    surface as "Something went wrong. It's been logged.", which is both a lie
+    and a 500 in the logs for every stale link anybody follows.
+
+    The routes that take an id from a URL check it themselves as well, because
+    a 404 is a better answer than a 422 for a link that names nothing. This is
+    the floor under them.
+  */
+  if (error.code === "22P02" || error.code === "22007" || error.code === "22008") {
+    return new ApiError("VALIDATION_FAILED");
+  }
   return new ApiError("INTERNAL", { cause: raw });
 }

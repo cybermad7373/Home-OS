@@ -3,6 +3,9 @@ import { PageHeader } from "@/components/layout/page-header";
 import { RuleHistory } from "@/components/house/rule-history";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { ruleHistory } from "@/lib/data/rules";
+import { notFound } from "next/navigation";
+import { ApiError } from "@/lib/api/errors";
+import { looksLikeUuid } from "@/lib/validation/common";
 
 export const metadata: Metadata = {
   title: "Rule history",
@@ -22,10 +25,22 @@ export default async function RuleHistoryPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  // A rule id off a URL. Malformed, it reached Postgres and raised 22P02; valid
+  // but unknown, `ruleHistory` threw NOT_FOUND and nothing caught it. Both came
+  // out as "Something went wrong" for a link that simply names nothing.
+  if (!looksLikeUuid(id)) notFound();
+
   const session = await requireSession();
   const context = await getHouseContext(session);
 
-  const { rule, entries } = await ruleHistory(session, context.house.id, id);
+  let history;
+  try {
+    history = await ruleHistory(session, context.house.id, id);
+  } catch (error) {
+    if (error instanceof ApiError && error.code === "NOT_FOUND") notFound();
+    throw error;
+  }
+  const { rule, entries } = history;
 
   return (
     <>

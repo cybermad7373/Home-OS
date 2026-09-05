@@ -14,6 +14,7 @@ import {
 import { weekDates } from "@/lib/domain/scheduling/capacity";
 import { weeklyLoadSummary } from "@/lib/domain/scheduling/demand";
 import { houseToday } from "@/lib/utils/date";
+import { looksLikeIsoDate } from "@/lib/validation/common";
 
 export const metadata: Metadata = {
   title: "Chores",
@@ -36,7 +37,13 @@ export default async function ChoresPage({
   const { week_start: requested } = await searchParams;
 
   const today = houseToday(context.house.timezone);
-  const weekStart = requested ?? weekStartOf(today);
+  /*
+    `?week_start=` is how the previous and next week links work, so it is also
+    the easiest thing in the app to mangle by hand. Anything that is not a real
+    date falls back to this week rather than reaching `weekDates`, which built a
+    range of `NaN` and took the whole screen down with a 500.
+  */
+  const weekStart = looksLikeIsoDate(requested) ? requested : weekStartOf(today);
   const dates = weekDates(weekStart);
 
   const [assignments, awaiting, templates] = await Promise.all([

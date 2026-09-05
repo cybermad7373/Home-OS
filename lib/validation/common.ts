@@ -85,3 +85,36 @@ export const rupeeStringSchema = z
 export const isoDateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Use a date in YYYY-MM-DD form");
+
+/**
+ * A uuid, and a date, as they arrive from a URL rather than from a form.
+ *
+ * A path segment or a query parameter is whatever somebody typed, pasted or
+ * mangled, and it reaches Postgres unchanged unless something stops it. It did:
+ * `/more/approvals/not-a-uuid` and `/expenses?member=not-a-uuid` both handed a
+ * malformed uuid to a `select`, which raised `22P02` and surfaced as a 500 —
+ * "Something went wrong. It's been logged." — for what is really a bad link.
+ *
+ * `looksLikeUuid` is deliberately a plain predicate rather than a schema. It is
+ * used in server components, where the answer is `notFound()` rather than a
+ * thrown validation error, and one line at the top of a page is more likely to
+ * be written than a try/catch around the read.
+ */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function looksLikeUuid(value: string | null | undefined): value is string {
+  return typeof value === "string" && UUID.test(value);
+}
+
+/** The same, for a `YYYY-MM-DD` that also has to be a day that exists. */
+export function looksLikeIsoDate(value: string | null | undefined): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+/** A `YYYY-MM` period, checked the same way. */
+export function looksLikePeriod(value: string | null | undefined): value is string {
+  if (typeof value !== "string" || !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) return false;
+  return true;
+}
