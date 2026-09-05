@@ -178,10 +178,10 @@ function HomeFlashCard({
         ) : null}
       </div>
 
-      {/* The name is set in the reading face, not the dot-matrix display one.
-          Doto is the app's voice for a number read at a glance; a proper noun
-          in it is a puzzle, and telling two Homes apart by name is the entire
-          job of this screen. */}
+      {/* The name is set in the reading face, not the mono display one. The
+          display face is for figures; a proper noun set in it reads as a serial
+          number, and telling two Homes apart by name is the entire job of this
+          screen. */}
       <p className="w-full break-words text-[26px] font-semibold leading-[1.15] tracking-[-0.02em]">
         {home.name}
       </p>

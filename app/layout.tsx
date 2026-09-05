@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Doto, Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeScript } from "@/components/layout/theme-script";
 import { ToastProvider } from "@/components/ui/toast";
@@ -16,24 +16,16 @@ import { ServiceWorkerRegistrar } from "@/components/layout/service-worker";
  * Geist Mono counts: every amount, target and tally in a table or a row, so a
  * column of rupee figures aligns and reads as money rather than as an estimate.
  *
- * Doto is a dot-matrix face and it is the display voice — used only for a
- * number somebody reads at a glance: what the house owes, what the week scored,
- * how many days are left. A figure in a dot matrix reads as a *readout*, which
- * is what a household ledger's headline number actually is. It is unreadable
- * set as a sentence, and that is a useful constraint rather than a limitation.
+ * Geist Mono is also the display voice: the headline figures are the same face
+ * at 32-44px, tabular and heavy. There is no third family. A dot-matrix face
+ * (Doto) held that role until 2026-09-05 and was dropped — the reasoning and
+ * the reversal are both in D-72.
  */
 const geist = Geist({
   variable: "--font-geist",
   subsets: ["latin"],
   display: "swap",
   weight: ["400", "500", "600", "700"],
-});
-
-const doto = Doto({
-  variable: "--font-doto",
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["400", "500", "700", "900"],
 });
 
 const geistMono = Geist_Mono({
@@ -64,7 +56,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geist.variable} ${doto.variable} ${geistMono.variable} h-full`} suppressHydrationWarning>
+    <html lang="en" className={`${geist.variable} ${geistMono.variable} h-full`} suppressHydrationWarning>
       <head>
         <ThemeScript />
       </head>

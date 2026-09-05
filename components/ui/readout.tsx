@@ -2,22 +2,20 @@ import * as React from "react";
 import { cn } from "@/lib/utils/cn";
 
 /**
- * A number set in the dot-matrix display face, with the parts that are not
- * digits handled properly.
+ * A number set at display size, with the parts that are not digits handled
+ * properly.
  *
- * Doto has no rupee glyph. Set `₹1,24,850` in it and the browser falls back for
- * the symbol alone, so a 44px headline renders as a heavy grotesk ₹ welded to a
- * dot-matrix number — the single most visible flaw in the first pass of this
- * design system, and on the one screen element the whole product is about.
+ * The split began as a repair. The display face was a dot-matrix one with no
+ * rupee glyph, so `₹1,24,850` fell back for the symbol alone and a 44px
+ * headline came out as a heavy grotesk ₹ welded to a dot-matrix number. The
+ * face is gone (D-72) and the split has stayed, because it turned out to be
+ * right on its own terms: a currency symbol at the same size as the figure
+ * competes with it, and the number is what somebody came to read.
  *
- * So the symbol is split out and set deliberately: the same weight, a little
- * smaller, and in the mono face it actually has a glyph for. The digits keep
- * the readout. It reads as one number because the two halves share a baseline
- * and a colour, and it survives a missing font because the fallback for each
- * half is a face that can draw it.
- *
- * Anything that is not a digit, a separator or a sign — a `+`, a `%`, `pts` —
- * gets the same treatment for the same reason.
+ * So the symbol is set a little smaller at the same weight, on the same
+ * baseline and in the same colour, and it reads as one number. Anything that is
+ * not a digit, a separator or a sign — a `+`, a `%`, `pts` — gets the same
+ * treatment for the same reason.
  */
 
 const DIGITS = /^[0-9.,\s]+$/;

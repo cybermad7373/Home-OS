@@ -137,7 +137,7 @@ export function KitchenSink() {
 
       <Section
         title="Type"
-        note="Geist reads, Geist Mono counts, Doto is the readout. A headline number is a dot matrix because that is what it is — an instrument reading, not a sentence."
+        note="Geist reads, Geist Mono counts. A headline figure is the same mono face at 32–44px, tabular and heavy — set apart from body text by size and weight rather than by a third family."
       >
         <div className="flex flex-col gap-3">
           <Readout value="₹1,24,850" size="xl" />

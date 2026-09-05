@@ -1668,21 +1668,40 @@ Charts are a greyscale ramp. A monochrome chart forces the label to do the work,
 which is the right outcome — eight hues let a designer skip the legend and the
 reader pays for it.
 
-## D-72 — figures are set in a dot-matrix face, and only figures
+## D-72 — figures are a display *size*, not a display *face*
 
-Doto is the display voice. Every number a person came to read — what the house
-owes, what the week scored, how many days are left — is set in it at 28–44 px.
-Body text never is: set a sentence in a dot matrix and it becomes unreadable,
-which is a useful constraint rather than a limitation.
+**Reversed 2026-09-05.** What follows is the original decision, then why it did
+not survive the figures it was applied to.
 
-The face has no rupee glyph. Setting `₹1,24,850` in it welds a heavy grotesk ₹
-onto a dot-matrix number, and that appeared at 44 px on the one element the
-whole product is about. `<Readout>` splits the symbol out and sets it in the
-mono face at 0.62em, on the same baseline and in the same colour.
+The original: Doto is the display voice. Every number a person came to read —
+what the house owes, what the week scored, how many days are left — is set in it
+at 28–44 px. Body text never is: set a sentence in a dot matrix and it becomes
+unreadable, which is a useful constraint rather than a limitation.
 
-The corollary is that figures do not animate. A count-up is a number you cannot
-read for 400 ms, and page-load reveals make the first thing you see the last
-thing to arrive. Both were removed along with the components that provided them.
+The reversal. A dot-matrix face is drawn as a grid of dots, and at 32 px
+`₹12,868` is a field of dots before it is a number: it reads as a rendering
+fault, and it read that way to the person who owns this product the first time
+they looked at the app. Every screenshot led with it. The idea was sound —
+money should look like an instrument reading — but the instrument has to be
+readable, and the tracking experiment that preceded this reversal only made the
+smudge wider.
+
+Headline figures are the mono face now, at the same 32–44 px, the same weight
+and tabular, tracked slightly tight. The separation from body text is size and
+weight rather than a third family, and the app loads two faces instead of
+three. `--font-dot` survives as a token so nothing that names it breaks; it
+resolves to the mono stack.
+
+`<Readout>` stays, and the reason it stays is no longer the reason it was
+written. It existed because Doto has no rupee glyph, so `₹1,24,850` welded a
+heavy grotesk ₹ onto a dot-matrix number at 44 px. That fault is gone with the
+face — but setting the symbol a little smaller than the figure is right anyway:
+a currency symbol at full size competes with the number somebody came to read.
+
+The corollary is unchanged: figures do not animate. A count-up is a number you
+cannot read for 400 ms, and page-load reveals make the first thing you see the
+last thing to arrive. Both were removed along with the components that provided
+them.
 
 ## D-73 — one navigation, from one source of truth
 

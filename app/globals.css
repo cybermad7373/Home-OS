@@ -28,9 +28,12 @@
  *    show the frame rather than hiding it. A household ledger is an instrument;
  *    it should look like one.
  *
- * 3. **Numbers are the display face.** Doto is a dot-matrix variable font, and
- *    every large figure in the app is set in it. Money in a dot matrix reads as
- *    a readout rather than as body text, which is exactly what it is.
+ * 3. **Numbers are the display face.** Every large figure in the app is set in
+ *    the mono face at display size, tabular and tracked wide. Money set apart
+ *    from body text reads as a readout rather than as prose, which is exactly
+ *    what it is. That was a dot-matrix face until 2026-09-05; see D-72, which
+ *    records both the reasoning and why it did not survive contact with the
+ *    figures it was applied to.
  *
  * Every token name from 2.0 survives, so the 44 screens inherit this without an
  * edit.
@@ -340,7 +343,9 @@
 
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --font-dot: var(--font-doto), var(--font-geist-mono), ui-monospace, monospace;
+  /* Kept as a token so nothing that names it breaks. It resolves to the mono
+     face now — see D-72. */
+  --font-dot: var(--font-geist-mono), ui-monospace, monospace;
 
   --radius-xs: var(--radius-xs);
   --radius-sm: var(--radius-sm);
@@ -416,38 +421,37 @@
 
 @layer utilities {
   /* ---- the readout ------------------------------------------------------
-     Doto is a dot-matrix face, and it is the app's display voice. It is used
-     for exactly one thing: a number somebody is meant to read at a glance —
-     what the house owes, what the week scored, how many days left. Set it on a
-     sentence and it becomes unreadable, which is a useful constraint. */
+     A number somebody is meant to read at a glance: what the house owes, what
+     the week scored, how many days left. It is set apart from body text by
+     size, weight, tabular figures and tracking — not by a different face.
+
+     It was a dot-matrix face (Doto) until 2026-09-05. The idea was sound and
+     the result was not: ₹12,868 at 32px came out as a field of dots that reads
+     as a rendering fault before it reads as money, and every screenshot of the
+     product led with it. D-72 records the whole reversal. */
 
   .readout {
-    font-family: var(--font-doto), var(--font-geist-mono), ui-monospace, monospace;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
     font-variant-numeric: tabular-nums;
     font-weight: 700;
-    /* Doto draws each glyph as a dot grid, so adjacent digits run together at
-       the tracking a continuous face wants. Widening it is what separates
-       1,931.60 into figures somebody can read at a glance rather than a texture
-       that reads as a rendering fault — the complaint D-72 has always been one
-       bad screenshot away from. The face itself is unchanged. */
-    letter-spacing: 0.06em;
+    letter-spacing: -0.01em;
   }
 
   .display-xl {
-    font-family: var(--font-doto), var(--font-geist-mono), ui-monospace, monospace;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
     font-size: 44px;
     line-height: 46px;
     font-weight: 700;
-    letter-spacing: 0.05em;
+    letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
   }
 
   .display-number {
-    font-family: var(--font-doto), var(--font-geist-mono), ui-monospace, monospace;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
     font-size: 32px;
     line-height: 36px;
     font-weight: 700;
-    letter-spacing: 0.06em;
+    letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
   }
 
