@@ -12,6 +12,7 @@ import {
   weekStartOf,
 } from "@/lib/data/chores";
 import { weekDates } from "@/lib/domain/scheduling/capacity";
+import { weeklyLoadSummary } from "@/lib/domain/scheduling/demand";
 import { houseToday } from "@/lib/utils/date";
 
 export const metadata: Metadata = {
@@ -47,7 +48,29 @@ export default async function ChoresPage({
     listTemplates(session, context.house.id),
   ]);
 
-  if (templates.filter((template) => template.active).length === 0) {
+  // The same figure the chore-list screen shows, so the empty state can say
+  // what pressing Generate will actually do.
+  const activeTemplates = templates.filter((template) => template.active);
+  const load = weeklyLoadSummary(
+    activeTemplates.map((template) => ({
+      id: template.id,
+      name: template.name,
+      effortPoints: template.effort_points,
+      durationMin: template.duration_min,
+      slot: template.slot,
+      scope: template.scope,
+      roomId: template.room_id,
+      frequency: template.frequency,
+      timesPerWeek: template.times_per_week,
+      requiresCookingSkill: template.requires_cooking_skill,
+      isHeavy: template.is_heavy,
+    })),
+    weekStart,
+    context.members.filter((member) => member.status === "active").length,
+    context.rooms.map((room) => room.id),
+  );
+
+  if (activeTemplates.length === 0) {
     return (
       <>
         <PageHeader title="Chores" />
@@ -88,14 +111,35 @@ export default async function ChoresPage({
       />
 
       {assignments.length === 0 ? (
+        /*
+          What Generate is about to do, before it does it.
+          This state used to say only that the week had not been generated and
+          offer the button. A new Home arrives with a full chore list already in
+          it — 43 jobs in the default set — and nothing here mentioned that, so
+          the first thing an owner did in this product was press a button whose
+          consequences were invisible, on a list they did not know existed and
+          had never been shown how to change.
+        */
         <EmptyState
           title="This week has not been generated"
-          body="The schedule generates itself every Sunday evening. An admin can also run it now."
+          body={
+            load.instanceCount > 0
+              ? `Generating it will share out ${load.instanceCount} chores worth ${load.totalPoints} points, from the list this home already has — about ${load.targetPerMember} points each. It also happens on its own every Sunday evening.`
+              : "The schedule generates itself every Sunday evening. An admin can also run it now."
+          }
           action={
             context.isAdmin ? (
-              <Link href="/admin/schedule" className={buttonVariants({ size: "sm" })}>
-                Generate this week
-              </Link>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Link href="/admin/schedule" className={buttonVariants({ size: "sm" })}>
+                  Generate this week
+                </Link>
+                <Link
+                  href="/admin/chores"
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
+                  See what is on the list
+                </Link>
+              </div>
             ) : undefined
           }
         />

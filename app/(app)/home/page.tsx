@@ -29,6 +29,11 @@ import { HomeOwesWhom } from "@/components/home/owes-whom";
 import { HomeStanding } from "@/components/home/standing";
 import { HomePendingBlock } from "@/components/home/pending-block";
 import { HomeHouseMembers } from "@/components/home/house-members";
+import {
+  FirstRun,
+  shouldShowFirstRun,
+  type FirstRunStep,
+} from "@/components/home/first-run";
 
 export const metadata: Metadata = {
   title: "Home",
@@ -119,6 +124,41 @@ export default async function HomeOverviewPage() {
   );
   const active = context.members.filter((member) => member.status === "active");
 
+  // The four things that turn an empty Home into a working one. Each ticks
+  // itself off the moment the fact behind it is true, so a Home in use has
+  // finished the list without anybody being asked to dismiss it.
+  const firstRunSteps: FirstRunStep[] = [
+    context.isAdmin && {
+      id: "chores",
+      title: "Share out this week's chores",
+      body: "The chore list is already here. Generating the week is what puts the jobs on people.",
+      href: "/admin/schedule",
+      done: myChores.length > 0,
+    },
+    context.isAdmin &&
+      !context.shape.isPot && {
+        id: "rooms",
+        title: "Add the rooms and their rent",
+        body: "Rent splits are worked out from rooms, so nothing about rent is right until they exist.",
+        href: "/house/rooms?add=1",
+        done: context.rooms.length > 0,
+      },
+    context.isAdmin && {
+      id: "invite",
+      title: "Invite the others",
+      body: "Copy the invite link. They ask to join and you let them in — nobody is added without asking.",
+      href: "/house/members",
+      done: active.length > 1,
+    },
+    {
+      id: "expense",
+      title: "Record what the home has spent",
+      body: "One expense is enough for the money screens to have something to say.",
+      href: "/expenses?add=1",
+      done: money.expenses.length > 0,
+    },
+  ].filter(Boolean) as FirstRunStep[];
+
   const pending = pendingItems(
     {
       joinRequests: joinRequests.length,
@@ -201,6 +241,10 @@ export default async function HomeOverviewPage() {
         asideFirst
         main={
           <>
+            {shouldShowFirstRun(firstRunSteps) ? (
+              <FirstRun steps={firstRunSteps} />
+            ) : null}
+
             {owes.length > 0 ? (
               <Section
                 label="Who owes whom"
