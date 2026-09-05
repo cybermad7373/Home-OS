@@ -52,7 +52,19 @@ export async function requireSession(): Promise<Session> {
 /**
  * Every Home the caller has any membership in, Requested ones included,
  * ordered the way `getMembership` wants them: Active before Requested, and
- * within each, most recently joined first.
+ * within each, most recently joined first — then by `house_id`, which is the
+ * tiebreak that makes the order total.
+ *
+ * That last key is not decoration. `joined_date` is a date, not a timestamp,
+ * so everyone who joined two Homes on one day ties on it, and a query with no
+ * further key returns those rows in whatever order Postgres finds convenient —
+ * which differs between two identical requests. `getMembership` takes the
+ * first row as the caller's default Home, so an untotalled order meant the
+ * same account landing in a different Home on consecutive sign-ins, and a
+ * person who administers one Home being dropped into another where they are an
+ * ordinary member with every create control hidden. This is the same defect
+ * the database fixed for `create_expense` in `20260903000001`; the tiebreak is
+ * the application half of it.
  *
  * `inactive` is excluded. A person who has left a Home does not get shown that
  * Home; their rows stay for the ledger's sake, not for theirs.
@@ -64,7 +76,8 @@ export async function listMemberships(session: Session): Promise<Membership[]> {
     .eq("user_id", session.userId)
     .neq("status", "inactive")
     .order("status", { ascending: true }) // 'active' sorts before 'requested'
-    .order("joined_date", { ascending: false });
+    .order("joined_date", { ascending: false })
+    .order("house_id", { ascending: true });
 
   if (error) throw apiErrorFromPostgres(error);
 
@@ -97,7 +110,30 @@ export async function getMembership(session: Session): Promise<Membership | null
     ? memberships.find((candidate) => candidate.house.id === selectedId)
     : undefined;
 
-  return selected ?? memberships[0];
+  return selected ?? defaultMembership(memberships);
+}
+
+/**
+ * The Home somebody who has chosen nothing gets.
+ *
+ * A Home the caller runs, if they run one: an admin dropped into a Home where
+ * they are an ordinary member sees an app with no create controls in it and
+ * no explanation, which is indistinguishable from an app that was never
+ * finished. Failing that, the first Active membership in `listMemberships`
+ * order, which is total — so this answers the same for the same account every
+ * time.
+ */
+export function defaultMembership(memberships: Membership[]): Membership | null {
+  if (memberships.length === 0) return null;
+
+  const active = memberships.filter((m) => m.member.status === "active");
+  const pool = active.length > 0 ? active : memberships;
+
+  return (
+    pool.find(
+      (m) => m.member.role === "admin" || m.member.role === "co_admin",
+    ) ?? pool[0]
+  );
 }
 
 export async function requireActiveMembership(session: Session): Promise<Membership> {
