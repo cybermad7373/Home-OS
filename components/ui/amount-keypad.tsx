@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import { motion, useReducedMotion } from "motion/react";
 
@@ -10,6 +11,14 @@ import { motion, useReducedMotion } from "motion/react";
  * shift and hides half the sheet, and this screen has a stated target of three
  * taps and a number. Keys are 44 px minimum and the whole thing stays reachable
  * with one thumb.
+ *
+ * The amount itself is a real `<input>` behind that display, which it was not
+ * before. The pad was the *only* way to enter a number: on a laptop you typed
+ * 456, nothing happened, and the button still read Save ₹0 — so the app's most
+ * used action was unusable with the keyboard already under the person's hands,
+ * and it read as a broken form rather than a touch-first one. `inputMode` is
+ * still `none` on a coarse pointer, so the phone keyboard stays shut and the
+ * pad remains the way in on the device the pad was designed for.
  */
 export function AmountKeypad({
   value,
@@ -21,6 +30,7 @@ export function AmountKeypad({
   currency?: string;
 }) {
   const reduce = useReducedMotion();
+  const inputMode = usePointerInputMode();
 
   function press(key: string) {
     if (key === "⌫") {
@@ -43,20 +53,29 @@ export function AmountKeypad({
   return (
     <div>
       <motion.div
-        className="mb-4 text-center"
+        className="mb-4 flex items-baseline justify-center gap-1"
         initial={reduce ? false : { opacity: 0, y: 10 }}
         animate={reduce ? false : { opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
       >
-        <span className="text-text-muted">{currency}</span>
-        <motion.span
-          className="tabular ml-1 text-[44px] font-bold leading-tight"
-          initial={reduce ? false : { scale: 0.9 }}
-          animate={reduce ? false : { scale: 1 }}
-          transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
-        >
-          {formatWhileTyping(value)}
-        </motion.span>
+        <span aria-hidden className="text-text-muted">
+          {currency}
+        </span>
+        <input
+          value={formatWhileTyping(value)}
+          onChange={(event) => onChange(sanitiseTyped(event.target.value))}
+          inputMode={inputMode}
+          autoComplete="off"
+          aria-label="Amount"
+          // `size={1}` plus `w-auto` would fight the field-sizing here; the
+          // field is centred and grows with the number instead.
+          className={cn(
+            "tabular min-w-0 max-w-full flex-none border-0 bg-transparent p-0",
+            "text-[44px] font-bold leading-tight outline-none",
+            "focus-visible:outline-none",
+          )}
+          style={{ width: `${Math.max(formatWhileTyping(value).length, 1)}ch` }}
+        />
       </motion.div>
 
       <motion.div
@@ -96,6 +115,52 @@ export function AmountKeypad({
       </motion.div>
     </div>
   );
+}
+
+/**
+ * What a person typed, reduced to something this component can hold.
+ *
+ * Everything that is not a digit or a dot goes — including the grouping commas
+ * this component itself put there. Two decimal places is the floor, because
+ * paise are the smallest unit there is, and a second dot is dropped rather
+ * than rejected: somebody typing 12..5 meant 12.5.
+ */
+export function sanitiseTyped(typed: string): string {
+  const cleaned = typed.replace(/[^0-9.]/g, "");
+
+  const firstDot = cleaned.indexOf(".");
+  const whole = firstDot === -1 ? cleaned : cleaned.slice(0, firstDot);
+  const fraction =
+    firstDot === -1 ? null : cleaned.slice(firstDot + 1).replace(/\./g, "").slice(0, 2);
+
+  // A leading run of zeros is what "0" then "5" produces on the pad; the pad
+  // handles that case itself, and this is the same rule for the keyboard.
+  const trimmedWhole = whole.replace(/^0+(?=\d)/, "");
+
+  if (trimmedWhole === "" && fraction === null) return "0";
+  if (fraction === null) return trimmedWhole;
+  return `${trimmedWhole === "" ? "0" : trimmedWhole}.${fraction}`;
+}
+
+/**
+ * `none` on a touch screen, `decimal` everywhere else.
+ *
+ * The pad exists so a phone never has to raise its keyboard over half the
+ * sheet, and that is still true. A laptop has no such keyboard to raise, and
+ * refusing its physical one bought nothing.
+ */
+function usePointerInputMode(): "none" | "decimal" {
+  const [coarse, setCoarse] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia("(pointer: coarse)");
+    setCoarse(query.matches);
+    const onChange = (event: MediaQueryListEvent) => setCoarse(event.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+
+  return coarse ? "none" : "decimal";
 }
 
 /** Groups the whole-rupee part the Indian way, without touching what was typed. */
