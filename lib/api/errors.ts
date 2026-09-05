@@ -271,6 +271,14 @@ export const ERROR_CATALOGUE = {
     message: "You can only manage your own restrictions",
   },
 
+  // Erasing an account is refused while any membership is active: leaving a
+  // Home is a decision the Home makes, and an account that could erase itself
+  // out of one would be a second door out (migration 091).
+  ACCOUNT_IN_USE: {
+    status: 409,
+    message: "Leave your Homes first — an account that is still a member cannot be deleted",
+  },
+
   NOT_FOUND: { status: 404, message: "That doesn't exist, or isn't yours to see" },
   RATE_LIMITED: { status: 429, message: "Slow down a moment and try again" },
   AI_DISABLED: { status: 501, message: "AI features aren't set up for this house" },

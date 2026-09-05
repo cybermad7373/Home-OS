@@ -174,6 +174,16 @@ export default function PrivacyPage() {
           <Strong>Turn off notifications</Strong> per type, or entirely, in house
           settings.
         </p>
+        <p>
+          <Strong>Delete your account,</Strong> from Your account under More.
+          Your name, username, email address, phone number, payment address and
+          picture are erased; every way the app can reach you is removed; and
+          sign-in stops working, freeing the email address for a new account.
+          What stays is the household ledger, with{" "}
+          <Strong>Former member</Strong> where your name was — see below for
+          why. Deleting is possible once you are no longer an active member of
+          any household, because leaving one is a decision that household makes.
+        </p>
       </Section>
 
       <Section title="What is not built yet">
@@ -182,10 +192,6 @@ export default function PrivacyPage() {
           describes something that does not exist is the worst kind.
         </p>
         <ul className="flex list-disc flex-col gap-2 pl-5">
-          <li>
-            <Strong>There is no self-service account deletion.</Strong> To have
-            an account and its records removed, ask using the contact below.
-          </li>
           <li>
             <Strong>There is no automatic retention limit.</Strong> A
             household&apos;s records are kept until somebody removes them. Old

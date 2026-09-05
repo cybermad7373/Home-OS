@@ -85,6 +85,32 @@ export type Database = {
           },
         ]
       }
+      account_erasures: {
+        Row: {
+          erased_at: string
+          memberships: number
+          user_id: string
+        }
+        Insert: {
+          erased_at?: string
+          memberships?: number
+          user_id: string
+        }
+        Update: {
+          erased_at?: string
+          memberships?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_erasures_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_config: {
         Row: {
           key: string
@@ -3578,6 +3604,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      account_erasure_blockers: {
+        Args: never
+        Returns: {
+          house_id: string
+          house_name: string
+          role: Database["public"]["Enums"]["member_role"]
+        }[]
+      }
       add_dependent: {
         Args: {
           p_does_chores?: boolean
@@ -4082,6 +4116,13 @@ export type Database = {
       ensure_period: {
         Args: { p_house_id: string; p_period: string }
         Returns: string
+      }
+      erase_account: {
+        Args: { p_user_id: string }
+        Returns: {
+          already_erased: boolean
+          memberships: number
+        }[]
       }
       escalate_missed_chores: { Args: never; Returns: number }
       expire_decisions: { Args: never; Returns: number }

@@ -47,6 +47,13 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/homes";
+  /*
+    Deleting an account signs the browser out and lands here. Without a word on
+    arrival the whole thing reads as a failure — the screen a person is thrown
+    to when something goes wrong is the same screen they are thrown to when it
+    worked.
+  */
+  const deleted = searchParams.get("deleted") === "1";
 
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
@@ -167,6 +174,15 @@ export function AuthForm({ mode }: { mode: Mode }) {
         {errors.form ? (
           <div className="mb-4">
             <Alert tone="danger">{errors.form}</Alert>
+          </div>
+        ) : null}
+
+        {deleted && mode === "signin" ? (
+          <div className="mb-4">
+            <Alert tone="success" title="Account deleted">
+              Your details have been erased and this account can no longer sign
+              in. The email address is free to use again.
+            </Alert>
           </div>
         ) : null}
 

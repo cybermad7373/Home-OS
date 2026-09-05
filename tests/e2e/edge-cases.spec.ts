@@ -241,3 +241,25 @@ test("a member is refused by the API, not only by the screen", async ({ page }) 
   expect(foreign.status()).toBe(403);
   expect((await foreign.json()).error.code).toBe("NOT_HOUSE_MEMBER");
 });
+
+test("the account screen says what deletion keeps, and why it is refused", async ({
+  page,
+}) => {
+  await enter(page);
+  await page.goto("/more/account");
+
+  // What survives, before the button. The reason somebody presses it is
+  // usually a belief about what it will remove, and an expense they paid is
+  // not theirs to withdraw.
+  await expect(page.getByText("Former member")).toBeVisible();
+
+  // This account is an active member of its own Home, so deletion is refused
+  // here rather than after they type their username — and the refusal names
+  // the Home, because "leave your Homes first" is useless advice otherwise.
+  const refusal = page.getByRole("status").filter({ hasText: "Leave your Homes first" });
+  await expect(refusal).toBeVisible();
+  // The Home is named inside the refusal, not merely somewhere on the page —
+  // the header carries it too, which is not the same claim.
+  await expect(refusal.getByText(home)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Delete my account" })).toHaveCount(0);
+});

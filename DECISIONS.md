@@ -2160,3 +2160,46 @@ households behind it: no counts, no names, no version of anything but the
 deploy. The database check is cached for ten seconds because a public endpoint
 that starts a service-role query per request is an amplifier, and ten seconds
 is under every uptime service's polling interval.
+
+## D-90 — deleting an account erases the person and keeps the arithmetic
+
+The privacy page said it plainly: "There is no self-service account deletion.
+To have an account and its records removed, ask using the contact below." That
+was honest, and it was the last item on the launch list that was a hole rather
+than a decision.
+
+**Why it is not a DELETE.** The schema already refuses that version, and it is
+right to. An `auth.users` row cascades to `public.users` and then to
+`house_members` — and `expenses.paid_by_member_id`, `expense_splits.member_id`
+and `settlements.from_member_id` reference `house_members(id)` with no cascade
+at all. Postgres refuses; and if it did not, what it destroyed would be the
+record of who paid for what, which other people have already settled against. A
+ledger that changes after settlement is not a ledger.
+
+So erasure means what it can honestly mean: **the person goes, the arithmetic
+stays.** Name, username, email, phone, payment address, picture, push
+subscriptions, notification settings, unanswered join requests — gone. Where a
+name used to be, "Former member".
+
+**Why an active member cannot do it.** Leaving a Home is a governed decision
+(D-45), and an account that could erase itself out of one would be that
+decision's back door. So it is refused while any membership is `active`, and
+the refusal names the Homes — because "leave your Homes first" is useless
+advice if the person cannot see which ones. An account that never joined
+anything is the common case, and it works immediately.
+
+**Auth first, profile second.** The two halves cannot be one transaction: one
+is in Postgres and one is in Supabase Auth. The account is banned and its
+address scrambled first because that half is *reversible*, so a failure in the
+second half restores the first and the person is exactly where they started.
+The other order has no recovery: an anonymised profile whose owner can still
+sign in is a state only a support request can fix.
+
+**The address is freed.** The tombstone lives on `.invalid`, the reserved TLD
+from RFC 2606, so the real address is available to whoever wants to sign up
+again — including the same person, later, having changed their mind.
+
+Writing the tests found two things the code had wrong: `telegram_links` has not
+existed since migration 044, and the database refuses a direct
+`status = 'inactive'` write even from a service-role key, which is the removal
+rule holding exactly where D-06 says it should.
