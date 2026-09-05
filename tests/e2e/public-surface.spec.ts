@@ -227,3 +227,24 @@ test("the theme script runs, which means it carried the nonce", async ({ page })
 
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 });
+
+/**
+ * The health endpoint. An uptime checker has no session, so this is part of
+ * the public surface whether or not anybody thinks of it that way — which is
+ * also why what it answers matters more than that it answers.
+ */
+test("health answers an uptime checker, and tells it nothing else", async ({ request }) => {
+  const response = await request.get("/api/health");
+
+  expect(response.status(), "200 while the database is reachable").toBe(200);
+  expect(response.headers()["cache-control"]).toContain("no-store");
+
+  const body = await response.json();
+  expect(body.status).toBe("ok");
+  expect(body.database).toBe(true);
+  expect(String(body.time)).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+  // Anybody can call this. Nothing in the answer may describe the households
+  // behind it — no counts, no names, no versions of anything but the deploy.
+  expect(Object.keys(body).sort()).toEqual(["database", "revision", "status", "time"]);
+});

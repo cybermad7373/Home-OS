@@ -2121,3 +2121,42 @@ only the forger's own counter.
 This does not replace a limiter at the host or the CDN, which is where a flood
 should be stopped before it costs anything. It is the floor under one, present
 wherever this is deployed, including a deployment with nothing in front of it.
+
+## D-89 — an error goes to one JSON line, and a reference joins it to the person
+
+`docs/18-GO-LIVE.md` left it open: "decide where an application error goes."
+The answer is stderr, one JSON object per line, and no third party.
+
+**Why not Sentry.** It is the obvious choice and it can still be added — but it
+needs an account, a DSN in the environment and a script in the client bundle,
+and this product has just spent a whole pass making sure a page view from
+`/more/approvals/<id>` does not reach anybody outside the deployment. An error
+report is that same URL with a stack trace attached. Every host collects stdout
+and stderr, so a structured line is greppable in a log drain, in `docker logs`,
+in journald and in a file, and can be shipped to an aggregator later without a
+line of this changing.
+
+**What a line may carry, and what it may never.** A log is the one place in
+this product where data lands somewhere nobody set an RLS policy on: a host's
+disk, a retention window nobody chose, readable by whoever can read logs. So a
+line carries the *shape* of a failure — the route pattern, the method, the
+error code, the SQLSTATE — and never its contents. `redactPath` turns
+`/api/expenses/<uuid>/approve` into `/api/expenses/[id]/approve` before it is
+written, because the id is which record in which household and the pattern is
+the whole of what finds the defect. The query string goes entirely: it holds
+member filters and dates.
+
+**The reference is the join.** A 500 already said "Something went wrong. It's
+been logged." — true, and useless to somebody reporting it. Now the response
+carries eight characters that are also in the line, so a report becomes a
+search. For a screen that throws while rendering, `instrumentation.ts` uses
+Next's own digest as the reference, because the digest is what the person is
+looking at.
+
+**`/api/health` is the other half, and it is public by necessity.** An uptime
+checker has no session. So it answers two booleans and a timestamp — 200 while
+the database is reachable, 503 when it is not — and nothing about the
+households behind it: no counts, no names, no version of anything but the
+deploy. The database check is cached for ten seconds because a public endpoint
+that starts a service-role query per request is an amplifier, and ten seconds
+is under every uptime service's polling interval.
