@@ -58,3 +58,6 @@ ks-*.png
 # The screenshot set from `npm run shoot:ui`. Evidence a person reads, not
 # something the repository carries: 38 full-page PNGs per width per theme.
 /screenshots
+
+# Scratch drivers used while auditing the running app.
+.tmp-*.mjs

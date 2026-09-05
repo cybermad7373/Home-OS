@@ -131,6 +131,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           {toasts.map((toast) => (
             <motion.div
               key={toast.id}
+              /*
+                A refusal interrupts; a confirmation waits its turn. The
+                container's `aria-live="polite"` announced both the same way,
+                and neither carried a role — so "A category with that name
+                already exists" was, to assistive technology and to a test,
+                indistinguishable from the page it appeared over.
+              */
+              role={toast.tone === "danger" || toast.tone === "warning" ? "alert" : "status"}
               initial={false}
               animate={{ opacity: 1, x: 0, y: 0 }}
               exit={{ opacity: 0, x: 100, y: -20 }}

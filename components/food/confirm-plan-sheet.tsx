@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils/cn";
 import { formatDate } from "@/lib/utils/date";
 import type { MemberView } from "@/lib/types/domain";
 import type { MealPlanView } from "@/lib/data/food";
+import { apiErrorMessage } from "@/lib/utils/api-error-message";
 
 type Source = "home_cooked" | "bought" | "ordered" | "other";
 
@@ -78,7 +79,7 @@ export function ConfirmPlanSheet({
     setSaving(false);
 
     if (!response.ok) {
-      setError(body?.error?.message ?? "That did not save");
+      setError(apiErrorMessage(body, "That did not save"));
       return;
     }
 

@@ -71,6 +71,13 @@ export const ERROR_CATALOGUE = {
   ROOM_FULL: { status: 409, message: "That room is already at capacity" },
   ROOM_OCCUPIED: { status: 409, message: "Move the occupants out first" },
   ROOM_NAME_TAKEN: { status: 409, message: "A room with that name already exists" },
+  CATEGORY_NAME_TAKEN: {
+    status: 409,
+    message: "A category with that name already exists",
+  },
+  RESERVE_NAME_TAKEN: { status: 409, message: "A reserve with that name already exists" },
+  FOOD_NAME_TAKEN: { status: 409, message: "That dish is already in the library" },
+  NAME_TAKEN: { status: 409, message: "That name is already used in this home" },
   INVALID_TIME_RANGE: { status: 422, message: "Return time must be after leaving time" },
 
   // Expenses — docs/09-BUSINESS-RULES.md section 4.
@@ -301,16 +308,44 @@ export class ApiError extends Error {
  * This maps those back onto the catalogue so the user sees the right sentence
  * rather than a Postgres string.
  */
+/**
+ * A unique violation names the constraint it broke, and the constraint is the
+ * only thing that knows *what* was duplicated.
+ *
+ * Every 23505 in this app used to answer `ROOM_NAME_TAKEN`, so creating a
+ * second category called Groceries was refused with "A room with that name
+ * already exists" — on a screen with no rooms on it. The message was wrong
+ * often enough to be worse than no message.
+ */
+const UNIQUE_VIOLATIONS: { constraint: string; code: ErrorCode }[] = [
+  { constraint: "rooms_house_id_name_key", code: "ROOM_NAME_TAKEN" },
+  { constraint: "expense_categories_house_id_name_key", code: "CATEGORY_NAME_TAKEN" },
+  { constraint: "reserves_house_id_name_key", code: "RESERVE_NAME_TAKEN" },
+  { constraint: "home_rules_title_unique", code: "RULE_TITLE_TAKEN" },
+  { constraint: "foods_house_id_normalised_name_key", code: "FOOD_NAME_TAKEN" },
+  { constraint: "users_email_key", code: "EMAIL_TAKEN" },
+  { constraint: "house_members_house_id_user_id_key", code: "ALREADY_MEMBER" },
+  { constraint: "decision_responses_decision_id_member_id_capacity_key", code: "ALREADY_RESPONDED" },
+  { constraint: "chore_confirmations_assignment_id_member_id_key", code: "ALREADY_CONFIRMED" },
+];
+
 export function apiErrorFromPostgres(error: {
   message?: string | null;
   code?: string | null;
+  details?: string | null;
+  hint?: string | null;
 }): ApiError {
   const raw = error.message ?? "";
   for (const code of Object.keys(ERROR_CATALOGUE) as ErrorCode[]) {
     if (raw.includes(code)) return new ApiError(code);
   }
   if (error.code === "23505") {
-    return new ApiError("ROOM_NAME_TAKEN");
+    // The constraint name appears in the message, and sometimes only in the
+    // details. Both are searched, and an unrecognised one says the true thing
+    // rather than a specific untrue one.
+    const haystack = `${raw} ${error.details ?? ""} ${error.hint ?? ""}`;
+    const match = UNIQUE_VIOLATIONS.find((entry) => haystack.includes(entry.constraint));
+    return new ApiError(match?.code ?? "NAME_TAKEN");
   }
   if (error.code === "42501" || error.code === "PGRST301") {
     return new ApiError("NOT_HOUSE_MEMBER");

@@ -13,6 +13,7 @@ import { BottomSheet } from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { formatMoney, paiseToRupeeString } from "@/lib/utils/money";
 import type { MemberView, RoomView } from "@/lib/types/domain";
+import { apiErrorMessage } from "@/lib/utils/api-error-message";
 
 /**
  * S-25 — rooms.
@@ -58,7 +59,7 @@ export function RoomList({
     setBusy(false);
 
     if (!response.ok) {
-      toast(payload?.error?.message ?? "That did not work", "danger");
+      toast(apiErrorMessage(payload, "That did not work"), "danger");
       return false;
     }
 

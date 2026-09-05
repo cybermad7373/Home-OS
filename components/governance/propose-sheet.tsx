@@ -18,6 +18,7 @@ import {
 } from "@/lib/domain/governance/preview";
 import { DECISION_ACTION_PHRASE } from "@/lib/types/domain";
 import type { DecisionType, ResponseCapacity } from "@/lib/domain/governance/types";
+import { apiErrorMessage } from "@/lib/utils/api-error-message";
 
 interface PreviewParticipant {
   memberId: string;
@@ -119,7 +120,7 @@ export function ProposeSheet({
       if (cancelled) return;
 
       if (!response.ok) {
-        setError(payload?.error?.message ?? "This could not be worked out");
+        setError(apiErrorMessage(payload, "This could not be worked out"));
         return;
       }
       setPreview(payload as Preview);
@@ -308,7 +309,7 @@ async function proposeHere(
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(payload?.error?.message ?? "That did not go through");
+    throw new Error(apiErrorMessage(payload, "That did not go through"));
   }
 
   return {

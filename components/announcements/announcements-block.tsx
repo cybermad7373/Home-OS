@@ -11,6 +11,7 @@ import { BottomSheet } from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils/cn";
 import type { AnnouncementView } from "@/lib/data/announcements";
+import { apiErrorMessage } from "@/lib/utils/api-error-message";
 
 /**
  * Severity is a rule down the left edge, not a coloured border around the
@@ -78,7 +79,7 @@ export function AnnouncementsBlock({
 
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      toast(payload?.error?.message ?? "That did not post", "danger");
+      toast(apiErrorMessage(payload, "That did not post"), "danger");
       return;
     }
 

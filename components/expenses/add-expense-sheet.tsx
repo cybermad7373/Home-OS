@@ -234,6 +234,17 @@ export function AddExpenseSheet({
       */
       footer={
         <>
+        {/*
+          The refusal belongs where the button is. It used to render at the top
+          of the sheet body — which is a scrolling region — so pressing a pinned
+          Save that the server rejected showed the reason somewhere the person
+          could not see, and the sheet looked like it had simply done nothing.
+        */}
+        {error ? (
+          <div className="mb-2">
+            <Alert tone="danger">{error}</Alert>
+          </div>
+        ) : null}
         <p className="caption-text mb-2 text-center text-text-muted" aria-live="polite">
           {preview
             ? `Your share: ${formatMoney(preview.your_share_paise, { currency })} · ${preview.heads} ${
@@ -255,11 +266,6 @@ export function AddExpenseSheet({
         </>
       }
     >
-      {error ? (
-        <div className="mb-3">
-          <Alert tone="danger">{error}</Alert>
-        </div>
-      ) : null}
 
       {prefill?.warn ? (
         <div className="mb-3">
@@ -403,6 +409,12 @@ export function AddExpenseSheet({
           id="description"
           value={description}
           placeholder="Weekly vegetables"
+          /*
+            The same 200 the schema enforces. Without it a long note was
+            accepted by the field, priced by the preview, and refused by the
+            save — the one place a limit should never first appear.
+          */
+          maxLength={200}
           onChange={(event) => setDescription(event.target.value)}
         />
       </Field>

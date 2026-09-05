@@ -22,6 +22,7 @@ import type {
   SplitBasis,
 } from "@/lib/types/database";
 import type { MemberView } from "@/lib/types/domain";
+import { apiErrorMessage } from "@/lib/utils/api-error-message";
 
 /**
  * S-23 — recurring expenses.
@@ -70,7 +71,7 @@ export function RecurringList({
     setBusy(false);
 
     if (!response.ok) {
-      setError(payload?.error?.message ?? "That did not work");
+      setError(apiErrorMessage(payload, "That did not work"));
       return false;
     }
 

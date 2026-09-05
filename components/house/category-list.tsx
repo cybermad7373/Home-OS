@@ -15,6 +15,7 @@ import { useToast } from "@/components/ui/toast";
 import { formatMoney, paiseToRupeeString } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
 import type { ExpenseCategoryRow } from "@/lib/types/database";
+import { apiErrorMessage } from "@/lib/utils/api-error-message";
 
 /**
  * Categories and their budgets.
@@ -62,7 +63,7 @@ export function CategoryList({
     const payload = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      toast(payload?.error?.message ?? "That did not work", "danger");
+      toast(apiErrorMessage(payload, "That did not work"), "danger");
       return false;
     }
 
