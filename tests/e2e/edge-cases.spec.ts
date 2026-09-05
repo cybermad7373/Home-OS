@@ -194,8 +194,15 @@ test("a sheet takes the keyboard, keeps it, and gives it back", async ({ page })
 
   await page.keyboard.press("Escape");
   await expect(sheet).toBeHidden();
+  // The accessible name, not the text. On a phone the control that opens this
+  // is the raised centre button of the tab bar: an icon and an `aria-label`,
+  // with no text content at all, so reading `textContent` asked the wrong
+  // question and got "" back from a button that had been focused correctly.
   expect(
-    await page.evaluate(() => (document.activeElement?.textContent ?? "").trim()),
+    await page.evaluate(() => {
+      const active = document.activeElement;
+      return (active?.getAttribute("aria-label") ?? active?.textContent ?? "").trim();
+    }),
     "focus went back to the control that opened it",
   ).toContain("Add");
 });
