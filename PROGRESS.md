@@ -4,7 +4,7 @@ A running record of what has been built, what is verified, and what is next.
 Updated at the end of every working session. The roadmap in
 [`docs/07-ROADMAP.md`](docs/07-ROADMAP.md) is the plan; this file is the state.
 
-**Last updated:** 2026-09-04
+**Last updated:** 2026-09-05
 
 ## Working agreements — settled 2026-08-27
 
@@ -12,7 +12,7 @@ How the rest of the build runs. The reasoning is D-59; this is the summary.
 
 | | |
 |---|---|
-| **Next piece of work** | Every engineering phase of specification 2.0 is built, and as of 2026-09-03 so is the surface overhaul. On 2026-09-04 the hosted project was written to for the first time, by explicit request: 37 migrations, the LLM master key as an Edge Function secret, and all eight functions redeployed. What remains of the launch gate in "Known gaps" is a real-device push test and the production release checks — privacy and support pages, monitoring, and backups. |
+| **Next piece of work** | Every engineering phase of specification 2.0 is built; so is the surface overhaul (2026-09-03) and the reachability audit that followed it (2026-09-05), which fixed the Home the app landed you in, the amount field that ignored the keyboard, the refusals that said nothing, and the seven decision types nobody could start. On 2026-09-04 the hosted project was written to for the first time, by explicit request: 37 migrations, the LLM master key as an Edge Function secret, and all eight functions redeployed. **The hosted project has not been written to since, so it is behind this repository by everything after that date.** What remains of the launch gate in "Known gaps" is a real-device push test and the production release checks — privacy and support pages, monitoring, and backups. |
 | **Test target** | The local stack, still. The hosted project is written to only by an explicitly requested `db:push`; that this has now happened once does not make it routine, and no test or sweep in this repository points at it. |
 | **Scope** | The whole of specification 2.0: finish phase 11, then 12 to 15 in the roadmap's order. Nothing trimmed. |
 | **Phase-11 order** | Jobs and notifications, then S-37 proposers, then absence, then shared assignment and `change_confirmation_policy`, then governed close with adjustments, then expected contributions and the reserve. |
@@ -24,6 +24,80 @@ Local Supabase is running. Migrations 045–089 plus `20260901000000`,
 `20260903000000` and `20260903000001` applied locally.
 Integration suites no longer skip themselves. `npm run gen:types` fixed to read local stack.
 `lib/types/schema-pending.ts` reduced to 17-line shim (only `JoinRequestStatus`).
+
+## The reachability audit — 2026-09-05
+
+The surface overhaul made the product *visible*. This pass asked a narrower
+question — can a person actually reach what is built — and the answer was
+mostly no. Forty-one routes were driven twice under Playwright, once as a plain
+member and once as an admin, plus a full signup and Home creation, at 412 px
+and 1440 px. Every automated check passed the whole time; none of what follows
+was catchable by them.
+
+### What the audit found
+
+- **Signing in landed in a different Home each time.** `listMemberships` ordered
+  by status and `joined_date`, which is a date, so an account that joined three
+  Homes on one day tied on every key and Postgres returned them in whatever
+  order suited it. `getMembership` took the first row. Two identical sign-ins,
+  two different Homes — and if the one it picked was a Home where the account is
+  an ordinary member, the app had no Add a room, no Add a category, no Add a
+  rule and no admin screens, with nothing on screen saying why. This is the
+  same defect class the database fixed for `create_expense` in
+  `20260903000001`, left in place in the application. It is most of why this
+  product has read as half built. D-78.
+- **The amount field ignored the keyboard.** The expense keypad had no input
+  behind it: typing 456 on a laptop left the button reading Save ₹0, and the
+  only way to enter money was clicking the drawn digits.
+- **A refused member was told nothing.** Five list screens rendered no control
+  at all, and three admin routes answered a typed URL with a silent
+  `redirect("/more")`. D-79.
+- **Seven of the fifteen decision types had no way in.** `change_governance`,
+  `change_home_mode`, `change_confirmation_policy`, `balance_adjustment`,
+  `set_expected_contribution`, `create_reserve` and `reserve_draw` were
+  implemented end to end — the effect in SQL, the participants in the selector,
+  the queue group, the notification wording — and `ProposeSheet` was mounted in
+  exactly two files. The seeded Home shows those decisions in its own log, so
+  they read as features the app has.
+- **`/homes` could not gain a home.** Its own subtitle told people to open an
+  invite link and it offered no way to do so, and a second Home was reachable
+  only through onboarding, which a signed-in person cannot get back to.
+- **Quick-add covered a third of what a Home makes**, and its options landed on
+  lists rather than on forms. The sidebar's resting state was six destinations
+  with about twenty-five behind five closed rows.
+- **A new Home explained nothing.** It arrives with 43 chores already defined
+  and the chores screen said only that the week had not been generated, so the
+  first act in this product was pressing a button with invisible consequences.
+
+### What shipped
+
+Seven slices, one commit each, on `main`:
+
+1. `defaultMembership`, a total ordering, and a preference for a Home the
+   caller runs.
+2. `/homes` as a Home chooser outside the app shell — one card per Home with
+   the name, the kind, your role, the head count and what is waiting — plus
+   Create a home and Join with a code. Signing in lands here.
+3. A real input behind the amount keypad, `inputMode: none` on a coarse
+   pointer only.
+4. `LeadOnlyAction` and `LeadOnlyPage` across five list screens and three admin
+   routes.
+5. Quick-add grown from 7 options to 15 in three groups, every one landing on
+   its form; `?add=1` read by rooms, categories, recurring and members;
+   `InvitePanel` lifted out of house settings and onto `/house/members`; the
+   first sidebar group open on arrival.
+6. `FirstRun`, a four-step checklist that ticks itself off and disappears, and
+   a chores empty state that names the weekly load before Generate is pressed.
+7. `/more/decisions/new` — all seven orphaned decision types, each form
+   carrying the Home's current values and sending only what moved.
+
+Doto's tracking widened from 0.01em to 0.05–0.06em. D-72 is unchanged.
+
+**Verified:** `npm run typecheck`, `npm run lint`, `npm run test` (74 files,
+992 cases), `npm run build`, and `npx playwright test` on both projects — 73
+desktop and 73 mobile — all green against the local stack. `tests/e2e/homes.spec.ts`
+is this pass's journey: nine cases through the chooser, the new controls and
+the refusals. Nothing was written to the hosted project.
 
 ## Product surface overhaul — 2026-09-01 to 2026-09-03
 

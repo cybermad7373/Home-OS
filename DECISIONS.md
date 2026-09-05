@@ -1815,3 +1815,58 @@ Badges are thresholds over those same figures, because a badge nobody can trace
 back to work they did is a sticker. The standing list is rendered in the
 house's own member order and never sorted by points: sorting it would turn a
 personal record into the leaderboard this layer exists not to be.
+
+## D-78 — the Home you are in is chosen on a screen, never inferred
+
+A person belongs to several Homes from phase 10 onward and exactly one is
+selected at a time. Until now nothing ever asked. The selection is a server-side
+cookie; a fresh browser has none; and the fallback was the first row of
+`listMemberships`, ordered by status and `joined_date` — a date, so everybody
+who joined two Homes on one day tied on every key in the query and Postgres
+returned them in whatever order suited it. Two identical sign-ins landed in two
+different Homes.
+
+That was not a cosmetic defect. Landing in a Home where you are an ordinary
+member is landing in an app with no Add a room, no Add a category, no Add a
+rule and no admin screens, and nothing anywhere saying why. The most common
+verdict on this product — that it is half built — was mostly this bug.
+
+Three things follow, and they are the decision:
+
+- **`/homes` is the landing screen**, outside the app shell. A sidebar, a tab
+  bar and a Home switcher all describe the Home you are in, and the old
+  `/homes` was a list of Homes rendered inside one of them.
+- **The order is total.** `house_id` is the third key, so the same account gets
+  the same answer every time, and `defaultMembership` prefers a Home the caller
+  actually runs. The cookie still wins when there is one; this is only what
+  happens when there is not.
+- **Creating and joining live on that screen.** A list called My homes that
+  cannot gain a home is a list pretending to be a place — it used to tell people
+  to "open an invite link to join another" and offer no way to do it.
+
+The same defect class was fixed in the database for `create_expense`
+(`20260903000001`), where `current_member()` with no house id returned an
+arbitrary membership. This is the application half of it.
+
+## D-79 — a role is refused out loud
+
+Privilege was enforced by disappearance. A member on `/house/rooms` saw the
+rooms and no Add a room; on `/more/rules` the rules and no Add a rule; and a
+member who typed `/admin/settings` was redirected to `/more` with no message, so
+the screen they asked for was replaced by a different one.
+
+The gate was never wrong — the API refuses the write and RLS refuses it again,
+so what renders is presentation. What was wrong is that the presentation said
+nothing, and a product whose create controls are simply absent reads as a
+product that has not been finished.
+
+`LeadOnlyAction` draws the control disabled with the reason under it.
+`LeadOnlyPage` replaces the redirect with a screen that says what the screen is
+for and who may use it. Both name the authority exactly: `isAdmin` is the admin
+alone and `isLead` includes the co-admins, and telling a co-admin that only a
+co-admin may do what they were just refused would be worse than saying nothing.
+
+The quick-add sheet is the deliberate exception and still hides what the caller
+may not do. A disabled control on the rooms screen teaches that rooms have an
+owner; a disabled row in a menu somebody opened in order to *do something* is an
+obstacle with no lesson in it.
