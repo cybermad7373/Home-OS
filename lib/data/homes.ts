@@ -34,6 +34,12 @@ export interface HomeCard {
   status: MemberStatus;
   /** Open join requests. Zero for anyone who is not a lead, and for Requested rows. */
   pendingCount: number;
+  /**
+   * Active people in the Home. Zero for a Requested row — RLS returns the
+   * caller no `house_members` at all from a Home that has not let them in, so
+   * this is what the database says rather than a number we decline to show.
+   */
+  memberCount: number;
 }
 
 export interface HomesView {
@@ -76,6 +82,26 @@ export async function listHomes(
     }
   }
 
+  // One query for every Home the caller is Active in, rather than one per
+  // card. A Requested Home contributes nothing here because RLS gives the
+  // caller no rows from it.
+  const activeHouseIds = memberships
+    .filter((m) => m.member.status === "active")
+    .map((m) => m.house.id);
+
+  const membersByHouse = new Map<string, number>();
+  if (activeHouseIds.length > 0) {
+    const { data, error } = await session.supabase
+      .from("house_members")
+      .select("house_id")
+      .in("house_id", activeHouseIds)
+      .eq("status", "active");
+    if (error) throw apiErrorFromPostgres(error);
+    for (const row of data ?? []) {
+      membersByHouse.set(row.house_id, (membersByHouse.get(row.house_id) ?? 0) + 1);
+    }
+  }
+
   const homes = memberships.map<HomeCard>((m) => ({
     id: m.house.id,
     name: m.house.name,
@@ -83,6 +109,7 @@ export async function listHomes(
     role: m.member.role,
     status: m.member.status,
     pendingCount: pendingByHouse.get(m.house.id) ?? 0,
+    memberCount: membersByHouse.get(m.house.id) ?? 0,
   }));
 
   // The selection is only meaningful if it is still one of the caller's Homes.

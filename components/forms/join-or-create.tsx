@@ -52,7 +52,7 @@ export function JoinOrCreate() {
   );
 }
 
-type Router = ReturnType<typeof useRouter>;
+export type Router = ReturnType<typeof useRouter>;
 
 /**
  * Pulls the token out of whatever the person pasted.
@@ -72,7 +72,13 @@ function tokenFrom(pasted: string): string | null {
   return /^[A-Za-z0-9_-]{16,64}$/.test(trimmed) ? trimmed : null;
 }
 
-function JoinForm({ onBack, router }: { onBack: () => void; router: Router }) {
+export function JoinForm({
+  onBack,
+  router,
+}: {
+  onBack: () => void;
+  router: Router;
+}) {
   const [pasted, setPasted] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -168,7 +174,24 @@ const HOME_TYPES: {
   },
 ];
 
-function CreateForm({ onBack, router }: { onBack: () => void; router: Router }) {
+/**
+ * `afterCreate` is where a finished Home sends you.
+ *
+ * In onboarding that is the profile step, because the account is new and the
+ * two questions on it have not been asked. Somebody who already lives in a
+ * Home and is setting up a second one has answered them, so the chooser passes
+ * `/home` and drops them straight into the Home they just made — which
+ * `POST /api/houses` has already selected for them.
+ */
+export function CreateForm({
+  onBack,
+  router,
+  afterCreate = "/onboarding/profile",
+}: {
+  onBack: () => void;
+  router: Router;
+  afterCreate?: string;
+}) {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [timezone, setTimezone] = useState("Asia/Kolkata");
@@ -216,7 +239,7 @@ function CreateForm({ onBack, router }: { onBack: () => void; router: Router }) 
     // Straight to the profile. The AI key is configuration an admin has no
     // basis for deciding on before they have seen the app, and it is offered
     // again from Home and from house settings.
-    router.push("/onboarding/profile");
+    router.push(afterCreate);
     router.refresh();
   }
 

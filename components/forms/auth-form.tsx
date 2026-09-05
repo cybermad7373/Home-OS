@@ -46,7 +46,7 @@ type Errors = Partial<Record<FieldKey | "form", string>>;
 export function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/home";
+  const next = searchParams.get("next") ?? "/homes";
 
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");

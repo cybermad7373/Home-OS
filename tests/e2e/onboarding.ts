@@ -69,12 +69,23 @@ export async function createHome(page: Page, name: string): Promise<void> {
   await page.waitForURL("**/home", { timeout: 30000 });
 }
 
-/** Sign in as somebody who already has a Home. */
+/**
+ * Sign in as somebody who already has a Home, and go into it.
+ *
+ * Signing in lands on the Home chooser now rather than inside a Home: the app
+ * used to pick one for you off an untotalled query and say nothing about it.
+ * Every journey here belongs to exactly one Home, so the helper presses its
+ * card — which is what a person does — and returns once the app is inside it.
+ */
 export async function signIn(page: Page, identifier: string): Promise<void> {
   await page.goto("/signin");
   await page.getByLabel("Username or email").fill(identifier);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
+
+  await page.waitForURL("**/homes", { timeout: 30000 });
+  await page.getByRole("button", { name: /^Enter / }).first().click();
+  await page.waitForURL("**/home", { timeout: 30000 });
 }
 
 /**
