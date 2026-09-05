@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { Database } from "@/lib/types/database";
 import { supabaseAnonKey, supabaseUrl } from "./env";
 import { contentSecurityPolicy, createNonce, cspHeaderName } from "@/lib/infra/http/csp";
+import { WRITE_SCOPE, isCountedWrite, writeLimit } from "@/lib/infra/http/rate-limit";
 
 /**
  * Routes reachable without a session. Everything else redirects to sign in.
@@ -160,6 +161,48 @@ export async function updateSession(request: NextRequest) {
     redirect.pathname = "/signin";
     redirect.searchParams.set("next", pathname);
     return secured(NextResponse.redirect(redirect));
+  }
+
+  /*
+    A signed-in member cannot hammer a write endpoint.
+
+    Here rather than in each route, because there are ninety-odd of them and a
+    limiter that covers eighty-nine is a limiter with a hole in it. The count
+    lives in Postgres (migration 090) so that two instances of this server share
+    one counter; an in-memory one would limit a fraction of the traffic and
+    report that it had limited all of it.
+
+    **It fails open.** If the database cannot be reached the request goes
+    through: this is a defence against a loop, not an authorisation check, and
+    the authorisation check is RLS, which is in the same database. Refusing
+    every write because the counter is unavailable would turn a slow database
+    into an outage.
+  */
+  if (user && isCountedWrite(request.method, pathname)) {
+    const { limit, windowSeconds } = writeLimit();
+    try {
+      const { data, error } = await supabase.rpc("consume_rate_limit", {
+        p_scope: WRITE_SCOPE,
+        p_limit: limit,
+        p_window_seconds: windowSeconds,
+      });
+      const verdict = data?.[0];
+      if (!error && verdict && !verdict.allowed) {
+        const response = NextResponse.json(
+          {
+            error: {
+              code: "RATE_LIMITED",
+              message: "Slow down a moment and try again",
+            },
+          },
+          { status: 429 },
+        );
+        response.headers.set("Retry-After", String(verdict.retry_after_seconds));
+        return secured(response);
+      }
+    } catch (error) {
+      console.warn("[proxy] rate limit check failed open", error);
+    }
   }
 
   if (user && (pathname === "/signin" || pathname === "/signup")) {

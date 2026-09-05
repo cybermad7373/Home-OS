@@ -2791,6 +2791,24 @@ export type Database = {
           },
         ]
       }
+      rate_limit_hits: {
+        Row: {
+          bucket: string
+          hits: number
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          hits?: number
+          window_start: string
+        }
+        Update: {
+          bucket?: string
+          hits?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       recurring_expenses: {
         Row: {
           active: boolean
@@ -3767,6 +3785,14 @@ export type Database = {
           settlement_status_now: Database["public"]["Enums"]["settlement_status"]
         }[]
       }
+      consume_rate_limit: {
+        Args: { p_limit: number; p_scope: string; p_window_seconds: number }
+        Returns: {
+          allowed: boolean
+          hits: number
+          retry_after_seconds: number
+        }[]
+      }
       create_decision: {
         Args: {
           p_deadline?: string
@@ -4308,6 +4334,7 @@ export type Database = {
         Args: { p_notification_id: string }
         Returns: string
       }
+      sweep_rate_limit_hits: { Args: never; Returns: number }
       username_available: { Args: { p_username: string }; Returns: boolean }
       void_expense: {
         Args: { p_expense_id: string; p_reason: string }

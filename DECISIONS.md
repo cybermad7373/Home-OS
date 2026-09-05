@@ -2083,3 +2083,41 @@ cheap.
 
 `CSP_REPORT_ONLY=1` exists for a shakedown week on a new deploy. It is off
 unless set, because a policy nobody switched on is not a policy.
+
+## D-88 — the write limiter counts in Postgres, and fails open
+
+`docs/18-GO-LIVE.md` named the gap and half the answer: Supabase rate-limits
+auth upstream and every other route needs a session, so what was unprotected
+was a signed-in member — or a script holding their cookie — writing in a loop.
+The document also ruled out the obvious fix, and was right to: an in-memory
+limiter on a deploy of more than one instance limits a fraction of the traffic
+and reports that it limited all of it.
+
+**So the counter is a row.** `insert … on conflict do update … returning` is one
+atomic round trip, and two instances racing on the same member increment the
+same row rather than each seeing a count of one. Postgres is the only thing
+every instance of this server already shares.
+
+**In the proxy, not in the routes.** There are ninety-odd write endpoints and a
+limiter that covers eighty-nine has a hole in it.
+
+**It fails open.** If the counter cannot be reached the write proceeds. This is
+a defence against a loop, not an authorisation check — and the authorisation
+check is RLS, which lives in the same database that just failed to answer.
+Refusing every write because a counter is unavailable converts a slow database
+into an outage.
+
+**A fixed window, and the burst it permits is deliberate.** Sixty at the end of
+one minute and sixty at the start of the next is 120 in two seconds, which a
+sliding window would refuse. What this exists to stop is a loop, and a loop
+trips a fixed window inside one window; a sliding log costs a row per request
+and a scan per check to buy an edge case nobody meets.
+
+**The identity is `auth.uid()`, taken inside the function.** A bucket assembled
+from anything the caller sends is a bucket the caller can move to. The scope is
+an argument because the proxy classifies the request, and a forged scope moves
+only the forger's own counter.
+
+This does not replace a limiter at the host or the CDN, which is where a flood
+should be stopped before it costs anything. It is the floor under one, present
+wherever this is deployed, including a deployment with nothing in front of it.
