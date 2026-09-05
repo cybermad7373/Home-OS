@@ -91,11 +91,24 @@ Seven slices, one commit each, on `main`:
 7. `/more/decisions/new` — all seven orphaned decision types, each form
    carrying the Home's current values and sending only what moved.
 
-Doto's tracking widened from 0.01em to 0.05–0.06em. D-72 is unchanged.
+Two more followed, closing the pass:
+
+8. The dot-matrix display face is gone. D-72 made it the voice for every
+   figure the app exists to show, and at 32 px `₹12,868` is a field of dots
+   before it is a number — it reads as a broken font, and every screenshot of
+   the product led with it. Headline figures are the mono face now at the same
+   sizes and weight, tabular and tracked tight; the app loads two families
+   instead of three. D-72 records the original reasoning and the reversal.
+9. A second sweep of all forty routes, as an admin and as a member, to find
+   what the first one missed. It found `/more/rules/new`, which had no role
+   check at all — a member reached the URL, wrote a whole rule in eleven
+   fields, and was refused by the API at the moment they submitted it — and
+   two food screens with no path to the action that fills them. Every route
+   now either offers the control, is genuinely a record, or says who may act.
 
 **Verified:** `npm run typecheck`, `npm run lint`, `npm run test` (74 files,
-992 cases), `npm run build`, and `npx playwright test` on both projects — 73
-desktop and 73 mobile — all green against the local stack. `tests/e2e/homes.spec.ts`
+992 cases), `npm run build`, and `npx playwright test` — **146 passed** across
+both projects — all green against the local stack. `tests/e2e/homes.spec.ts`
 is this pass's journey: nine cases through the chooser, the new controls and
 the refusals. Nothing was written to the hosted project.
 

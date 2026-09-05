@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { LibraryList } from "@/components/food/library-list";
 import { MergeDuplicates } from "@/components/food/merge-duplicates";
 import { getHouseContext, requireSession } from "@/lib/data/house";
@@ -39,9 +41,18 @@ export default async function FoodLibraryPage() {
 
   return (
     <>
+      {/* The library is derived from meals that were recorded (FD-09) — there
+          is no Add a dish here and there should not be, because a dish nobody
+          ate is not a fact about this home. What there was no way to do from
+          this screen is the thing that *does* fill it. */}
       <PageHeader
         title="Library"
         subtitle="Every dish the home has recorded, so it never has to be described twice"
+        action={
+          <Link href="/food?add=1" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            Record a meal
+          </Link>
+        }
       />
       {context.isLead ? <MergeDuplicates foods={foods} /> : null}
       <LibraryList

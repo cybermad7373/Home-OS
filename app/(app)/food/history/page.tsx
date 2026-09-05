@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { MealList } from "@/components/food/meal-list";
 import { getHouseContext, requireSession } from "@/lib/data/house";
 import { listMeals } from "@/lib/data/food";
@@ -17,7 +19,15 @@ export default async function MealHistoryPage() {
 
   return (
     <>
-      <PageHeader title="Meal history" subtitle="What was eaten, by whom, and what it cost" />
+      <PageHeader
+        title="Meal history"
+        subtitle="What was eaten, by whom, and what it cost"
+        action={
+          <Link href="/food?add=1" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            Record a meal
+          </Link>
+        }
+      />
       <MealList meals={meals} currency={context.house.currency} />
     </>
   );

@@ -189,6 +189,12 @@ test("the member sees a reason where the control would be", async ({ page }) => 
   await expect(page.getByRole("button", { name: "Add a room" })).toBeDisabled();
   await expect(page.getByText(/Only the admin of this home can add a room/)).toBeVisible();
 
+  // A form a member may not submit is not offered eleven fields deep. This
+  // screen had no check at all: a member could write the whole rule and be
+  // refused by the API at the moment they sent it.
+  await page.goto("/more/rules/new");
+  await expect(page.getByText(/This screen is where an admin or co-admin/)).toBeVisible();
+
   // The admin URL typed by hand used to answer with a different screen and no
   // explanation.
   await page.goto("/admin/settings");
