@@ -25,16 +25,22 @@ export function RoomList({
   members,
   currency,
   isAdmin,
+  openAddOnMount = false,
 }: {
   rooms: RoomView[];
   members: MemberView[];
   currency: string;
   isAdmin: boolean;
+  openAddOnMount?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [, startTransition] = useTransition();
-  const [editing, setEditing] = useState<RoomView | "new" | null>(null);
+  // Quick-add links here with `?add=1`. A menu option called Room that lands
+  // on a list of rooms has not added a room; it has moved you.
+  const [editing, setEditing] = useState<RoomView | "new" | null>(
+    openAddOnMount && isAdmin ? "new" : null,
+  );
   const [assigning, setAssigning] = useState<RoomView | null>(null);
   const [busy, setBusy] = useState(false);
 

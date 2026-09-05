@@ -11,6 +11,7 @@ import { SwitchRow } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
 import { Columns } from "@/components/layout/columns";
 import { List, Section } from "@/components/layout/section";
+import { InvitePanel } from "@/components/house/invite-panel";
 import { formatMoney, paiseToRupeeString, rupeesToPaise } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
 import type {
@@ -70,8 +71,6 @@ export function SettingsForm({
   const [dailyBudget, setDailyBudget] = useState(
     settings.daily_budget_paise ? paiseToRupeeString(settings.daily_budget_paise) : "",
   );
-  const [link, setLink] = useState(inviteUrl);
-  const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -115,34 +114,6 @@ export function SettingsForm({
 
     toast("Settings saved.", "success");
     startTransition(() => router.refresh());
-  }
-
-  async function rotate() {
-    setBusy(true);
-    const response = await fetch("/api/invitations", { method: "POST" });
-    const payload = await response.json().catch(() => ({}));
-    setBusy(false);
-
-    if (!response.ok) {
-      toast(payload?.error?.message ?? "That did not work", "danger");
-      return;
-    }
-
-    setLink(payload.invite_url);
-    setCopied(false);
-    toast("New link. The old one stopped working immediately.", "success");
-    startTransition(() => router.refresh());
-  }
-
-  async function copyLink() {
-    if (!link) return;
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-    } catch {
-      // A browser that refuses clipboard access is not an error worth a toast:
-      // the link is on screen and can be selected by hand.
-    }
   }
 
   return (
@@ -365,31 +336,7 @@ export function SettingsForm({
       }
       aside={
         <>
-          <Section label="Invite link" className="mt-0">
-            {link ? (
-              <p className="break-all rounded-[var(--radius-sm)] bg-surface-2 px-3 py-2 font-mono text-[13px]">
-                {link}
-              </p>
-            ) : (
-              <p className="caption-text text-text-muted">
-                There is no live link. Nobody new can ask until you make one.
-              </p>
-            )}
-            <p className="caption-text mt-2 text-text-muted">
-              Holding the link grants nothing on its own — somebody here still has
-              to let them in.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {link ? (
-                <Button variant="outline" size="sm" onClick={copyLink}>
-                  {copied ? "Copied" : "Copy link"}
-                </Button>
-              ) : null}
-              <Button variant="outline" size="sm" loading={busy} onClick={rotate}>
-                {link ? "Replace this link" : "Make a link"}
-              </Button>
-            </div>
-          </Section>
+          <InvitePanel inviteUrl={inviteUrl} className="mt-0" />
 
           {/* Nothing above is written until this is pressed, so it sits with the
               rail rather than at the bottom of a column it cannot see. */}

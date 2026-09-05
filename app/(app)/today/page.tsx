@@ -35,7 +35,12 @@ export const metadata: Metadata = {
  * to "what do I have to do today". The headings are hairline rules now, and
  * the content is the only thing with weight.
  */
-export default async function TodayPage() {
+export default async function TodayPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ add?: string }>;
+}) {
+  const { add } = await searchParams;
   const session = await requireSession();
   const context = await getHouseContext(session);
   const today = await getToday(session, context);
@@ -137,6 +142,7 @@ export default async function TodayPage() {
             ) : null}
 
             <AnnouncementsBlock
+              openAddOnMount={add === "announcement"}
               announcements={today.announcements}
               canPost={context.isLead}
               timezone={context.house.timezone}

@@ -41,16 +41,20 @@ export function RecurringList({
   members,
   currency,
   isAdmin,
+  openAddOnMount = false,
 }: {
   recurring: RecurringExpenseRow[];
   categories: ExpenseCategoryRow[];
   members: MemberView[];
   currency: string;
   isAdmin: boolean;
+  openAddOnMount?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
-  const [editing, setEditing] = useState<RecurringExpenseRow | "new" | null>(null);
+  const [editing, setEditing] = useState<RecurringExpenseRow | "new" | null>(
+    openAddOnMount && isAdmin ? "new" : null,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

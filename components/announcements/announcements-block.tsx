@@ -40,14 +40,17 @@ export function AnnouncementsBlock({
   announcements,
   canPost,
   timezone,
+  openAddOnMount = false,
 }: {
   announcements: AnnouncementView[];
   canPost: boolean;
   timezone: string;
+  openAddOnMount?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
-  const [open, setOpen] = useState(false);
+  // Quick-add's Announcement option lands on /today?add=announcement.
+  const [open, setOpen] = useState(openAddOnMount && canPost);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [severity, setSeverity] = useState<AnnouncementView["severity"]>("info");

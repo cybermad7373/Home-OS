@@ -9,7 +9,12 @@ export const metadata: Metadata = {
   description: "Rent, the bill and the maid, posted automatically.",
 };
 
-export default async function RecurringPage() {
+export default async function RecurringPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ add?: string }>;
+}) {
+  const { add } = await searchParams;
   const session = await requireSession();
   const context = await getHouseContext(session);
 
@@ -25,6 +30,7 @@ export default async function RecurringPage() {
         subtitle="Posted automatically on their day, at 6am house time"
       />
       <RecurringList
+        openAddOnMount={add === "1"}
         recurring={recurring}
         categories={categories}
         members={context.members}

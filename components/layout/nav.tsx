@@ -13,7 +13,7 @@ import {
   type Destination,
   type HomeShape,
 } from "./destinations";
-import { QuickAddSheet, quickAddOptions } from "./quick-add";
+import { QuickAddSheet, quickAddGroups } from "./quick-add";
 
 /**
  * Navigation, rebuilt in 3.0 around one idea: **the bar never changes.**
@@ -95,7 +95,7 @@ export function BottomTabBar({
       <QuickAddSheet
         open={addOpen}
         onClose={() => setAddOpen(false)}
-        options={quickAddOptions({ isAdmin, isLead })}
+        groups={quickAddGroups({ isAdmin, isLead })}
       />
     </>
   );
@@ -203,10 +203,19 @@ export function Sidebar({
           ))}
         </div>
 
-        {groups.map((group) => {
+        {groups.map((group, index) => {
           const insideThisGroup = group.items.some((item) => item.href === active);
+          // The first group is open on arrival. Every group used to be closed
+          // unless you were already standing in it, so the sidebar's resting
+          // state was six destinations and five shut rows with about
+          // twenty-five destinations behind them — and a person's idea of what
+          // this product does was whatever the six suggested.
           return (
-            <details key={group.heading} open={insideThisGroup} className="group">
+            <details
+              key={group.heading}
+              open={insideThisGroup || index === 0}
+              className="group"
+            >
               <summary className="eyebrow-text flex cursor-pointer list-none items-center gap-1 px-3 py-1 hover:text-text-muted">
                 <ChevronDown
                   size={12}
@@ -240,7 +249,7 @@ export function Sidebar({
       <QuickAddSheet
         open={addOpen}
         onClose={() => setAddOpen(false)}
-        options={quickAddOptions({ isAdmin, isLead })}
+        groups={quickAddGroups({ isAdmin, isLead })}
       />
     </aside>
   );

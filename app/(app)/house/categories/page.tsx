@@ -16,7 +16,12 @@ export const metadata: Metadata = {
  * The month-to-date figures come from the same summary the running-cost screen
  * uses, so the two screens can never disagree about what a category has cost.
  */
-export default async function CategoriesPage() {
+export default async function CategoriesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ add?: string }>;
+}) {
+  const { add } = await searchParams;
   const session = await requireSession();
   const context = await getHouseContext(session);
 
@@ -36,6 +41,7 @@ export default async function CategoriesPage() {
         subtitle="What the house buys, and what it means to spend on each"
       />
       <CategoryList
+        openAddOnMount={add === "1"}
         categories={categories}
         spentByCategory={spentByCategory}
         currency={context.house.currency}

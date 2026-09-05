@@ -28,12 +28,14 @@ export function MemberList({
   isAdmin,
   currentMemberId,
   isFamily,
+  openAddOnMount = false,
 }: {
   members: MemberView[];
   isAdmin: boolean;
   currentMemberId: string;
   /** Changes the wording only. A shared flat can have dependents too. */
   isFamily: boolean;
+  openAddOnMount?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -41,7 +43,9 @@ export function MemberList({
   const [editing, setEditing] = useState<MemberView | null>(null);
   const [removing, setRemoving] = useState<MemberView | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [addingDependent, setAddingDependent] = useState(false);
+  const [addingDependent, setAddingDependent] = useState(
+    openAddOnMount && isAdmin,
+  );
 
   async function patchMember(member: MemberView, body: Record<string, unknown>) {
     setBusyId(member.id);

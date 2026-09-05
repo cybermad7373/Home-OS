@@ -9,7 +9,12 @@ export const metadata: Metadata = {
   description: "Rooms, rent and who sleeps where.",
 };
 
-export default async function RoomsPage() {
+export default async function RoomsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ add?: string }>;
+}) {
+  const { add } = await searchParams;
   const session = await requireSession();
   const context = await getHouseContext(session);
 
@@ -29,6 +34,7 @@ export default async function RoomsPage() {
         }
       />
       <RoomList
+        openAddOnMount={add === "1"}
         rooms={context.rooms}
         members={context.members}
         currency={context.house.currency}

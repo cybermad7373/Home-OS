@@ -29,18 +29,20 @@ export function CategoryList({
   spentByCategory,
   currency,
   isAdmin,
+  openAddOnMount = false,
 }: {
   categories: ExpenseCategoryRow[];
   /** Month-to-date spend, so a budget can be shown against something real. */
   spentByCategory: Record<string, number>;
   currency: string;
   isAdmin: boolean;
+  openAddOnMount?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [, startTransition] = useTransition();
   const [editing, setEditing] = useState<ExpenseCategoryRow | null>(null);
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(openAddOnMount && isAdmin);
 
   const active = categories.filter((category) => category.active);
   const archived = categories.filter((category) => !category.active);
