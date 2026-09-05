@@ -67,6 +67,7 @@ distributes the load automatically according to who is actually home and when.
 | 16 | [COMPETITIVE-POSITIONING.md](16-COMPETITIVE-POSITIONING.md) | Every competitor capability and complaint in [`Competitor_Analysis.txt`](Competitor_Analysis.txt), mapped to the requirement that carries it, the commitment that answers it, or the reason we do not build it | Product owner, developer |
 | 17 | [UAT.md](17-UAT.md) | The acceptance pass: every screen and every feature with what must happen, what was observed, what is deferred and what is not built — plus the layout sweep that checks proportion, placement and reach on every screen | Product owner, developer |
 | 18 | [GO-LIVE.md](18-GO-LIVE.md) | What is left before the web release, in the order it has to happen: the two things to do first, the web host's environment, the release order, the smoke test on a real domain, the gaps that are true on the day, and how to roll back | Whoever presses deploy |
+| 19 | [BACKUP.md](19-BACKUP.md) | The backup policy for a free-tier project that has none of its own: what is being protected and from what, how to take one and on what schedule, where the files may and may not go, how to restore into a new project, and why it is rehearsed quarterly | Whoever operates the deployment |
 
 ### Source documents
 

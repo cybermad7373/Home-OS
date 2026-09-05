@@ -2227,3 +2227,45 @@ about a household, and nobody has ever gone back to read one.
 **The numbers are constants, not settings.** A retention period each household
 can change is one nobody can state on a privacy page — and the privacy page is
 where this has to be true, in words, which is where it now is.
+
+## D-92 — the backup policy is a script, because the plan has none
+
+`docs/18-GO-LIVE.md` said: "Supabase takes daily backups on paid plans; on the
+free tier it does not. Decide which." The plan is the free tier, so there are no
+automatic backups at all, and the decision is `npm run backup` plus
+`docs/19-BACKUP.md`.
+
+**Off Supabase, or it does not count.** Two of the four things worth fearing —
+an organisation removed, an account lost — take the provider's copy with them.
+A backup that lives only in the thing being backed up protects against exactly
+one failure mode, which is the one people picture.
+
+**Through the Supabase CLI rather than `pg_dump` directly.** The machine that
+would run a nightly backup usually has no Postgres client installed, and the
+one that does usually has the wrong major version. The CLI runs the right
+`pg_dump` in Docker. Writing this found the second half of the same problem:
+`npx.cmd` cannot be spawned without a shell on modern Node, and a shell on
+Windows concatenates arguments rather than escaping them — with a database
+password among them. It runs the CLI's entry point under the Node already
+running, which needs neither.
+
+**Schema and data separately.** They fail differently and restore differently,
+and knowing which one is broken is half the work.
+
+**Every run verifies its own output.** A truncated dump — a disk that filled, a
+connection that dropped — looks exactly like a good one until the day it is
+needed, and 90% of a dump restores 90% of a household. Finding a marker that
+survives took a round trip: the CLI strips comments by default, and the line
+`pg_dump` writes to say it finished *is* a comment, so a schema dump takes
+`--keep-comments` and a data dump — which cannot have that flag — is checked by
+the `RESET ALL;` the CLI appends instead.
+
+**The restore goes into a new project, never over the live one**, and it is
+rehearsed quarterly. What a rehearsal catches is not a corrupt file; it is the
+step nobody knew was missing, which on this system is the LLM master key or the
+Edge Function secrets — neither of which is in any dump.
+
+**Storage files are out of scope, and the document says so rather than
+implying it.** A receipt photo corroborates an expense whose amount, payer,
+date and splits are all in Postgres. The ledger is whole without the picture,
+and pretending otherwise would have meant a backup policy nobody finishes.

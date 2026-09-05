@@ -61,3 +61,6 @@ ks-*.png
 
 # Scratch drivers used while auditing the running app.
 .tmp-*.mjs
+
+# Database dumps. Every household's records in one file; never committed.
+backups/
