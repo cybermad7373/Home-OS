@@ -121,7 +121,7 @@ function supabase(commandArgs) {
       if (code === 0) resolve();
       // The connection string can appear in the CLI's own error output, so
       // nothing from it is printed raw.
-      else reject(new Error(`supabase db dump exited with ${code}\n${redact(stderr.trim())}`));
+      else reject(new Error(`supabase db dump exited with ${code}\n${redactText(stderr.trim())}`));
     });
   });
 }
