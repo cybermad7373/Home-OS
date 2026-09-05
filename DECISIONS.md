@@ -1963,3 +1963,86 @@ Until the first and third are set, each page renders a marked placeholder
 instead. That is deliberate and it is the whole point: a legal page carrying an
 invented company name and a plausible-looking address is a fabricated record,
 and the failure mode of writing one "to be replaced later" is that it ships.
+
+## D-83 — a value that came off a URL is checked before it reaches Postgres
+
+A path segment and a query parameter are whatever somebody typed, pasted, or a
+mail client mangled. Four routes handed them straight to a `select`:
+`/more/approvals/not-a-uuid`, `/more/rules/not-a-uuid/history` and
+`/expenses?member=not-a-uuid` each raised `22P02` and surfaced as "Something
+went wrong. It's been logged." — a lie, and a 500 in the logs for every stale
+link anybody follows. `/chores?week_start=not-a-date` was worse: it reached
+`weekDates`, built a range of `NaN`, and took the week down with it.
+
+`looksLikeUuid`, `looksLikeIsoDate` and `looksLikePeriod` are the guards, and
+**what a route does when one fails depends on what the value was for**:
+
+- **An id names a thing.** One that cannot be an id names nothing, so it is
+  `notFound()`.
+- **A filter narrows a list.** One that cannot be a filter is dropped, because
+  the screen the person asked for is the ledger and showing it unfiltered is a
+  better answer than an error page.
+- **A week is a position.** One that is not a week falls back to this week.
+
+`apiErrorFromPostgres` maps `22P02`, `22007` and `22008` to `VALIDATION_FAILED`
+rather than `INTERNAL`. In this codebase a cast error is always a value that
+came off a URL, so it is a bad request and not a fault in the server. That is
+the floor under the route guards, not a replacement for them.
+
+## D-84 — a refusal says what was refused, where it was refused
+
+Three separate defects, one rule.
+
+**By name.** Every `23505` answered `ROOM_NAME_TAKEN`, so a second category
+called Groceries was refused with "A room with that name already exists" on a
+screen with no rooms on it. The constraint name is the only thing that knows
+what was duplicated; nine are mapped, and an unrecognised one says the true
+general thing rather than a specific untrue one.
+
+**By field.** The API answers a validation failure with `error.details.fields`
+and a generic message. Six screens read only the message, so a room with a
+negative rent was refused with "Check the highlighted fields" and nothing
+highlighted. `apiErrorMessage` prefers the field's own reason.
+
+**Where the eye is.** The add-expense sheet rendered its error at the top of a
+scrolling body while its Save button was pinned to the footer, so pressing Save
+showed the reason somewhere off screen and the sheet appeared to do nothing. An
+error belongs beside the control that produced it.
+
+The corollary is prevention: the note field carries the same `maxLength` the
+schema enforces. A long note used to be accepted by the field, priced by the
+preview and refused by the save, which is the one place a limit should never
+first appear.
+
+## D-85 — `aria-modal` is a promise the keyboard has to keep
+
+Sheets declared `aria-modal="true"` and nothing made it true. Opening one left
+focus on the button behind it, and tabbing walked out of the panel into the page
+a screen reader had just been told was inert.
+
+Three things now happen, and no more: focus moves to the first real control when
+a sheet opens, Tab wraps at the ends instead of leaving, and focus returns to
+whatever opened it when it closes.
+
+This is not the "modal trap" the UI spec forbids (section 1, principle 8). That
+rule is about *dismissal* — every sheet still closes on Escape or a backdrop
+tap. Somebody can always leave; they can no longer leave by accident.
+
+Putting the caret in the amount field exposed the second half of it. Browsers
+place a programmatic caret at position 0, so typing `250` into a field showing
+`0` produced `2,500` — the digits went in one at a time in front of a zero that
+never moved. The field selects its contents on focus, so the first digit
+replaces the zero, which is what the keypad has always done.
+
+## D-86 — an API answers an API caller, even when the answer is "sign in"
+
+Every `/api/*` request from a signed-out caller was answered with a 307 to
+`/signin`. For a browser that is right; for the `fetch` in a tab whose session
+expired an hour ago it means an HTML login page arrives where JSON was expected,
+`response.json()` throws, and the screen says "That did not work" — the one
+thing that had not happened.
+
+The proxy now answers an `/api/*` path with `401` and the same
+`{ error: { code, message } }` shape as everything else, so the existing client
+code reads it and says "You have been signed out." Page requests still redirect,
+because a browser asking for a screen should be shown the screen it needs.

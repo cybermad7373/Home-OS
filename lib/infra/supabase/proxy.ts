@@ -93,6 +93,30 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!user && !isPublic(pathname)) {
+    /*
+      An API request gets an answer, not a redirect.
+
+      Every /api/* call from a signed-out caller used to be answered with a 307
+      to /signin, so a `fetch` in a tab whose session had expired received an
+      HTML login page. `response.json()` then threw, and the screen said "That
+      did not work" — which is the one thing that had not happened. The person
+      needed to be told they were signed out.
+
+      The shape matches the rest of the API so the same client code reads it:
+      `{ error: { code, message } }`, 401.
+    */
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "UNAUTHENTICATED",
+            message: "You have been signed out. Sign in again to continue.",
+          },
+        },
+        { status: 401 },
+      );
+    }
+
     const redirect = request.nextUrl.clone();
     redirect.pathname = "/signin";
     redirect.searchParams.set("next", pathname);

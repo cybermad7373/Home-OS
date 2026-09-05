@@ -2,7 +2,7 @@
 
 import { motion, type HTMLMotionProps } from "motion/react";
 import { useReducedMotion } from "motion/react";
-import { useId, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 
 interface PageTransitionProps {
@@ -67,6 +67,82 @@ const sizeClasses = {
   full: "max-h-[95vh]",
 };
 
+
+/**
+ * Where the keyboard is while a sheet is open.
+ *
+ * The panel says `aria-modal="true"`, which tells assistive technology that
+ * everything behind it is inert — and nothing made that true. Opening the
+ * add-expense sheet left focus on the button that opened it, and fifteen tabs
+ * walked straight out of the panel and into the page underneath it, where a
+ * screen reader had just been told there was nothing.
+ *
+ * Three things, and no more:
+ *
+ *   * focus moves to the first control in the panel when it opens;
+ *   * Tab wraps at the ends rather than leaving;
+ *   * focus goes back where it came from when the panel closes.
+ *
+ * This is not the "modal trap" the UI spec forbids (section 1, principle 8).
+ * That rule is about *dismissal* — every sheet closes on Escape or a backdrop
+ * tap, and both still do. Somebody can always leave; they can no longer leave
+ * by accident and without being told.
+ */
+function useSheetFocus(open: boolean, panel: React.RefObject<HTMLDivElement | null>) {
+  const returnTo = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const node = panel.current;
+    if (!node) return;
+
+    returnTo.current = document.activeElement as HTMLElement | null;
+
+    const focusable = () =>
+      [
+        ...node.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ].filter((el) => el.offsetParent !== null || el === document.activeElement);
+
+    // The first control, not the close button: the close button is the first
+    // thing in the DOM and landing on it makes every sheet open on "leave".
+    const first = focusable();
+    const target = first.find((el) => el.getAttribute("aria-label") !== "Close") ?? first[0];
+    target?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const items = focusable();
+      if (items.length === 0) return;
+      const start = items[0];
+      const end = items[items.length - 1];
+      const active = document.activeElement;
+
+      if (!node.contains(active)) {
+        event.preventDefault();
+        (event.shiftKey ? end : start).focus();
+        return;
+      }
+      if (event.shiftKey && active === start) {
+        event.preventDefault();
+        end.focus();
+      } else if (!event.shiftKey && active === end) {
+        event.preventDefault();
+        start.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      // Back to the control that opened it, so a keyboard user is not returned
+      // to the top of the document every time they close a sheet.
+      returnTo.current?.focus?.();
+    };
+  }, [open, panel]);
+}
+
 export function Sheet({
   open,
   onClose,
@@ -80,6 +156,8 @@ export function Sheet({
 }: SheetProps) {
   const reduce = useReducedMotion();
   const offsets = sideOffsets[side];
+  const panel = useRef<HTMLDivElement | null>(null);
+  useSheetFocus(open, panel);
   // A sheet is a modal surface, and until 3.0 it said so to nobody: no role,
   // no `aria-modal`, and a title rendered as an ordinary heading the dialog was
   // not named by. A screen reader announced the page it was covering.
@@ -114,6 +192,7 @@ export function Sheet({
         {...props}
       >
         <div
+          ref={panel}
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
@@ -186,6 +265,8 @@ export function Drawer({
 }: DrawerProps) {
   const reduce = useReducedMotion();
   const titleId = useId();
+  const panel = useRef<HTMLDivElement | null>(null);
+  useSheetFocus(open, panel);
 
   if (!open) return null;
 
@@ -199,6 +280,7 @@ export function Drawer({
       onClick={onClose}
     >
       <motion.div
+        ref={panel}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

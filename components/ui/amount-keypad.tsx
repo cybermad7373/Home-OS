@@ -64,6 +64,17 @@ export function AmountKeypad({
         <input
           value={formatWhileTyping(value)}
           onChange={(event) => onChange(sanitiseTyped(event.target.value))}
+          /*
+            Select the whole thing on focus. The field starts at 0 and the sheet
+            now puts the caret in it as soon as it opens — which browsers place
+            at position *0*, before the zero. Typing 250 produced 2,500: the
+            digits went in one at a time in front of a zero that never left, and
+            sanitiseTyped only strips a leading zero, not a trailing one.
+
+            Selecting means the first digit replaces the 0, which is also what
+            the keypad does, so both ways in behave the same.
+          */
+          onFocus={(event) => event.currentTarget.select()}
           inputMode={inputMode}
           autoComplete="off"
           aria-label="Amount"
