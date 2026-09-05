@@ -216,7 +216,45 @@ export function AddExpenseSheet({
       : (activeMembers.find((member) => member.id === paidBy)?.displayName ?? "someone");
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Add an expense">
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      title="Add an expense"
+      /*
+        Save is pinned, and it has to be. This sheet is a keypad, nine category
+        chips, a date, a payer, a split, a note and a receipt field; the button
+        used to be the last element of a scrolling body, which put it at y≈900
+        inside a panel 410-591px tall. It was reachable and it was never visible
+        on open, on any viewport tested including a phone — so the app looked
+        like a form you could fill in and could not submit, which is exactly
+        what people reported.
+
+        The share line comes with it: what you are about to be charged belongs
+        beside the button that charges you, not scrolled away above it.
+      */
+      footer={
+        <>
+        <p className="caption-text mb-2 text-center text-text-muted" aria-live="polite">
+          {preview
+            ? `Your share: ${formatMoney(preview.your_share_paise, { currency })} · ${preview.heads} ${
+                preview.heads === 1 ? "person" : "people"
+              }`
+            : " "}
+        </p>
+
+        <Button
+          block
+          loading={saving}
+          disabled={amountPaise <= 0 || !categoryId}
+          onClick={onSave}
+        >
+          {needsApproval
+            ? "Save — needs approval"
+            : `Save ${formatMoney(amountPaise, { currency })}`}
+        </Button>
+        </>
+      }
+    >
       {error ? (
         <div className="mb-3">
           <Alert tone="danger">{error}</Alert>
@@ -393,24 +431,6 @@ export function AddExpenseSheet({
         />
       </div>
 
-      <p className="caption-text mb-2 text-center text-text-muted" aria-live="polite">
-        {preview
-          ? `Your share: ${formatMoney(preview.your_share_paise, { currency })} · ${preview.heads} ${
-              preview.heads === 1 ? "person" : "people"
-            }`
-          : " "}
-      </p>
-
-      <Button
-        block
-        loading={saving}
-        disabled={amountPaise <= 0 || !categoryId}
-        onClick={onSave}
-      >
-        {needsApproval
-          ? "Save — needs approval"
-          : `Save ${formatMoney(amountPaise, { currency })}`}
-      </Button>
     </BottomSheet>
   );
 }

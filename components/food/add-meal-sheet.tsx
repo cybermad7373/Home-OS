@@ -201,7 +201,17 @@ export function AddMealSheet({
   }
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Add Meal">
+    <BottomSheet open={open} onClose={onClose} title="Add Meal"
+      /* The action this sheet exists for, pinned to the bottom. It was the
+         last element of a scrolling body, so it opened below the fold on an
+         ordinary laptop and the sheet read as a form that could be filled in
+         and not submitted. */
+      footer={
+        <Button block onClick={onSave} loading={saving}>
+          Save
+        </Button>
+      }
+    >
       <Field label="Name" htmlFor="meal-name">
         <Input
           id="meal-name"
@@ -381,9 +391,6 @@ export function AddMealSheet({
 
       {error ? <p className="caption-text mb-3 text-danger">{error}</p> : null}
 
-      <Button block onClick={onSave} loading={saving}>
-        Save
-      </Button>
     </BottomSheet>
   );
 }

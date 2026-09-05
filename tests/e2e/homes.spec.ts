@@ -202,3 +202,49 @@ test("the member sees a reason where the control would be", async ({ page }) => 
   await expect(page.getByRole("heading", { name: "House settings" })).toBeVisible();
   await expect(page.getByText(/This screen is where the admin of this home/)).toBeVisible();
 });
+
+test("the action a sheet exists for is visible without scrolling", async ({ page }) => {
+  // A 1093x614 window is a 1366x768 laptop at 125% display scaling, which is
+  // Windows' default on that panel. The add-expense Save button used to sit at
+  // y≈900 in a 491px panel here: reachable by scrolling inside the sheet, never
+  // visible when it opened, and the reason this app was reported as a form you
+  // could fill in and could not submit.
+  await page.setViewportSize({ width: 1093, height: 614 });
+  await signInTo(page, owner.username);
+  await page.getByRole("button", { name: `Enter ${firstHome}` }).click();
+  await page.waitForURL("**/home", { timeout: 30000 });
+
+  // Polled rather than measured once: the sheet slides up over 240ms, and a
+  // control is "visible" to Playwright while it is still off the bottom of the
+  // screen. What is being asserted is where it comes to rest.
+  const expectInView = async (name: RegExp, what: string) => {
+    const control = page.getByRole("dialog").getByRole("button", { name }).first();
+    await expect(control).toBeVisible();
+    await expect
+      .poll(
+        () =>
+          control.evaluate((el) => {
+            const box = el.getBoundingClientRect();
+            return box.top >= 0 && box.bottom <= window.innerHeight;
+          }),
+        { message: what, timeout: 5000 },
+      )
+      .toBe(true);
+  };
+
+  await page.goto("/expenses?add=1");
+  await expectInView(/^Save/, "add an expense");
+
+  await page.goto("/food?add=1");
+  await expectInView(/^Save$/, "add a meal");
+
+  await page.goto("/admin/chores?add=1");
+  await page.getByRole("button", { name: "Add a chore" }).click();
+  await expectInView(/^Save/, "add a chore");
+
+  await page.goto("/expenses/recurring?add=1");
+  await expectInView(/^Save/, "add a recurring expense");
+
+  await page.goto("/today?add=announcement");
+  await expectInView(/^Post to the home$/, "post an announcement");
+});

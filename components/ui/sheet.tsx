@@ -16,9 +16,15 @@ export const Sheet = forwardRef<HTMLDivElement, {
   onClose: () => void;
   title: string;
   children: ReactNode;
+  /**
+   * The sheet's primary action, pinned to the bottom of the panel. A sheet
+   * whose Save button is the last thing in a scrolling body is a sheet whose
+   * Save button is invisible when it opens.
+   */
+  footer?: ReactNode;
   side?: "bottom" | "right";
   size?: "sm" | "md" | "lg" | "full";
-}>(({ open, onClose, title, children, side = "bottom", size = "md" }, ref) => {
+}>(({ open, onClose, title, children, footer, side = "bottom", size = "md" }, ref) => {
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
@@ -34,14 +40,22 @@ export const Sheet = forwardRef<HTMLDivElement, {
 
   if (side === "right") {
     return (
-      <Drawer ref={ref} open={open} onClose={onClose} title={title}>
+      <Drawer ref={ref} open={open} onClose={onClose} title={title} footer={footer}>
         {children}
       </Drawer>
     );
   }
 
   return (
-    <MotionSheet ref={ref} open={open} onClose={onClose} title={title} side="bottom" size={size}>
+    <MotionSheet
+      ref={ref}
+      open={open}
+      onClose={onClose}
+      title={title}
+      footer={footer}
+      side="bottom"
+      size={size}
+    >
       {children}
     </MotionSheet>
   );

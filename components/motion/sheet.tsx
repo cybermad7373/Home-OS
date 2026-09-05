@@ -39,6 +39,18 @@ interface SheetProps
    * meal, edit a member: all of them said "Sheet" first.
    */
   title?: ReactNode;
+  /**
+   * The action the sheet exists for, pinned to the bottom where it cannot
+   * scroll away.
+   *
+   * This is not decoration. The add-expense sheet is a keypad, nine category
+   * chips, a date, a payer, a split, a note and a receipt field, and its Save
+   * button sat at y≈900 inside a panel 410–591px tall. It was reachable — the
+   * body scrolls — and it was never *visible* when the sheet opened, on any
+   * viewport tested including a phone. The most common report about this app
+   * was that things could be filled in and not saved, and this was why.
+   */
+  footer?: ReactNode;
   side?: "bottom" | "right";
   size?: "sm" | "md" | "lg" | "full";
 }
@@ -60,6 +72,7 @@ export function Sheet({
   onClose,
   children,
   title,
+  footer,
   side = "bottom",
   size = "md",
   className,
@@ -104,13 +117,20 @@ export function Sheet({
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
+          /*
+            A flex column, so the body is the only part that scrolls and the
+            header and footer stay put. It used to be an ordinary block whose
+            body div was taller than the panel: the panel clipped it, the body
+            scrolled, and anything at the end of the content — which on this
+            product means the Save button — opened out of sight.
+          */
           className={cn(
             sizeClasses[size],
-            "w-full overflow-hidden rounded-t-[2rem] bg-surface shadow-[var(--elev-4)] ring-1 ring-border lg:w-[440px] lg:rounded-l-[2rem]",
+            "flex w-full flex-col overflow-hidden rounded-t-[2rem] bg-surface shadow-[var(--elev-4)] ring-1 ring-border lg:w-[440px] lg:rounded-l-[2rem]",
             className,
           )}
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-border">
+          <div className="flex shrink-0 items-center justify-between px-4 py-3 border-b border-border dark:border-border">
             <h2 id={titleId} className="heading-text">
               {title}
             </h2>
@@ -126,7 +146,19 @@ export function Sheet({
               </svg>
             </button>
           </div>
-          <div className="p-4 lg:p-6 overflow-y-auto">{children}</div>
+          {/* `min-h-0` is what lets a flex child actually shrink and scroll;
+              without it the body keeps its content height and the footer is
+              pushed out of the panel again. */}
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-6">{children}</div>
+
+          {footer ? (
+            <div
+              className="shrink-0 border-t border-border bg-surface px-4 py-3 lg:px-6"
+              style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+            >
+              {footer}
+            </div>
+          ) : null}
         </div>
       </motion.div>
     </motion.div>
@@ -139,9 +171,19 @@ interface DrawerProps
   onClose: () => void;
   children: ReactNode;
   title?: ReactNode;
+  /** Same contract as `Sheet`: the action, pinned where it cannot scroll away. */
+  footer?: ReactNode;
 }
 
-export function Drawer({ open, onClose, children, title, className, ...props }: DrawerProps) {
+export function Drawer({
+  open,
+  onClose,
+  children,
+  title,
+  footer,
+  className,
+  ...props
+}: DrawerProps) {
   const reduce = useReducedMotion();
   const titleId = useId();
 
@@ -161,7 +203,7 @@ export function Drawer({ open, onClose, children, title, className, ...props }: 
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          "h-full w-full max-w-[480px] overflow-hidden bg-surface shadow-[var(--elev-4)] ring-1 ring-border",
+          "flex h-full w-full max-w-[480px] flex-col overflow-hidden bg-surface shadow-[var(--elev-4)] ring-1 ring-border",
           className,
         )}
         onClick={(e) => e.stopPropagation()}
@@ -171,7 +213,7 @@ export function Drawer({ open, onClose, children, title, className, ...props }: 
         transition={{ duration: 0.24, ease: [0.32, 0.72, 0, 1] }}
         {...props}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-border">
+        <div className="flex shrink-0 items-center justify-between px-4 py-3 border-b border-border dark:border-border">
           <h2 id={titleId} className="heading-text">
             {title}
           </h2>
@@ -187,7 +229,13 @@ export function Drawer({ open, onClose, children, title, className, ...props }: 
             </svg>
           </button>
         </div>
-        <div className="h-[calc(100%-60px)] overflow-y-auto p-4 lg:p-6">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-6">{children}</div>
+
+        {footer ? (
+          <div className="shrink-0 border-t border-border bg-surface px-4 py-3 lg:px-6">
+            {footer}
+          </div>
+        ) : null}
       </motion.div>
     </motion.div>
   );

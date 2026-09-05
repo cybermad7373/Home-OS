@@ -240,7 +240,31 @@ function RecurringSheet({
   const activeMembers = members.filter((member) => member.status === "active");
 
   return (
-    <BottomSheet open onClose={onClose} title={item ? item.name : "New recurring expense"}>
+    <BottomSheet open onClose={onClose} title={item ? item.name : "New recurring expense"}
+      /* The action this sheet exists for, pinned to the bottom. It was the
+         last element of a scrolling body, so it opened below the fold on an
+         ordinary laptop and the sheet read as a form that could be filled in
+         and not submitted. */
+      footer={
+        <Button
+          block
+          loading={busy}
+          onClick={() =>
+            onSave({
+              name,
+              amount,
+              category_id: categoryId,
+              paid_by_member_id: paidBy || undefined,
+              split_basis: splitBasis,
+              day_of_month: Number(dayOfMonth),
+              active,
+            })
+          }
+        >
+          Save
+        </Button>
+      }
+    >
       <Field label="Name" htmlFor="recurring_name">
         <Input
           id="recurring_name"
@@ -323,24 +347,6 @@ function RecurringSheet({
         </span>
         <Switch label="Posting" checked={active} onChange={setActive} />
       </div>
-
-      <Button
-        block
-        loading={busy}
-        onClick={() =>
-          onSave({
-            name,
-            amount,
-            category_id: categoryId,
-            paid_by_member_id: paidBy || undefined,
-            split_basis: splitBasis,
-            day_of_month: Number(dayOfMonth),
-            active,
-          })
-        }
-      >
-        Save
-      </Button>
 
       {onDelete ? (
         <Button

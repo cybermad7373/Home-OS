@@ -171,7 +171,40 @@ export function ProposeSheet({
   const reasonTooShort = reason.trim().length < MIN_REASON;
 
   return (
-    <BottomSheet open title={title} onClose={onClose}>
+    <BottomSheet
+      open
+      title={title}
+      onClose={onClose}
+      /*
+        Both answers are pinned. This sheet lists everybody who will be asked —
+        eight names in a shared flat — so on an ordinary laptop the two buttons
+        opened below the fold, and the screen that exists to make somebody
+        certain before they ask looked like it had no way to ask.
+      */
+      footer={
+        <>
+          {preview ? (
+            <Button
+              block
+              loading={sending}
+              disabled={needsReason && reasonTooShort}
+              onClick={propose}
+            >
+              {submitLabel ?? "Ask the home"}
+            </Button>
+          ) : null}
+          <Button
+            block
+            variant="ghost"
+            className={preview ? "mt-2" : undefined}
+            disabled={sending}
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+        </>
+      }
+    >
       <p className="mb-3">{summary}</p>
 
       {effect ? <div className="mb-3">{effect}</div> : null}
@@ -256,20 +289,8 @@ export function ProposeSheet({
 
           <p className="caption-text mb-3 text-text-muted">{expectationLine(preview)}</p>
 
-          <Button
-            block
-            loading={sending}
-            disabled={needsReason && reasonTooShort}
-            onClick={propose}
-          >
-            {submitLabel ?? "Ask the home"}
-          </Button>
         </>
       ) : null}
-
-      <Button block variant="ghost" className="mt-2" disabled={sending} onClick={onClose}>
-        Cancel
-      </Button>
     </BottomSheet>
   );
 }

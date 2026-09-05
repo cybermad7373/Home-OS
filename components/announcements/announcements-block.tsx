@@ -170,7 +170,22 @@ export function AnnouncementsBlock({
         </ul>
       )}
 
-      <BottomSheet open={open} onClose={() => setOpen(false)} title="Post an announcement">
+      <BottomSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Post an announcement"
+        /* Pinned. It was the last element of a scrolling body, so on an
+           ordinary laptop this sheet opened with no visible way to post. */
+        footer={
+          <Button
+            block
+            onClick={post}
+            disabled={saving || !title.trim() || !body.trim()}
+          >
+            {saving ? "Posting…" : "Post to the home"}
+          </Button>
+        }
+      >
         <div className="flex flex-col gap-3">
           <Field label="Title" htmlFor="announcement-title">
             <Input
@@ -220,9 +235,6 @@ export function AnnouncementsBlock({
               <option value="168">A week</option>
             </Select>
           </Field>
-          <Button onClick={post} disabled={saving || !title.trim() || !body.trim()}>
-            {saving ? "Posting…" : "Post to the home"}
-          </Button>
         </div>
       </BottomSheet>
     </section>

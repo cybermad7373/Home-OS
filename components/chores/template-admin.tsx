@@ -262,7 +262,35 @@ function TemplateSheet({
   const [isHeavy, setIsHeavy] = useState(template?.is_heavy ?? false);
 
   return (
-    <BottomSheet open onClose={onClose} title={template ? template.name : "New chore"}>
+    <BottomSheet open onClose={onClose} title={template ? template.name : "New chore"}
+      /* The action this sheet exists for, pinned to the bottom. It was the
+         last element of a scrolling body, so it opened below the fold on an
+         ordinary laptop and the sheet read as a form that could be filled in
+         and not submitted. */
+      footer={
+        <Button
+          block
+          loading={busy}
+          onClick={() =>
+            onSave({
+              name,
+              category,
+              effort_points: Number(points),
+              duration_min: Number(duration),
+              slot,
+              scope,
+              room_id: scope === "room" ? roomId : null,
+              frequency,
+              times_per_week: frequency === "times_per_week" ? Number(timesPerWeek) : null,
+              requires_cooking_skill: requiresCooking,
+              is_heavy: isHeavy,
+            })
+          }
+        >
+          Save
+        </Button>
+      }
+    >
       <Field label="Name" htmlFor="chore_name">
         <Input
           id="chore_name"
@@ -402,28 +430,6 @@ function TemplateSheet({
         </span>
         <Switch label="Heavy" checked={isHeavy} onChange={setIsHeavy} />
       </div>
-
-      <Button
-        block
-        loading={busy}
-        onClick={() =>
-          onSave({
-            name,
-            category,
-            effort_points: Number(points),
-            duration_min: Number(duration),
-            slot,
-            scope,
-            room_id: scope === "room" ? roomId : null,
-            frequency,
-            times_per_week: frequency === "times_per_week" ? Number(timesPerWeek) : null,
-            requires_cooking_skill: requiresCooking,
-            is_heavy: isHeavy,
-          })
-        }
-      >
-        Save
-      </Button>
 
       {onDeactivate ? (
         <>
