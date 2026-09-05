@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LeadOnlyAction } from "@/components/ui/lead-only";
 import { ProposeSheet } from "@/components/governance/propose-sheet";
 import { CardDescription } from "@/components/ui/card";
 import { List, Section } from "@/components/layout/section";
@@ -185,7 +186,14 @@ export function MemberList({
           >
             Add someone without an account
           </Button>
-        ) : null}
+        ) : (
+          <LeadOnlyAction
+            who="admin"
+            className={dependents.length > 0 ? "mt-2" : undefined}
+            label="Add someone without an account"
+            what="add a dependent"
+          />
+        )}
       </Section>
 
       {inactive.length > 0 ? (

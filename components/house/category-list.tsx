@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LeadOnlyAction } from "@/components/ui/lead-only";
 import { Card, CardDescription } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/label";
@@ -76,7 +77,14 @@ export function CategoryList({
           <Plus size={18} aria-hidden />
           Add a category
         </Button>
-      ) : null}
+      ) : (
+        <LeadOnlyAction
+          who="admin"
+          className="mb-3"
+          label="Add a category"
+          what="add a spending category"
+        />
+      )}
 
       {active.length === 0 ? (
         <EmptyState

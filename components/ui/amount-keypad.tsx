@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils/cn";
 import { motion, useReducedMotion } from "motion/react";
 
@@ -150,15 +150,20 @@ export function sanitiseTyped(typed: string): string {
  * refusing its physical one bought nothing.
  */
 function usePointerInputMode(): "none" | "decimal" {
-  const [coarse, setCoarse] = useState(false);
-
-  useEffect(() => {
+  const subscribe = useCallback((notify: () => void) => {
     const query = window.matchMedia("(pointer: coarse)");
-    setCoarse(query.matches);
-    const onChange = (event: MediaQueryListEvent) => setCoarse(event.matches);
-    query.addEventListener("change", onChange);
-    return () => query.removeEventListener("change", onChange);
+    query.addEventListener("change", notify);
+    return () => query.removeEventListener("change", notify);
   }, []);
+
+  const coarse = useSyncExternalStore(
+    subscribe,
+    () => window.matchMedia("(pointer: coarse)").matches,
+    // The server has no pointer to ask about. `decimal` is the safer guess for
+    // the first paint: a phone that gets it re-renders before anybody can type,
+    // and a laptop that got `none` would silently keep the old behaviour.
+    () => false,
+  );
 
   return coarse ? "none" : "decimal";
 }

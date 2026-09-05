@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { LeadOnlyPage } from "@/components/ui/lead-only";
 import { SettingsForm } from "@/components/house/settings-form";
 import { PageHeader } from "@/components/layout/page-header";
 import { getHouseContext, requireSession } from "@/lib/data/house";
@@ -16,8 +16,17 @@ export default async function SettingsPage() {
   const context = await getHouseContext(session);
 
   // Hiding admin UI is presentation, not security — the API and the RLS policy
-  // both refuse a non-admin write regardless of what this page renders.
-  if (!context.isAdmin) redirect("/more");
+  // both refuse a non-admin write regardless of what this page renders. What
+  // this page owes a member is a sentence, not a redirect to a screen they did
+  // not ask for.
+  if (!context.isAdmin) {
+    return (
+      <LeadOnlyPage
+        title="House settings"
+        what="set the penalty rate, the approval threshold, the invite link and how money works here"
+      />
+    );
+  }
 
   // Phase 9: the key is the house's own. The environment variable survives as a
   // fallback for a single-house self-host, so either counts as configured.

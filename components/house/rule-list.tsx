@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LeadOnlyAction } from "@/components/ui/lead-only";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -112,7 +113,13 @@ export function RuleList({
             Add a rule
           </Button>
         </Link>
-      ) : null}
+      ) : (
+        <LeadOnlyAction
+          className="mt-4"
+          label="Add a rule"
+          what="propose a new house rule"
+        />
+      )}
 
       {switching ? (
         <SwitchSheet

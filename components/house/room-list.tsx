@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { LeadOnlyAction } from "@/components/ui/lead-only";
 import { Field } from "@/components/ui/label";
 import { Input, Select } from "@/components/ui/input";
 import { MemberAvatar } from "@/components/ui/avatar";
@@ -67,7 +68,9 @@ export function RoomList({
         <Button block onClick={() => setEditing("new")}>
           Add a room
         </Button>
-      ) : null}
+      ) : (
+        <LeadOnlyAction who="admin" label="Add a room" what="add a room" />
+      )}
 
       {unhoused.length > 0 ? (
         <p className="caption-text text-warning">

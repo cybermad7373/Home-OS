@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LeadOnlyAction } from "@/components/ui/lead-only";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/label";
 import { Input, Select } from "@/components/ui/input";
@@ -168,7 +169,14 @@ export function RecurringList({
               <Button block className="mt-4" onClick={() => setEditing("new")}>
                 Add a recurring expense
               </Button>
-            ) : null}
+            ) : (
+              <LeadOnlyAction
+                who="admin"
+                className="mt-4"
+                label="Add a recurring expense"
+                what="set up a recurring expense"
+              />
+            )}
           </Section>
         }
       />

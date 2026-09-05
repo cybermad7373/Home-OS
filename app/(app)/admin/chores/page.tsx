@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { LeadOnlyPage } from "@/components/ui/lead-only";
 import { TemplateAdmin } from "@/components/chores/template-admin";
 import { PageHeader } from "@/components/layout/page-header";
 import { getHouseContext, requireSession } from "@/lib/data/house";
@@ -17,7 +17,16 @@ export default async function ChoreTemplatesPage() {
 
   // Hiding admin UI is presentation, not security — the API and the RLS policy
   // both refuse a non-admin write regardless of what renders.
-  if (!context.isAdmin) redirect("/chores");
+  if (!context.isAdmin) {
+    return (
+      <LeadOnlyPage
+        title="Chore list"
+        what="decide what needs doing here, how often, and what each job is worth"
+        backHref="/chores"
+        backLabel="Back to Chores"
+      />
+    );
+  }
 
   const templates = await listTemplates(session, context.house.id);
   const activeMembers = context.members.filter((member) => member.status === "active");

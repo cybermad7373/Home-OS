@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { LeadOnlyPage } from "@/components/ui/lead-only";
 import { AiCapabilities } from "@/components/house/ai-capabilities";
 import { AiSettings } from "@/components/house/ai-settings";
 import { PageHeader } from "@/components/layout/page-header";
@@ -22,7 +22,14 @@ export default async function AiSettingsPage() {
   const session = await requireSession();
   const context = await getHouseContext(session);
 
-  if (!context.isAdmin) redirect("/more");
+  if (!context.isAdmin) {
+    return (
+      <LeadOnlyPage
+        title="AI for this home"
+        what="choose a provider and paste this home's own key"
+      />
+    );
+  }
 
   const config = await getLlmConfig(session, context.house.id);
 
