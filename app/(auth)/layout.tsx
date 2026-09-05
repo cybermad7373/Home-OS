@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { Analytics } from "@/components/layout/analytics";
+import { CookieNotice } from "@/components/layout/cookie-notice";
 
 /**
  * The first screen anybody sees, and the only place the product introduces
@@ -14,9 +16,16 @@ import Link from "next/link";
  */
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <main className="dot-grid flex min-h-dvh flex-col justify-center px-4 py-10">
+    <main className="auth-shell dot-grid flex min-h-dvh flex-col justify-center px-4 py-10">
       <div className="mx-auto w-full max-w-sm">
-        <div className="mb-8">
+        {/*
+          `auth-hero` shrinks on a short window. The three-line statement at
+          44px plus its margin is 200px of the screen, which on a 1366x768
+          laptop at Windows' default 125% scaling — a 614px viewport — pushed
+          Create account below the fold on the sign-up form. A promise nobody
+          scrolls to is not worth the button it hides.
+        */}
+        <div className="auth-hero mb-8">
           <p className="flex items-center gap-2">
             <span aria-hidden className="live-dot h-1.5 w-1.5 rounded-full bg-accent" />
             <span className="eyebrow-text text-text">HouseOS</span>
@@ -31,20 +40,30 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         </div>
         {children}
 
+        <CookieNotice />
+
         {/*
           Reachable before there is an account. A person deciding whether to
           sign up is exactly the person who wants to read what the product does
           with a household's money, and a store reviewer has no other way in.
         */}
-        <nav aria-label="Documents" className="mt-8 flex items-center justify-center gap-5">
+        <nav
+          aria-label="Documents"
+          className="auth-docs mt-8 flex items-center justify-center gap-5"
+        >
           <Link href="/legal/privacy" className="tap-44 caption-text text-text-muted hover:text-text">
             Privacy
+          </Link>
+          <Link href="/legal/terms" className="tap-44 caption-text text-text-muted hover:text-text">
+            Terms
           </Link>
           <Link href="/legal/support" className="tap-44 caption-text text-text-muted hover:text-text">
             Support
           </Link>
         </nav>
       </div>
+
+      <Analytics />
     </main>
   );
 }

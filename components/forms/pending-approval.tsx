@@ -51,11 +51,23 @@ export function PendingApproval({
 
   return (
     <Card>
+      {/*
+        This is the confirmation screen for the join path — the "we got your
+        request" page — as well as the waiting one. It said only what somebody
+        was waiting for and never that the asking had worked, so a person who
+        pressed Ask to join and landed here could not tell whether it had gone
+        through. The first line says so now, and the rest is what happens next.
+      */}
+      <p className="eyebrow-text mb-2 text-success">Request sent</p>
       <h1 className="title-text mb-2">Waiting to be let in</h1>
       <p className="text-text-muted">
         You have asked to join <span className="font-medium text-text">{houseName}</span>.
         Somebody who runs it has to let you in — holding the link is not enough on
         its own.
+      </p>
+      <p className="caption-text mt-2 text-text-muted">
+        They can see the request now. This screen becomes the home the moment
+        they answer, and you do not have to keep it open — you will be told.
       </p>
       <p className="caption-text mt-2 text-text-muted">
         Until then you can see nothing of that home: not its members, not its

@@ -6,7 +6,8 @@ import { listMyRestrictions } from "@/lib/data/food";
 
 export const metadata: Metadata = {
   title: "Preferences",
-  description: "What you like, and what you cannot eat.",
+  description:
+    "Likes, dislikes, allergies and the things you will not eat, so the suggestions stop offering them.",
 };
 
 /**

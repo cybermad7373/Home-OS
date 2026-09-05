@@ -6,7 +6,8 @@ import { getMembership, requireSession } from "@/lib/data/house";
 
 export const metadata: Metadata = {
   title: "Your week",
-  description: "Tell the house when it can call on you.",
+  description:
+    "Tell the house when it can call on you, so the schedule stops handing you Tuesdays you are never home for.",
 };
 
 /**

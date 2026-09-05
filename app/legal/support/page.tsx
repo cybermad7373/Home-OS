@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { legalContact } from "@/lib/utils/contact";
 
 export const metadata: Metadata = {
   title: "Support",
@@ -16,6 +17,8 @@ export const metadata: Metadata = {
  * and the honest answer is usually "on purpose, and here is the reason".
  */
 export default function SupportPage() {
+  const contact = legalContact();
+
   return (
     <article className="flex flex-col gap-8">
       <header className="flex flex-col gap-2">
@@ -27,10 +30,31 @@ export default function SupportPage() {
         </p>
       </header>
 
-      <Placeholder>
-        Before release, replace this box with the support email address, the
-        hours it is watched, and the response time you are willing to commit to.
-      </Placeholder>
+      {contact.configured ? (
+        <Section title="Where to write">
+          <p>
+            <a href={`mailto:${contact.email}`} className="underline">
+              {contact.email}
+            </a>
+          </p>
+          <p>
+            {contact.entity}
+            {contact.address ? <>, {contact.address}</> : null}.
+          </p>
+          <p className="caption-text text-text-muted">
+            One inbox, read by people rather than by a queue. Say which
+            household and which screen, and include the date — the answers below
+            explain why both matter.
+          </p>
+        </Section>
+      ) : (
+        <Placeholder>
+          Before release, set <Code>NEXT_PUBLIC_SUPPORT_EMAIL</Code>,{" "}
+          <Code>NEXT_PUBLIC_LEGAL_ENTITY</Code> and{" "}
+          <Code>NEXT_PUBLIC_LEGAL_ADDRESS</Code>. This box is replaced by the
+          address to write to and who is behind it, here and on the terms page.
+        </Placeholder>
+      )}
 
       <Section title="Before you write">
         <p>
@@ -154,5 +178,13 @@ function Placeholder({ children }: { children: React.ReactNode }) {
       <p className="eyebrow-text mb-1.5">To be completed before release</p>
       <p className="caption-text text-text-muted">{children}</p>
     </div>
+  );
+}
+
+function Code({ children }: { children: React.ReactNode }) {
+  return (
+    <code className="rounded bg-surface px-1 py-0.5 font-mono text-[13px]">
+      {children}
+    </code>
   );
 }

@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { Analytics } from "@/components/layout/analytics";
+import { CookieNotice } from "@/components/layout/cookie-notice";
 
 /**
- * The two public documents a release needs: what the product does with your
- * data, and how to get help. They render with no session and no house, because
+ * The three public documents a release needs: what the product does with your
+ * data, the terms it is offered on, and how to get help. They render with no session and no house, because
  * a person reads them before signing up and a store reviewer reads them without
  * an account at all.
  *
@@ -22,6 +24,9 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
             <Link href="/legal/privacy" className="tap-44 text-[14px] text-text-muted hover:text-text">
               Privacy
             </Link>
+            <Link href="/legal/terms" className="tap-44 text-[14px] text-text-muted hover:text-text">
+              Terms
+            </Link>
             <Link href="/legal/support" className="tap-44 text-[14px] text-text-muted hover:text-text">
               Support
             </Link>
@@ -29,7 +34,10 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-[68ch] flex-1 px-4 py-10">{children}</main>
+      <main className="mx-auto w-full max-w-[68ch] flex-1 px-4 py-10">
+        {children}
+        <CookieNotice />
+      </main>
 
       <footer className="border-t border-border">
         <div className="mx-auto w-full max-w-[68ch] px-4 py-6">
@@ -38,6 +46,8 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
           </p>
         </div>
       </footer>
+
+      <Analytics />
     </div>
   );
 }

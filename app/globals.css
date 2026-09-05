@@ -455,6 +455,39 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* ---- the sign-in hero on a short window ----------------------------
+     A laptop at 125% display scaling gives a 614px viewport, and the hero at
+     its full size pushed the sign-up form's own button off the bottom of it.
+     Height queries rather than width ones, because this is a vertical problem
+     and a phone in portrait has plenty of room for it. */
+
+  @media (max-height: 720px) {
+    .auth-shell {
+      padding-top: 1.25rem;
+      padding-bottom: 1.25rem;
+    }
+
+    .auth-hero {
+      margin-bottom: 1.25rem;
+    }
+
+    .auth-hero .display-xl {
+      font-size: 30px;
+      line-height: 32px;
+    }
+
+    .auth-docs {
+      margin-top: 1.25rem;
+    }
+  }
+
+  @media (max-height: 560px) {
+    .auth-hero .display-xl {
+      font-size: 24px;
+      line-height: 26px;
+    }
+  }
+
   /* ---- type scale ---- */
 
   .title-text {

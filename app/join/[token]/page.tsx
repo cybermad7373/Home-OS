@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { JoinRequestForm } from "@/components/forms/join-request-form";
+import { Analytics } from "@/components/layout/analytics";
+import { CookieNotice } from "@/components/layout/cookie-notice";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { previewInvitation } from "@/lib/data/homes";
 import { getSession } from "@/lib/data/house";
@@ -9,7 +11,8 @@ import { HOME_TYPE_LABEL } from "@/lib/types/domain";
 
 export const metadata: Metadata = {
   title: "Join a home",
-  description: "You have been invited to a home on HouseOS.",
+  description:
+    "You have been invited to a home on HouseOS. Ask to join, and somebody who runs it lets you in.",
 };
 
 /**
@@ -36,7 +39,10 @@ function Shell({ children }: { children: React.ReactNode }) {
           <span className="eyebrow-text text-text">HouseOS</span>
         </p>
         {children}
+        <CookieNotice />
       </div>
+
+      <Analytics />
     </main>
   );
 }

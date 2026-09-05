@@ -7,7 +7,8 @@ import { houseToday } from "@/lib/utils/date";
 
 export const metadata: Metadata = {
   title: "Notifications",
-  description: "Everything the house has told you.",
+  description:
+    "Everything the house has told you: chores, approvals, decisions, money and the reminders behind them.",
 };
 
 /**

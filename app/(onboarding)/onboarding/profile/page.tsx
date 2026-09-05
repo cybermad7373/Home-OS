@@ -10,7 +10,8 @@ import {
 
 export const metadata: Metadata = {
   title: "Your profile",
-  description: "Cooking, UPI ID and your room.",
+  description:
+    "Whether you cook, the UPI ID people pay you at, and the room you sleep in.",
 };
 
 export default async function OnboardingProfilePage() {

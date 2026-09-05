@@ -35,13 +35,47 @@ const geistMono = Geist_Mono({
   weight: ["400", "500", "600", "700"],
 });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+const DESCRIPTION =
+  "Shared-house management: chores that are visible and fairly distributed, money that is tracked and settled.";
+
 export const metadata: Metadata = {
+  /*
+    `metadataBase` is what turns every relative image and canonical in this
+    tree into the absolute URL that Open Graph and Twitter both require.
+    Without it Next resolves them against localhost in development and warns in
+    production, and the card a shared link unfurls into is a broken image.
+  */
+  metadataBase: new URL(APP_URL),
   title: { default: "HouseOS", template: "%s · HouseOS" },
-  description:
-    "Shared-house management: chores that are visible and fairly distributed, money that is tracked and settled.",
+  description: DESCRIPTION,
+  applicationName: "HouseOS",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "HouseOS", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
+  /*
+    The card. `app/opengraph-image.tsx` supplies the image itself, so nothing
+    here names a file — Next wires the generated route in and stamps its
+    absolute URL, its dimensions and its alt text.
+
+    Every page in the app also sets `robots: { index: false }` on its own shell,
+    so what actually gets unfurled is only ever the sign-in screen, the sign-up
+    screen or one of the three documents.
+  */
+  openGraph: {
+    type: "website",
+    siteName: "HouseOS",
+    title: "HouseOS — the work and the money, both visible",
+    description: DESCRIPTION,
+    url: APP_URL,
+    locale: "en_IN",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "HouseOS — the work and the money, both visible",
+    description: DESCRIPTION,
+  },
 };
 
 export const viewport: Viewport = {

@@ -6,7 +6,8 @@ import { houseToday } from "@/lib/utils/date";
 
 export const metadata: Metadata = {
   title: "Close the month",
-  description: "Lock the month and work out who owes whom.",
+  description:
+    "Close the month: what everybody paid, what everybody owed, and the transfers that settle it.",
 };
 
 export default async function ClosePage({

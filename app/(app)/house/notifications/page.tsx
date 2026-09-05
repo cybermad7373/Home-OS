@@ -6,7 +6,8 @@ import { getPrefs, listDevices } from "@/lib/data/notifications";
 
 export const metadata: Metadata = {
   title: "Notification settings",
-  description: "What reaches you, quiet hours, and which devices.",
+  description:
+    "What reaches you and what does not, the hours you are left alone, and which devices are signed in.",
 };
 
 /**

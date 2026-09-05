@@ -47,7 +47,15 @@ export function MemberAvatar({
       {avatarUrl ? (
         <motion.img
           src={avatarUrl}
-          alt=""
+          /*
+            Empty when the name is rendered beside the picture, and the name
+            when it is not. This is the whole of the alt-text rule in this app —
+            there is exactly one <img> in it — and both halves matter: a
+            decorative alt on a lone avatar leaves a screen reader with no idea
+            whose row it is on, and the name repeated next to itself makes every
+            member list read every name twice.
+          */
+          alt={showName ? "" : name}
           width={pixels}
           height={pixels}
           className="rounded-full object-cover"

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { legalContact } from "@/lib/utils/contact";
 
 export const metadata: Metadata = {
   title: "Privacy",
@@ -18,6 +19,8 @@ export const metadata: Metadata = {
  * They are marked, and they are the only marked things on the page.
  */
 export default function PrivacyPage() {
+  const contact = legalContact();
+
   return (
     <article className="flex flex-col gap-8">
       <header className="flex flex-col gap-2">
@@ -30,11 +33,32 @@ export default function PrivacyPage() {
         </p>
       </header>
 
-      <Placeholder>
-        Before release, replace this box with the effective date, the legal
-        entity that operates HouseOS, and its address. Everything else on this
-        page describes the software as built and does not need editing.
-      </Placeholder>
+      {contact.configured ? (
+        <Section title="Who holds this data">
+          <p>
+            <Strong>{contact.entity}</Strong>
+            {contact.address ? <>, {contact.address}</> : null}.
+          </p>
+          <p>
+            Questions about what is stored, and requests to see or remove it, go
+            to{" "}
+            <a href={`mailto:${contact.email}`} className="underline">
+              {contact.email}
+            </a>
+            . What removal currently does, and does not do, is at the foot of
+            this page.
+          </p>
+        </Section>
+      ) : (
+        <Placeholder>
+          Before release, set <Code>NEXT_PUBLIC_LEGAL_ENTITY</Code>,{" "}
+          <Code>NEXT_PUBLIC_LEGAL_ADDRESS</Code> and{" "}
+          <Code>NEXT_PUBLIC_SUPPORT_EMAIL</Code>. This box is replaced by the
+          operator&rsquo;s name, its address and where data questions go.
+          Everything else on this page describes the software as built and does
+          not need editing.
+        </Placeholder>
+      )}
 
       <Section title="What is stored">
         <p>
@@ -213,5 +237,13 @@ function Placeholder({ children }: { children: React.ReactNode }) {
       <p className="eyebrow-text mb-1.5">To be completed before release</p>
       <p className="caption-text text-text-muted">{children}</p>
     </div>
+  );
+}
+
+function Code({ children }: { children: React.ReactNode }) {
+  return (
+    <code className="rounded bg-surface px-1 py-0.5 font-mono text-[13px]">
+      {children}
+    </code>
   );
 }

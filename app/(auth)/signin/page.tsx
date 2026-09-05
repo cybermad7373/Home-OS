@@ -5,7 +5,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export const metadata: Metadata = {
   title: "Sign in",
-  description: "Sign in to HouseOS.",
+  description:
+    "Sign in to HouseOS — the shared record of a household's chores, spending and decisions.",
 };
 
 export default function SignInPage() {

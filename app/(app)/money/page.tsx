@@ -1,4 +1,16 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+
+/*
+  A redirect still gets a title and a description. It costs nothing, and a
+  page in this tree without them is indistinguishable from one that was
+  forgotten — which is how three of them ended up with neither.
+*/
+export const metadata: Metadata = {
+  title: "Money",
+  description:
+    "Everything the home has spent this month, who paid for it, and what your share of it is.",
+};
 
 /**
  * `/money` is the Money tab's documented route (docs/08-UI-UX-SPEC.md section

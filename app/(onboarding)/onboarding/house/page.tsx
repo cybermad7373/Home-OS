@@ -5,7 +5,8 @@ import { getMembership, getOwnProfile, requireSession } from "@/lib/data/house";
 
 export const metadata: Metadata = {
   title: "Join or create a house",
-  description: "Join a home with an invite code, or set one up.",
+  description:
+    "Join the home you were invited to, or set one up and become the admin who invites the others.",
 };
 
 export default async function OnboardingHousePage() {

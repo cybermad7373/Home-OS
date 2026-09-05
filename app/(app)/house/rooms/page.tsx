@@ -6,7 +6,8 @@ import { formatMoney } from "@/lib/utils/money";
 
 export const metadata: Metadata = {
   title: "Rooms",
-  description: "Rooms, rent and who sleeps where.",
+  description:
+    "Every room in the home, the rent it carries and who sleeps in it — the basis every rent split is worked out from.",
 };
 
 export default async function RoomsPage({

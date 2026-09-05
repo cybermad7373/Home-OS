@@ -7,7 +7,8 @@ import { readSelectedHouseId } from "@/lib/infra/supabase/selected-house";
 
 export const metadata: Metadata = {
   title: "Your homes",
-  description: "Every home you belong to. Pick one to go into.",
+  description:
+    "Every home you belong to, what is waiting in each, and the two ways to gain another one.",
 };
 
 /**

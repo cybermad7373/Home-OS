@@ -5,7 +5,8 @@ import { getOwnProfile, requireSession } from "@/lib/data/house";
 
 export const metadata: Metadata = {
   title: "Pick a username",
-  description: "Pick the name the house signs you in with.",
+  description:
+    "Pick the name the house signs you in with and credits your work to.",
 };
 
 /** Suggests a name from the email local part, cleaned to the allowed shape. */

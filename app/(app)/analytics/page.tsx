@@ -1,4 +1,16 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+
+/*
+  A redirect still gets a title and a description. It costs nothing, and a
+  page in this tree without them is indistinguishable from one that was
+  forgotten — which is how three of them ended up with neither.
+*/
+export const metadata: Metadata = {
+  title: "Insights",
+  description:
+    "Where the home's money and effort actually go, over a range you choose.",
+};
 
 /**
  * `/analytics` is retired. Insights supersedes it (phase 15): one screen with

@@ -12,7 +12,7 @@ How the rest of the build runs. The reasoning is D-59; this is the summary.
 
 | | |
 |---|---|
-| **Next piece of work** | Every engineering phase of specification 2.0 is built; so is the surface overhaul (2026-09-03) and the reachability audit that followed it (2026-09-05), which fixed the Home the app landed you in, the amount field that ignored the keyboard, the refusals that said nothing, and the seven decision types nobody could start. On 2026-09-04 the hosted project was written to for the first time, by explicit request: 37 migrations, the LLM master key as an Edge Function secret, and all eight functions redeployed. **The hosted project has not been written to since, so it is behind this repository by everything after that date.** What remains of the launch gate in "Known gaps" is a real-device push test and the production release checks — privacy and support pages, monitoring, and backups. |
+| **Next piece of work** | Every engineering phase of specification 2.0 is built; so is the surface overhaul (2026-09-03), the reachability audit that followed it (2026-09-05) and the launch gate after that — the Home the app landed you in, the amount field that ignored the keyboard, the refusals that said nothing, the seven decision types nobody could start, the Save button no sheet ever showed, and the twenty public-surface items. On 2026-09-04 the hosted project was written to for the first time, by explicit request: 37 migrations, the LLM master key as an Edge Function secret, and all eight functions redeployed. **The hosted project has not been written to since, so it is behind this repository by everything after that date.** What remains of the launch gate in "Known gaps" is a real-device push test and the production release checks — privacy and support pages, monitoring, and backups. |
 | **Test target** | The local stack, still. The hosted project is written to only by an explicitly requested `db:push`; that this has now happened once does not make it routine, and no test or sweep in this repository points at it. |
 | **Scope** | The whole of specification 2.0: finish phase 11, then 12 to 15 in the roadmap's order. Nothing trimmed. |
 | **Phase-11 order** | Jobs and notifications, then S-37 proposers, then absence, then shared assignment and `change_confirmation_policy`, then governed close with adjustments, then expected contributions and the reserve. |
@@ -24,6 +24,55 @@ Local Supabase is running. Migrations 045–089 plus `20260901000000`,
 `20260903000000` and `20260903000001` applied locally.
 Integration suites no longer skip themselves. `npm run gen:types` fixed to read local stack.
 `lib/types/schema-pending.ts` reduced to 17-line shim (only `JoinRequestStatus`).
+
+## The launch gate — 2026-09-05
+
+The reachability audit fixed what a signed-in person could reach. This pass
+fixed what everybody else meets, and one defect that turned out to be the most
+reported thing about this product.
+
+### The Save button nobody could see
+
+Every sheet was a header and one scrolling block. Add an expense is a keypad,
+nine category chips, a date, a payer, a split, a note and a receipt field, so
+its Save button sat at y≈900 inside a panel 410–591 px tall: reachable by
+scrolling inside the sheet, and never visible when it opened. Measured at
+1366×768, 1280×720, the same panel at 125% and 150% display scaling, and on a
+phone — not visible on any of them.
+
+`Sheet` is a flex column now, and six sheets pin their primary action to a
+footer that cannot scroll away. Destructive actions deliberately stay in the
+body. D-80.
+
+### The twenty-item launch gate
+
+| | Was | Now |
+|---|---|---|
+| Custom 404 | Existed, unreachable signed out | Renders with a real 404 status signed in; signed out an unknown path still answers with sign-in, deliberately (D-81) |
+| CTA above the fold | Create account fell 9 px below on a scaled laptop | Hero and shell shrink under `max-height: 720px`; asserted at 1093×614 |
+| Meta title per page | 57 of 61 | 61 of 61 |
+| Meta description per page | 15 too short or missing | Every page, none under 50 characters |
+| Open Graph image | None | Generated at `app/opengraph-image.tsx`, plus `metadataBase`, `openGraph` and `twitter` |
+| Favicon set | `icon.png`, `apple-icon.png`, 5 manifest icons | Unchanged, and now asserted |
+| robots.txt | None | Five pages allowed, the rest disallowed by name, `/join/` excluded |
+| sitemap.xml | None | Exactly those five |
+| Alt text | One `<img>`, always `alt=""` | The member's name when it stands alone, empty when the name is beside it |
+| Mobile breakpoints | Already clean | Re-swept: 17 routes at 360 px, no overflow |
+| Sticky mobile CTA | Tab bar and FAB | Plus every sheet's pinned footer |
+| Loading states | None anywhere | `loading.tsx` for the app shell and the chooser |
+| Form error states | Already built | Asserted: a wrong password answers on the form and keeps what was typed |
+| Thank you page | `/onboarding/pending` never said the request had worked | Leads with "Request sent" and what happens next |
+| Privacy page | Existed | Contact block when configured |
+| Terms page | None | `/legal/terms`, written against the software as built |
+| Cookie banner | None | A notice rather than a consent gate, in the page rather than over it (D-81) |
+| Analytics | None | Optional, cookieless, public pages only, off unless configured (D-81) |
+| Real contact address | Placeholder box | Read from the environment; the placeholder stays until it is set (D-82) |
+| Compressed images | 37 KB of icons, largest 8.3 KB | Unchanged — nothing to compress |
+
+`tests/e2e/public-surface.spec.ts` is this pass's journey: thirteen cases over
+the five public pages, the four crawler files, both CTAs, the cookie notice and
+a failed sign-in. It needs no session, which is the point — it is what the
+internet can see.
 
 ## The reachability audit — 2026-09-05
 

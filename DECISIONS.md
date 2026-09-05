@@ -1889,3 +1889,77 @@ The quick-add sheet is the deliberate exception and still hides what the caller
 may not do. A disabled control on the rooms screen teaches that rooms have an
 owner; a disabled row in a menu somebody opened in order to *do something* is an
 obstacle with no lesson in it.
+
+## D-80 — a sheet's action is pinned, and only the safe one
+
+Every sheet in this app was a header and one scrolling block. The add-expense
+sheet is a keypad, nine category chips, a date, a payer, a split, a note and a
+receipt field, so its Save button landed at y≈900 inside a panel between 410 and
+591 px tall. It was reachable — the body scrolled — and it was never visible
+when the sheet opened. Measured at 1366×768, 1280×720, the same panel at 125%
+and 150% display scaling, and on a phone: not visible on any of them.
+
+That single fact is the most common thing anybody has ever reported about this
+product: *things can be filled in and not saved*. They could be saved. Nothing
+said so.
+
+`Sheet` is a flex column now — a fixed header, one scrolling body with
+`min-h-0` so it can actually shrink, and an optional footer that stays put.
+
+The rule for what goes in that footer is the second half of the decision.
+**The action the sheet exists for goes in it; a destructive action never does.**
+Delete it, Stop scheduling this and Void this expense stay in the body, where
+they have to be scrolled to. A pinned delete button is a delete button somebody
+presses by accident, and the whole reason this pattern works — the control is
+always under your thumb — is the reason it must not hold that kind of control.
+
+Six sheets moved: add an expense, add a meal, add a chore, add a recurring
+expense, post an announcement, and propose a decision. The expense sheet's share
+line went with the button, because what you are about to be charged belongs
+beside the control that charges you.
+
+## D-81 — the public surface is five pages, and it says so out loud
+
+Everything in HouseOS except five pages is a private household record. That is
+not a reason to have no public surface; it is the reason the public surface has
+to be explicit, because the alternative is a crawler guessing.
+
+`robots.txt` allows those five and disallows the rest by name. `sitemap.xml`
+lists exactly those five. Both are generated from `app/`, and both had to be
+added to the proxy's public list — until they were, the middleware answered
+each with a redirect to sign-in, so `robots.txt` was an HTML login page and
+every link to this product unfurled a login page instead of its card.
+
+`/join/<token>` is public and appears in neither. The token is the secret, and
+a preview naming a real household would leak it into every group chat the link
+is pasted into. For the same reason the Open Graph image is generated from the
+product's own two sentences and names no household.
+
+Three consequences worth naming:
+
+- **A signed-out 404 is a redirect, not a 404.** An unknown path answers with
+  sign-in. A 404 that distinguishes "no such page" from "not yours" tells a
+  stranger which households and which screens exist. Signed in, `not-found.tsx`
+  renders with a real 404 status.
+- **Analytics runs on those five pages or nowhere.** A page view from
+  `/more/approvals/<decision id>` hands a third party the shape of a
+  household's private argument. `NEXT_PUBLIC_ANALYTICS_SRC` is expected to be a
+  cookieless, script-only counter, and unset it renders nothing.
+- **The cookie notice is a notice, not a gate.** Two cookies, both strictly
+  necessary — the session, and which Home you picked — need no consent under
+  the ePrivacy Directive. A banner that asks permission it does not need, for
+  cookies it will set anyway, teaches people the button is a formality. It also
+  sits *in* the page rather than over it: the fixed version covered the
+  Privacy, Terms and Support links, which are the links it points at.
+
+## D-82 — the operator's name and address are configuration, not content
+
+The terms page, the privacy page and the support page all need to say who runs
+this deployment and where to write to them. That is a fact about the operator,
+not about the software, so it is read from `NEXT_PUBLIC_LEGAL_ENTITY`,
+`NEXT_PUBLIC_LEGAL_ADDRESS` and `NEXT_PUBLIC_SUPPORT_EMAIL`.
+
+Until the first and third are set, each page renders a marked placeholder
+instead. That is deliberate and it is the whole point: a legal page carrying an
+invented company name and a plausible-looking address is a fabricated record,
+and the failure mode of writing one "to be replaced later" is that it ships.

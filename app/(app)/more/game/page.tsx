@@ -14,7 +14,8 @@ import { cn } from "@/lib/utils/cn";
 
 export const metadata: Metadata = {
   title: "Game layer",
-  description: "Streaks, badges and game points.",
+  description:
+    "Streaks, badges and game points, derived from chores that were actually confirmed rather than stored anywhere.",
 };
 
 /**
