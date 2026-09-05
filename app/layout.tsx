@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeScript } from "@/components/layout/theme-script";
@@ -88,11 +89,21 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+/*
+  Reading a header is what makes every page dynamic, and with a nonce-based
+  policy that is not a side effect but the requirement: Next stamps the nonce
+  during server rendering, from the header on the request. A statically
+  prerendered page is built where no request exists, so its inline bootstrap
+  script would carry no nonce and the browser would refuse it. See
+  `lib/infra/http/csp.ts`.
+*/
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="en" className={`${geist.variable} ${geistMono.variable} h-full`} suppressHydrationWarning>
       <head>
-        <ThemeScript />
+        <ThemeScript nonce={nonce} />
       </head>
       <body className="min-h-full">
         <ToastProvider>

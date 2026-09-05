@@ -2046,3 +2046,40 @@ The proxy now answers an `/api/*` path with `401` and the same
 `{ error: { code, message } }` shape as everything else, so the existing client
 code reads it and says "You have been signed out." Page requests still redirect,
 because a browser asking for a screen should be shown the screen it needs.
+
+## D-87 — a script runs because this request minted its nonce
+
+The app sent `frame-ancestors 'none'` and nothing else. `next.config.ts` said
+why, and the reason was sound: Next injects an inline bootstrap script, so a
+real policy needs a per-request nonce threaded through the proxy, and that was
+worth doing as its own change rather than inside a headers pass that must not
+break the product. `docs/18-GO-LIVE.md` listed it first among the gaps that
+would be true on release day. This is that change.
+
+**`script-src` is strict and it is the one that matters.** A nonce plus
+`'strict-dynamic'` means a tag executes only if this request minted its nonce,
+or if a script that did loaded it. The injection this product would actually
+meet — through a member's display name, a note on an expense, the text of a
+rule — cannot guess a value that is new every request.
+
+**`style-src` allows `'unsafe-inline'`, deliberately, and this is the part
+worth writing down.** Three things here write styles the browser sees as
+inline: server-rendered `style` attributes, `motion/react`, which appends a
+`<style>` element during a layout animation, and GSAP. A nonce cannot cover a
+`style` attribute at all — CSP3 governs those with `style-src-attr`, which
+takes no nonce — and putting a nonce on `style-src` *disables* `'unsafe-inline'`
+for elements, which would break the animation libraries. Shipping the stricter
+form would have meant relaxing it the first time somebody opened a sheet. CSS
+injection is a far weaker primitive than script injection; pretending otherwise
+buys a policy that has to be undone.
+
+The consequence is stated rather than discovered: **every page is now
+dynamically rendered.** Next stamps the nonce during server rendering from the
+header on the request, and a page prerendered at build time has no request, so
+its bootstrap script would carry no nonce and be refused. The root layout reads
+`x-nonce`, which is what opts the tree in. This app was already dynamic
+everywhere but the three documents and the two auth screens, and those are
+cheap.
+
+`CSP_REPORT_ONLY=1` exists for a shakedown week on a new deploy. It is off
+unless set, because a policy nobody switched on is not a policy.

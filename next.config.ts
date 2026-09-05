@@ -15,18 +15,16 @@ import type { NextConfig } from "next";
  * it holds wherever this is deployed. It is harmless on localhost, which is
  * exempt from HSTS in every browser.
  *
- * There is deliberately **no `Content-Security-Policy` yet**. Next injects
- * inline bootstrap script and the app uses inline styles, so a correct policy
- * needs per-request nonces threaded through the proxy — worth doing, and worth
- * doing as its own change with its own testing rather than bundled into a
- * headers pass that must not break the product. Until then these are the
- * headers that carry no such risk.
+ * The `Content-Security-Policy` is **not** here. It carries a per-request
+ * nonce, so it is minted in the proxy and set on the response there; a static
+ * copy in this file would be a second, weaker header the browser would enforce
+ * alongside it. `lib/infra/http/csp.ts` holds the policy and the reasoning.
  */
 const securityHeaders = [
-  // Clickjacking. `frame-ancestors` is the modern control and `X-Frame-Options`
-  // is kept for the browsers that only understand that one.
+  // Clickjacking. `frame-ancestors` is in the policy the proxy sets, and this
+  // is kept for the browsers that only understand this one. It also covers the
+  // handful of asset paths the proxy does not match.
   { key: "X-Frame-Options", value: "DENY" },
-  { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
 
   // A receipt uploaded as `image/png` is never executed as something else.
   { key: "X-Content-Type-Options", value: "nosniff" },

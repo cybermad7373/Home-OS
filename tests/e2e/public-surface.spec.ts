@@ -170,3 +170,60 @@ test("the terms page is reachable from every public shell", async ({ page }) => 
   await page.getByRole("link", { name: "Privacy" }).first().click();
   await expect(page).toHaveURL(/\/legal\/privacy/);
 });
+
+/**
+ * The Content-Security-Policy. Until 2026-09-06 the app sent
+ * `frame-ancestors 'none'` and nothing else, which stops a click-jacking frame
+ * and stops nothing else at all.
+ *
+ * These run on the public pages because a policy that is wrong is wrong before
+ * anybody signs in, and because a violation shows up as a console message
+ * rather than as a failed assertion anywhere else — a page whose scripts were
+ * all refused still renders its HTML.
+ */
+test("every response carries a policy with a fresh nonce", async ({ request }) => {
+  const first = await request.get("/signin");
+  const second = await request.get("/signin");
+
+  const policy = first.headers()["content-security-policy"];
+  expect(policy, "the policy is enforced, not merely reported").toBeTruthy();
+  expect(policy).toContain("'strict-dynamic'");
+  expect(policy).toContain("object-src 'none'");
+  expect(policy).toContain("frame-ancestors 'none'");
+  // No blanket escape hatch for script: that is the whole point of the nonce.
+  expect(policy).not.toMatch(/script-src[^;]*'unsafe-inline'/);
+
+  const nonceOf = (value: string) => value.match(/'nonce-([^']+)'/)?.[1];
+  const one = nonceOf(policy);
+  const other = nonceOf(second.headers()["content-security-policy"]);
+  expect(one).toBeTruthy();
+  expect(one, "a nonce is per request or it is not a nonce").not.toBe(other);
+});
+
+test("a page loads with the policy on and refuses nothing it needs", async ({ page }) => {
+  const violations: string[] = [];
+  page.on("console", (message) => {
+    const text = message.text();
+    if (/Content Security Policy|Refused to (load|execute|apply)/i.test(text)) {
+      violations.push(text);
+    }
+  });
+
+  for (const { path } of PUBLIC_PAGES) {
+    await page.goto(path);
+    await page.waitForLoadState("networkidle");
+  }
+
+  expect(violations, violations.join("\n")).toEqual([]);
+});
+
+test("the theme script runs, which means it carried the nonce", async ({ page }) => {
+  // The one script this app writes itself. Next stamps its own tags; it does
+  // not stamp ours, so without the nonce threaded through the layout this
+  // script is refused and every visit flashes the wrong theme before settling.
+  await page.goto("/signin");
+  await page.evaluate(() => localStorage.setItem("houseos-theme", "dark"));
+  await page.reload();
+
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+});

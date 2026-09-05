@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { Database } from "@/lib/types/database";
 import { supabaseAnonKey, supabaseUrl } from "./env";
+import { contentSecurityPolicy, createNonce, cspHeaderName } from "@/lib/infra/http/csp";
 
 /**
  * Routes reachable without a session. Everything else redirects to sign in.
@@ -57,9 +58,45 @@ function isPublic(pathname: string): boolean {
  * Refreshes the Supabase session cookie on every request and keeps signed-out
  * visitors out of the app. This is convenience and correctness of navigation —
  * the security boundary is RLS, not this function.
+ *
+ * It is also where the Content-Security-Policy is minted, because a nonce has
+ * to be per request and the proxy is the only thing that sees every one. The
+ * policy itself, and the reasoning behind what it does and does not forbid, is
+ * in `lib/infra/http/csp.ts`.
  */
 export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  const nonce = createNonce();
+  const policy = contentSecurityPolicy({
+    nonce,
+    dev: process.env.NODE_ENV !== "production",
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    analyticsSrc: process.env.NEXT_PUBLIC_ANALYTICS_SRC,
+  });
+  const headerName = cspHeaderName(process.env.CSP_REPORT_ONLY === "1");
+
+  /*
+    The nonce reaches the renderer two ways, and it needs both. Next parses the
+    `Content-Security-Policy` *request* header to stamp its own script tags;
+    `x-nonce` is what the root layout reads to stamp the one script this app
+    writes itself, the pre-paint theme script.
+
+    A fresh copy of the request headers per call, rather than one taken at the
+    top: `request.cookies.set` below rewrites the cookie header, and a snapshot
+    made before that would send the old session downstream.
+  */
+  const forward = () => {
+    const headers = new Headers(request.headers);
+    headers.set("x-nonce", nonce);
+    headers.set("Content-Security-Policy", policy);
+    return headers;
+  };
+
+  const secured = <T extends NextResponse>(response: T): T => {
+    response.headers.set(headerName, policy);
+    return response;
+  };
+
+  let response = NextResponse.next({ request: { headers: forward() } });
 
   const supabase = createServerClient<Database>(supabaseUrl(), supabaseAnonKey(), {
     cookies: {
@@ -70,7 +107,7 @@ export async function updateSession(request: NextRequest) {
         for (const { name, value } of cookiesToSet) {
           request.cookies.set(name, value);
         }
-        response = NextResponse.next({ request });
+        response = NextResponse.next({ request: { headers: forward() } });
         for (const { name, value, options } of cookiesToSet) {
           response.cookies.set(name, value, options);
         }
@@ -106,29 +143,31 @@ export async function updateSession(request: NextRequest) {
       `{ error: { code, message } }`, 401.
     */
     if (pathname.startsWith("/api/")) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "UNAUTHENTICATED",
-            message: "You have been signed out. Sign in again to continue.",
+      return secured(
+        NextResponse.json(
+          {
+            error: {
+              code: "UNAUTHENTICATED",
+              message: "You have been signed out. Sign in again to continue.",
+            },
           },
-        },
-        { status: 401 },
+          { status: 401 },
+        ),
       );
     }
 
     const redirect = request.nextUrl.clone();
     redirect.pathname = "/signin";
     redirect.searchParams.set("next", pathname);
-    return NextResponse.redirect(redirect);
+    return secured(NextResponse.redirect(redirect));
   }
 
   if (user && (pathname === "/signin" || pathname === "/signup")) {
     const redirect = request.nextUrl.clone();
     redirect.pathname = "/homes";
     redirect.search = "";
-    return NextResponse.redirect(redirect);
+    return secured(NextResponse.redirect(redirect));
   }
 
-  return response;
+  return secured(response);
 }
