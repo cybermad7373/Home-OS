@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { DecisionLog } from "@/components/governance/decision-log";
 import { listDecisions } from "@/lib/data/governance";
 import { requireActiveMembership, requireSession } from "@/lib/data/house";
@@ -20,6 +22,7 @@ export const metadata: Metadata = {
 export default async function DecisionsPage() {
   const session = await requireSession();
   const { house, member } = await requireActiveMembership(session);
+  const isLead = member.role === "admin" || member.role === "co_admin";
   const view = await listDecisions(session, house.id, member.id, { scope: "all" });
 
   const waiting = view.decisions.filter((decision) => decision.status === "waiting");
@@ -30,6 +33,18 @@ export default async function DecisionsPage() {
       <PageHeader
         title="Decisions"
         subtitle="Everything the house has been asked, and how it answered"
+        // The record used to be the only thing here, which made the seven
+        // decision types nobody could start look like features the app had.
+        action={
+          isLead ? (
+            <Link
+              href="/more/decisions/new"
+              className={buttonVariants({ size: "sm" })}
+            >
+              Ask the home
+            </Link>
+          ) : undefined
+        }
       />
 
       <div className="flex flex-col gap-6">

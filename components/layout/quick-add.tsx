@@ -53,7 +53,7 @@ const MEMBER_OPTIONS: QuickAddOption[] = [
 ];
 
 /**
- * A Co-Admin's four: the things that shape the Home rather than record a day.
+ * A Co-Admin's five: the things that shape the Home rather than record a day.
  */
 const CO_ADMIN_OPTIONS: QuickAddOption[] = [
   { href: "/admin/chores", label: "Chore", body: "Add a job to the house's list" },
@@ -71,6 +71,11 @@ const CO_ADMIN_OPTIONS: QuickAddOption[] = [
     href: "/today?add=announcement",
     label: "Announcement",
     body: "Something everybody here needs to read",
+  },
+  {
+    href: "/more/decisions/new",
+    label: "Decision",
+    body: "Put a change to the home and let it answer",
   },
 ];
 

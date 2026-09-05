@@ -40,6 +40,7 @@ describe("quickAddOptions", () => {
       "Category",
       "Room",
       "Announcement",
+      "Decision",
       "Home",
     ]);
   });
@@ -56,6 +57,7 @@ describe("quickAddOptions", () => {
       "Category",
       "Room",
       "Announcement",
+      "Decision",
       "Rule",
       "Person",
       "Recurring expense",
@@ -72,6 +74,7 @@ describe("quickAddOptions", () => {
       "Category",
       "Room",
       "Announcement",
+      "Decision",
       "Person",
       "Recurring expense",
     ]) {
@@ -93,6 +96,7 @@ describe("quickAddOptions", () => {
       "/house/categories?add=1",
       "/house/rooms?add=1",
       "/today?add=announcement",
+      "/more/decisions/new",
       "/more/rules/new",
       "/house/members?add=1",
       "/expenses/recurring?add=1",
