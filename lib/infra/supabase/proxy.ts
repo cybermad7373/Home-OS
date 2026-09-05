@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { Database } from "@/lib/types/database";
 import { supabaseAnonKey, supabaseUrl } from "./env";
 import { contentSecurityPolicy, createNonce, cspHeaderName } from "@/lib/infra/http/csp";
-import { WRITE_SCOPE, isCountedWrite, writeLimit } from "@/lib/infra/http/rate-limit";
+import { ruleFor } from "@/lib/infra/http/rate-limit";
 import { logWarning } from "@/lib/infra/http/log";
 
 /**
@@ -172,7 +172,8 @@ export async function updateSession(request: NextRequest) {
   }
 
   /*
-    A signed-in member cannot hammer a write endpoint.
+    The ceilings in docs/05-API-SPEC.md section 15, which have always been
+    specified and never had anything enforcing them.
 
     Here rather than in each route, because there are ninety-odd of them and a
     limiter that covers eighty-nine is a limiter with a hole in it. The count
@@ -186,13 +187,13 @@ export async function updateSession(request: NextRequest) {
     every write because the counter is unavailable would turn a slow database
     into an outage.
   */
-  if (user && isCountedWrite(request.method, pathname)) {
-    const { limit, windowSeconds } = writeLimit();
+  const rule = user ? ruleFor(request.method, pathname) : null;
+  if (rule) {
     try {
       const { data, error } = await supabase.rpc("consume_rate_limit", {
-        p_scope: WRITE_SCOPE,
-        p_limit: limit,
-        p_window_seconds: windowSeconds,
+        p_scope: rule.scope,
+        p_limit: rule.limit,
+        p_window_seconds: rule.windowSeconds,
       });
       const verdict = data?.[0];
       if (!error && verdict && !verdict.allowed) {

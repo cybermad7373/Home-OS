@@ -2118,6 +2118,25 @@ from anything the caller sends is a bucket the caller can move to. The scope is
 an argument because the proxy classifies the request, and a forged scope moves
 only the forger's own counter.
 
+**The numbers are the specification's, not new ones.** `docs/05-API-SPEC.md`
+section 15 has carried a table of per-endpoint ceilings since the beginning —
+thirty expenses an hour, sixty chore responses, twenty decisions a day — and
+nothing enforced any of it. `ruleFor` is that table, asserted row by row in
+`tests/unit/proxy.test.ts`, because a ceiling quietly ten times what the
+specification says is not a ceiling anybody agreed to. Only the "everything
+else" row is configurable.
+
+**Section 15's per-*Home* limits stay where they are.** Rule parsing, food
+ideas, credential verification, schedule generation and the second half of the
+join-request limit are per Home, and the Home a request belongs to is a hint in
+a cookie until `resolveSelectedMembership` checks it. A bucket keyed on an
+unchecked hint is a bucket one member can fill on another Home's behalf, so the
+proxy does not key on it. Those caps live where the Home is known —
+`lib/infra/llm/rate.ts`, in memory, which the LLM specification settled as a
+spend guard rather than a correctness one. On a multi-instance deploy they
+become per-instance; that is a stated consequence of the settled decision, not
+an oversight of this one.
+
 This does not replace a limiter at the host or the CDN, which is where a flood
 should be stopped before it costs anything. It is the floor under one, present
 wherever this is deployed, including a deployment with nothing in front of it.
