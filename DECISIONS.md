@@ -2203,3 +2203,27 @@ Writing the tests found two things the code had wrong: `telegram_links` has not
 existed since migration 044, and the database refuses a direct
 `status = 'inactive'` write even from a service-role key, which is the removal
 rule holding exactly where D-06 says it should.
+
+## D-91 — retention deletes the noise and never the record
+
+"There is no automatic retention limit. A household's records are kept until
+somebody removes them." Half of that sentence was a gap and half of it was a
+promise, and the two halves needed separating.
+
+**The record is never aged out.** Expenses, splits, settlements, chores,
+decisions, rules. These are what the product *is*; several people rely on them
+being the same tomorrow as today, and a household opening last March to check a
+figure has to find it. A job that deleted them on a timer would be data loss
+wearing a privacy hat, and it is the kind of feature that looks responsible
+right up until somebody needs the month it removed. The retention test puts a
+two-year-old expense in front of the sweep and asserts it survives, because
+that is the claim worth defending in a test rather than in a comment.
+
+**The noise is.** A read notification after 180 days, an unread one after 365,
+an invitation 90 days after it expired or was revoked, a declined or withdrawn
+join request after a year. These are addressed to a person rather than recorded
+about a household, and nobody has ever gone back to read one.
+
+**The numbers are constants, not settings.** A retention period each household
+can change is one nobody can state on a privacy page — and the privacy page is
+where this has to be true, in words, which is where it now is.

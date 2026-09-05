@@ -4224,6 +4224,14 @@ export type Database = {
         }
         Returns: string
       }
+      purge_expired_records: {
+        Args: never
+        Returns: {
+          invitations_deleted: number
+          join_requests_deleted: number
+          notifications_deleted: number
+        }[]
+      }
       reject_chore: {
         Args: { p_assignment_id: string; p_reason: string }
         Returns: Database["public"]["Enums"]["assignment_status"]

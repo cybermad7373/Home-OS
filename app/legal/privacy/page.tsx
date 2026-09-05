@@ -186,16 +186,22 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
-      <Section title="What is not built yet">
+      <Section title="How long things are kept">
         <p>
-          These are named rather than glossed over, because a privacy page that
-          describes something that does not exist is the worst kind.
+          Two rules, and the second is the one people are surprised by. Both are
+          stated rather than glossed over, because a privacy page that describes
+          something that does not happen is the worst kind.
         </p>
         <ul className="flex list-disc flex-col gap-2 pl-5">
           <li>
-            <Strong>There is no automatic retention limit.</Strong> A
-            household&apos;s records are kept until somebody removes them. Old
-            expenses and chores are not aged out.
+            <Strong>A household&apos;s records are kept until somebody removes
+            them.</Strong> Expenses, chores, decisions and rules are not aged
+            out on a timer — they are the record several people rely on, and a
+            month opened next March has to still be there. What{" "}
+            <em>is</em> aged out, weekly, is the noise: a notification you have
+            read after 180 days, an unread one after a year, an invitation link
+            90 days after it expired or was revoked, and a join request that
+            was declined or withdrawn after a year.
           </li>
           <li>
             <Strong>Leaving a household does not erase what you recorded.</Strong>{" "}
