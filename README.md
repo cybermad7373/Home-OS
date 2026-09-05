@@ -373,8 +373,21 @@ npm run typecheck
 npm run lint
 npm run test               # unit tests; the RLS suite skips without Supabase env vars
 npm run test:functions     # the Web Push round trip and key sealing, under Deno
-npm run test:e2e           # the phase-1 journey, against a running app
+npm run test:e2e           # every browser journey, against a running app
 ```
+
+## Operating a deployment
+
+```bash
+npm run backup             # dump the database; see docs/19-BACKUP.md
+npm run backup -- --verify FILE
+curl https://<domain>/api/health
+```
+
+`docs/18-GO-LIVE.md` is the release order and the smoke test.
+`docs/19-BACKUP.md` is the backup policy: what it protects, where the files may
+go, and how a restore is rehearsed. A dump is every household's records in one
+file — it is never committed and never leaves an encrypted store.
 
 `test:functions` is the one that matters most for notifications. An aes128gcm
 frame is easy to build wrongly and impossible to inspect afterwards: a push

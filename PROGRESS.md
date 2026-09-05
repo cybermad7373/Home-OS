@@ -4,7 +4,7 @@ A running record of what has been built, what is verified, and what is next.
 Updated at the end of every working session. The roadmap in
 [`docs/07-ROADMAP.md`](docs/07-ROADMAP.md) is the plan; this file is the state.
 
-**Last updated:** 2026-09-05
+**Last updated:** 2026-09-06
 
 ## Working agreements — settled 2026-08-27
 
@@ -12,18 +12,61 @@ How the rest of the build runs. The reasoning is D-59; this is the summary.
 
 | | |
 |---|---|
-| **Next piece of work** | Every engineering phase of specification 2.0 is built; so is the surface overhaul (2026-09-03), the reachability audit that followed it (2026-09-05) and the launch gate after that — the Home the app landed you in, the amount field that ignored the keyboard, the refusals that said nothing, the seven decision types nobody could start, the Save button no sheet ever showed, and the twenty public-surface items. On 2026-09-04 the hosted project was written to for the first time, by explicit request: 37 migrations, the LLM master key as an Edge Function secret, and all eight functions redeployed. **The hosted project has not been written to since, so it is behind this repository by everything after that date.** What remains of the launch gate in "Known gaps" is a real-device push test and the production release checks — privacy and support pages, monitoring, and backups. |
+| **Next piece of work** | Every engineering phase of specification 2.0 is built, and so is everything the launch gate asked for that could be built rather than done: the surface overhaul (2026-09-03), the reachability audit (2026-09-05), the launch-gate pass after it, and the six release checks closed on 2026-09-06 — Content-Security-Policy, rate limiting, account deletion, retention, monitoring and backups. On 2026-09-04 the hosted project was written to for the first time, by explicit request. **It has not been written to since, so it is behind this repository by everything after that date, including migrations 090, 091 and 092.** What is left is not code: a push delivered to a real device, three environment values that only the operator has, and the deploy itself. |
 | **Test target** | The local stack, still. The hosted project is written to only by an explicitly requested `db:push`; that this has now happened once does not make it routine, and no test or sweep in this repository points at it. |
 | **Scope** | The whole of specification 2.0: finish phase 11, then 12 to 15 in the roadmap's order. Nothing trimmed. |
 | **Phase-11 order** | Jobs and notifications, then S-37 proposers, then absence, then shared assignment and `change_confirmation_policy`, then governed close with adjustments, then expected contributions and the reserve. |
 | **Commits** | One per slice, on `main`, as each is finished. |
-| **E2E** | One Playwright journey per phase, written with the phase. Phase 11's is propose, respond, apply. |
+| **E2E** | One Playwright journey per phase, written with the phase. Phase 11's is propose, respond, apply. **Run both projects.** The focus-return case in `edge-cases.spec.ts` shipped green on 2026-09-05 because only `--project=desktop` was run: on a phone the control it asserts on is an icon with an `aria-label` and no text, so the assertion read `""` from a button that was focused correctly. A case written against one project is a case verified on one project. |
 | **AI keys** | Supplied when a call site needs real verification, pasted into the app's own settings panel and sealed against that Home. Never in the repository, an env file, a fixture or a test. |
 
 Local Supabase is running. Migrations 045–089 plus `20260901000000`,
-`20260903000000` and `20260903000001` applied locally.
+`20260903000000`, `20260903000001`, `20260904000000` and the three written on
+2026-09-06 — `20260906000000` rate limiting, `20260906000001` account erasure,
+`20260906000002` retention — applied locally. The hosted project has the first
+group and none of the last three.
 Integration suites no longer skip themselves. `npm run gen:types` fixed to read local stack.
 `lib/types/schema-pending.ts` reduced to 17-line shim (only `JoinRequestStatus`).
+
+## The release checks — 2026-09-06
+
+`docs/18-GO-LIVE.md` section 6 listed what would be true on release day. Six of
+its items were gaps rather than decisions, and this pass closed all six. What is
+left on that list now needs a person with a phone, or three values only the
+operator has, and no more code.
+
+| Was | Now | Where |
+|---|---|---|
+| `frame-ancestors 'none'` and no other policy | A full `Content-Security-Policy` with a per-request nonce and `'strict-dynamic'`, minted in the proxy. `style-src` keeps `'unsafe-inline'`, deliberately: a `style` attribute cannot carry a nonce and `motion/react` appends a style element mid-animation, so the stricter form would have been relaxed on first use | D-87, `lib/infra/http/csp.ts` |
+| `docs/05-API-SPEC.md` section 15 specified per-endpoint ceilings and nothing enforced them | That table, row by row — thirty expenses an hour, sixty chore responses, twenty decisions a day, 300 for everything else — counted in a Postgres row so two instances of the server share one counter, checked in the proxy so none of the ninety-odd endpoints is missed, failing open because the authorisation check lives in the same database. The per-*Home* rows stay where the Home is actually known | D-88, migration 090 |
+| "There is no self-service account deletion" | `/more/account`. Name, username, email, phone, payment address, picture, push subscriptions and notification settings go; the `house_members` rows the ledger references stay, reading "Former member". Refused while any membership is active, because leaving a Home is that Home's decision | D-90, migration 091 |
+| "There is no automatic retention limit" | A weekly sweep of the noise — read notifications after 180 days, unread after 365, dead invitations after 90, refused join requests after 365 — and nothing else, ever. The test puts a two-year-old expense in front of the sweep | D-91, migration 092 |
+| No monitoring, and no decision about where an error goes | One JSON line per error on stderr, carrying the route *pattern* and never the URL, with an eight-character reference that is also in the response. `/api/health` answers 200 or 503 for an uptime checker and says nothing about the households behind it | D-89, `instrumentation.ts` |
+| No backup policy, on a plan that has none of its own | `npm run backup` and `docs/19-BACKUP.md`: schema and data dumped separately through the Supabase CLI, every run verifying its own output, restore into a new project, rehearsed quarterly | D-92 |
+
+### What the tests found
+
+Three things, and each was the point of writing them:
+
+- **`telegram_links` has not existed since migration 044.** The erasure function
+  deleted from it. A migration that references a dropped table fails at run
+  time, not at write time.
+- **The database refuses `status = 'inactive'` even from a service-role key.**
+  Modelling a leaver for the ledger test hit `DECISION_REQUIRED`, then
+  `ADMIN_REQUIRED`, then `NOT_APPROVED: waiting` — the removal rule, the
+  privilege trigger and the two-responder floor, all holding exactly where D-06
+  and the governance specification say they should.
+- **A schema dump had no completion marker.** The Supabase CLI strips comments
+  by default and `pg_dump`'s "dump complete" line is a comment, so the check
+  that a backup is not truncated was passing on a file that could not be
+  distinguished from a truncated one.
+
+### Verification
+
+1,058 unit and integration cases (up from 1,002), 202 browser cases across the
+mobile and desktop projects, a clean production build, and the policy checked
+against both `next dev` and `next start`.
+The three new migrations are applied to the local stack only.
 
 ## The launch gate — 2026-09-05
 
@@ -1812,8 +1855,22 @@ Three things the pass established that were not previously written down:
   revision — the schema moved 37 migrations under it, including function
   signatures that `20260903000001` changed.
 
-  **Still open:** a push delivered to a real device, and the production release
-  checks — privacy and support pages, monitoring, and backups.
+  **Still open, as of 2026-09-06:** a push delivered to a real device, and the
+  three environment values only the operator has — the legal entity, the legal
+  address and the support email that replace the placeholder boxes on the public
+  pages. The production release checks themselves are closed: see "The release
+  checks — 2026-09-06" above. Migrations 090, 091 and 092 have not been pushed
+  to the hosted project.
+- **The six release checks are closed**, on 2026-09-06: Content-Security-Policy
+  with a per-request nonce, the API specification's own rate-limit table
+  enforced from Postgres, self-service account deletion, a retention sweep that
+  touches no record, structured error logging with a health endpoint, and a
+  backup script with a runbook. D-87 to D-92, migrations 090 to 092. The
+  migrations are applied locally only.
+- **The placeholder boxes are still placeholders**, and deliberately: the legal
+  entity, legal address and support email are read from the environment, and
+  nothing in this repository can invent them (D-82). Setting the three variables
+  replaces all three boxes.
 - **`food_normalise` is built**, and all six documented call sites are now
   implemented. It is consulted only where the deterministic matcher in food
   specification section 4.1 found no candidate at all — the case a

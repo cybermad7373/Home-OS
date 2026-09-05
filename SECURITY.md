@@ -82,7 +82,9 @@ Stated so that the absence of a control is a decision rather than an oversight:
 - **The hosting provider.** Supabase and Vercel are trusted with data at rest and in
   transit.
 - **Denial of service.** Rate limits exist to keep a Home inside its own quotas
-  (SEC-10, BR-290), not to withstand an attack.
+  (SEC-10, BR-290), not to withstand an attack. The write limiter added in
+  migration 090 stops a loop, not a flood; stopping a flood belongs at the host
+  or the CDN, before it costs anything.
 - **Traffic analysis and metadata.** That a Home is active at 3am is not protected.
 
 ## Security Architecture
@@ -114,6 +116,15 @@ HouseOS implements several security measures by design:
 - **Input validation**: All API inputs validated with Zod schemas (`lib/validation/`)
 - **No business logic in route handlers**: Handlers validate, authorize, delegate to domain
 - **Money as integer paise**: No floating-point arithmetic for financial calculations
+- **Content-Security-Policy**: A per-request nonce with `'strict-dynamic'`, built
+  in `lib/infra/http/csp.ts` and set by the proxy. An injected `<script>` cannot
+  guess a value that is new on every request. `style-src` allows
+  `'unsafe-inline'` deliberately — see D-87
+- **Write rate limiting**: 120 writes per member per minute, counted in Postgres
+  so instances share one counter (migration 090). It fails open: the
+  authorisation check is RLS, in the same database
+- **Logs carry no household data**: a route *pattern* and an error code, never a
+  URL, a body or a name (`lib/infra/http/log.ts`)
 
 ## Security-Related Configuration
 
@@ -163,6 +174,13 @@ read it. Its rows are inserted per environment and are never committed.
 3. **Service-role key**: Bypasses RLS but **not** database constraints/triggers
 4. **Edge Functions**: Called by `pg_cron`; deploy with `npx supabase functions deploy`
 5. **AI features**: Never authoritative over money, permissions, rules, or settlements
+6. **Account erasure is not deletion**: a person's details are removed and their
+   `house_members` rows are kept, because the ledger references them (D-90). The
+   audit row in `account_erasures` records that it happened and carries nothing
+   personal
+7. **Backups are the whole database in one file**: never commit one, never attach
+   one to an issue, and keep them off the machine that holds the database
+   (`docs/19-BACKUP.md`)
 
 ## Responsible Disclosure
 

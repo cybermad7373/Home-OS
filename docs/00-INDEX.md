@@ -11,14 +11,17 @@ everything is visible, everyone contributes, and important decisions are shared.
 **Status:** Specification version 2.0 adopted on 2026-08-26. Every engineering
 phase of it is built. On 2026-09-04 the hosted project was written to for the
 first time — 38 migrations, the LLM master key, and all eight Edge Functions —
-so phase 9 is no longer unapplied. What remains before the web release is in
-[18-GO-LIVE.md](18-GO-LIVE.md), and the largest item is that the deployed web
-app is not yet built from the revision the database now matches. Product phase 2 (native Android/iOS,
-engineering phase 17) follows the web launch. See
+so phase 9 is no longer unapplied. On 2026-09-06 the six release checks in
+[18-GO-LIVE.md](18-GO-LIVE.md) section 6 that were gaps rather than decisions
+were closed: Content-Security-Policy, rate limiting, account deletion,
+retention, monitoring and backups. What remains before the web release is not
+code — a push delivered to a real device, three environment values only the
+operator has, three migrations to push, and the deploy itself. Product phase 2
+(native Android/iOS, engineering phase 17) follows the web launch. See
 [`../PROGRESS.md`](../PROGRESS.md) for the current state and
 [`../DECISIONS.md`](../DECISIONS.md) for the choices made while building.
 
-**Last updated:** 2026-09-04
+**Last updated:** 2026-09-06
 
 ---
 
