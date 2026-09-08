@@ -64,3 +64,8 @@ ks-*.png
 
 # Database dumps. Every household's records in one file; never committed.
 backups/
+
+# Operator scratch with live secrets (service-role key, etc.). Never committed
+# on any branch — values live in the password manager / host env only.
+docs/deploy.txt
+**/deploy.txt
