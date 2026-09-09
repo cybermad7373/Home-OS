@@ -14,6 +14,7 @@ import {
   type HomeShape,
 } from "./destinations";
 import { QuickAddSheet, quickAddGroups } from "./quick-add";
+import { CreatorCredit } from "./creator-credit";
 
 /**
  * Navigation, rebuilt in 3.0 around one idea: **the bar never changes.**
@@ -243,6 +244,7 @@ export function Sidebar({
           {standingLine ? (
             <p className="caption-text text-text-subtle">{standingLine}</p>
           ) : null}
+          <CreatorCredit className="mt-1 truncate" />
         </div>
       </div>
 

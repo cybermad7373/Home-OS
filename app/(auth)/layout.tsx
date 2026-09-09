@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Analytics } from "@/components/layout/analytics";
 import { CookieNotice } from "@/components/layout/cookie-notice";
+import { CreatorCredit } from "@/components/layout/creator-credit";
 
 /**
  * The first screen anybody sees, and the only place the product introduces
@@ -61,6 +62,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             Support
           </Link>
         </nav>
+        <CreatorCredit className="mt-4 text-center" />
       </div>
 
       <Analytics />

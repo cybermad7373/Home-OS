@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { CreatorCredit } from "@/components/layout/creator-credit";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { MemberAvatar } from "@/components/ui/avatar";
@@ -106,6 +107,8 @@ export default async function MorePage() {
         <ThemeToggle />
         <SignOutButton />
       </div>
+
+      <CreatorCredit className="mt-6 text-center" />
     </>
   );
 }

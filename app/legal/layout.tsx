@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Analytics } from "@/components/layout/analytics";
 import { CookieNotice } from "@/components/layout/cookie-notice";
+import { CreatorCredit } from "@/components/layout/creator-credit";
 
 /**
  * The three public documents a release needs: what the product does with your
@@ -44,6 +45,7 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
           <p className="caption-text text-text-muted">
             HouseOS — a shared household record. <Link href="/signin" className="underline">Sign in</Link>
           </p>
+          <CreatorCredit className="mt-1" />
         </div>
       </footer>
 
