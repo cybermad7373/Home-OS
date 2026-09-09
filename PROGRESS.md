@@ -65,8 +65,11 @@ Home creation + expense + invite-link flow, and the phone push hop.
   `#confirm_password`; and the new mismatch case used a hyphenated username
   the schema rejects before the mismatch check runs.
 - Verified: typecheck, lint, 1,058 unit/integration, clean build from
-  deleted `.next`, `public-surface` 19/19 on **both** projects (2 new
-  cases), `foundation` 8/8 on both (signup-with-confirmation end to end).
+  deleted `.next`, and the **full E2E suite on both projects: 206 passed, 0
+  failed** (governance co-lead removal flaked once on mobile under load and
+  passed on retry, the documented dev-server category) — including the 2 new
+  public-surface cases and `foundation` 8/8 (signup-with-confirmation end
+  to end).
 
 ## Deploy readiness — 2026-09-09
 
