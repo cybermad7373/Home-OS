@@ -27,6 +27,24 @@ button with its caption, `curl /api/health` is 200 with matching `revision`,
 `curl -I /signin` carries the CSP `nonce-` header, then a real signup +
 Home creation + expense + invite-link flow, and the phone push hop.
 
+**Update, same day — protection is off, two new findings:**
+
+- **Closed U-01.** `/signin` and `/legal/privacy` now render the real app
+  signed out (privacy with a 200 and its designed to-be-completed boxes).
+- **Finding U-02 (blocking, operator-side): `/api/health` answers 503 with
+  `{"status":"degraded","database":false}`** — the deployed app cannot reach
+  Supabase. Almost certainly one of `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` wrong or
+  missing in the Vercel env. Fix in Vercel, then redeploy.
+- **Finding U-03 (operator-side): the live build is stale.** Health reports
+  `revision: 88f0781`; `601d04c` (disabled Google button + caption) is not
+  live — `/signin` shows the button with no caption. Vercel is not
+  auto-deploying `main`, or the last deploy predates the push. Redeploy
+  latest `main` from the dashboard.
+- Google-OAuth leftovers still on the privacy page ("or a Google sign-in")
+  and claim-username comment describe the parked path, not a live control —
+  accepted for launch, revisit when the provider is switched on.
+
 ## Deploy readiness — 2026-09-09
 
 Requested: get the tree ready to deploy (Vercel). What was verified and found:
