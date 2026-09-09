@@ -105,7 +105,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <ThemeScript nonce={nonce} />
       </head>
-      <body className="min-h-full">
+      <body className="min-h-full" suppressHydrationWarning>
         <ToastProvider>
           <OfflineStrip />
           {children}

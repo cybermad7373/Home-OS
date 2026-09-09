@@ -4,7 +4,30 @@ A running record of what has been built, what is verified, and what is next.
 Updated at the end of every working session. The roadmap in
 [`docs/07-ROADMAP.md`](docs/07-ROADMAP.md) is the plan; this file is the state.
 
-**Last updated:** 2026-09-06
+**Last updated:** 2026-09-09
+
+## Deploy readiness — 2026-09-09
+
+Requested: get the tree ready to deploy (Vercel). What was verified and found:
+
+- `npm run typecheck`, `npm run lint` clean; `npm run test` 1,058 passing
+  across 82 files; `npm run build` clean from a deleted `.next`.
+- `npm run db:push` against hosted `foxzpnofcpyeouwnoqjp` answered "Remote
+  database is up to date". `supabase migration list` shows 090, 091 and 092
+  applied remotely — the three migrations `docs/18-GO-LIVE.md` §1/§4 still
+  lists as local-only are already on the hosted project. No push was needed
+  and none was made.
+- All eight Edge Functions list ACTIVE (versions 4–6, updated 2026-09-04).
+  Nothing in 090–092 touches a function, so no redeploy is owed.
+- Working tree is **not clean**: `app/layout.tsx` (one-line
+  `suppressHydrationWarning`) and `package-lock.json` (14 lines removed) are
+  modified and uncommitted. Deploy from a committed revision.
+- Still operator-side before/after the Vercel deploy: rotate the service-role
+  key (§2.1, treated as disclosed), set the Vercel env table (§3.1, including
+  `LLM_KEY_ENCRYPTION_KEY` byte-identical to the function secret and a real
+  `NEXT_PUBLIC_APP_URL`), set Site URL + redirect in Supabase auth (§3.2),
+  then run the §5 smoke test on the real domain — step 8 (real-device push)
+  is still the only never-proven hop.
 
 ## Working agreements — settled 2026-08-27
 
