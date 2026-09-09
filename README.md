@@ -235,7 +235,7 @@ Three ways in, all landing on the same account:
 |--------|--------------|
 | Username + password | The username lives on the profile, not in Supabase Auth. `POST /api/auth/signin` resolves it to an email server-side, then signs in. |
 | Email + password | The same endpoint, skipping the resolution. |
-| Google | Standard OAuth. It supplies no username, so onboarding asks for one before a house is chosen. |
+| Google | Not offered yet — the button is a disabled placeholder. The wiring (`/auth/callback`, username claim) is built; switching on is a dashboard task. |
 
 Usernames are 3–20 characters, starting with a letter, then letters, digits or
 underscores. Uniqueness ignores case and is enforced by a unique index on

@@ -8,7 +8,6 @@ import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Alert } from "@/components/ui/alert";
-import { createClient } from "@/lib/infra/supabase/client";
 import { signInSchema, signUpSchema } from "@/lib/validation/house";
 
 /**
@@ -38,10 +37,11 @@ type Errors = Partial<Record<FieldKey | "form", string>>;
 /**
  * S-01 and S-02.
  *
- * Three ways in, all landing on the same account: username and password, email
- * and password, or Google. Password sign-in and sign-up both go through the API
+ * Two ways in, both landing on the same account: username and password, or
+ * email and password. Password sign-in and sign-up both go through the API
  * rather than straight to Supabase from the browser, because resolving a
  * username to an email needs the service-role key — see app/api/auth/signin.
+ * Google sign-in is parked: provider off, button disabled with its reason.
  */
 export function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter();
@@ -130,17 +130,13 @@ export function AuthForm({ mode }: { mode: Mode }) {
     await submit();
   }
 
-  async function onGoogle() {
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-      },
-    });
-    if (error) setErrors({ form: "Google sign-in is not switched on for this project yet" });
-  }
-
+  /*
+    Google sign-in is not offered yet: the provider is off in Supabase Auth
+    and no OAuth client is configured, so the button below is a disabled
+    placeholder rather than a working control. The wiring (signInWithOAuth
+    to /auth/callback, username claim step) is proven in git history and in
+    docs; switching on is a dashboard task plus re-enabling this handler.
+  */
   if (confirmationSent) {
     return (
       <Card>
@@ -296,9 +292,12 @@ export function AuthForm({ mode }: { mode: Mode }) {
           <span className="h-px flex-1 bg-border" />
         </div>
 
-        <Button type="button" variant="outline" block onClick={onGoogle}>
+        <Button type="button" variant="outline" block disabled>
           Continue with Google
         </Button>
+        <p className="caption-text mt-2 text-center text-text-subtle">
+          Google sign-in is not available yet — use your username or email.
+        </p>
 
         <p className="caption-text mt-4 text-center text-text-muted">
           {mode === "signup" ? (
