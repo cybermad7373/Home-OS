@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Alert } from "@/components/ui/alert";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { signInSchema, signUpSchema } from "@/lib/validation/house";
 
 /**
@@ -31,7 +32,13 @@ const DEV_LOGIN =
     : null;
 
 type Mode = "signin" | "signup";
-type FieldKey = "display_name" | "username" | "email" | "identifier" | "password";
+type FieldKey =
+  | "display_name"
+  | "username"
+  | "email"
+  | "identifier"
+  | "password"
+  | "confirmPassword";
 type Errors = Partial<Record<FieldKey | "form", string>>;
 
 /**
@@ -65,6 +72,9 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const [password, setPassword] = useState(
     mode === "signin" ? (DEV_LOGIN?.password ?? "") : "",
   );
+  // Client-side only: the API never sees it. Typing a password twice is the
+  // cheapest defence against signing up with a password nobody knows.
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
@@ -91,6 +101,11 @@ export function AuthForm({ mode }: { mode: Mode }) {
         fieldErrors[key] ??= issue.message;
       }
       setErrors(fieldErrors);
+      return;
+    }
+
+    if (mode === "signup" && password !== confirmPassword) {
+      setErrors({ confirmPassword: "The two passwords do not match" });
       return;
     }
 
@@ -132,10 +147,11 @@ export function AuthForm({ mode }: { mode: Mode }) {
 
   /*
     Google sign-in is not offered yet: the provider is off in Supabase Auth
-    and no OAuth client is configured, so the button below is a disabled
-    placeholder rather than a working control. The wiring (signInWithOAuth
-    to /auth/callback, username claim step) is proven in git history and in
-    docs; switching on is a dashboard task plus re-enabling this handler.
+    and no OAuth client is configured. The button below links to
+    `/auth/google`, which states that and offers the manual path, rather than
+    failing at tap time. Delete that page and re-enable the handler here
+    (signInWithOAuth to /auth/callback, username claim step) when the
+    provider is switched on.
   */
   if (confirmationSent) {
     return (
@@ -263,6 +279,25 @@ export function AuthForm({ mode }: { mode: Mode }) {
           />
         </Field>
 
+        {mode === "signup" ? (
+          <Field
+            label="Confirm password"
+            htmlFor="confirm_password"
+            hint="type it again, to be sure"
+            error={errors.confirmPassword}
+          >
+            <Input
+              id="confirm_password"
+              name="confirm_password"
+              type="password"
+              autoComplete="new-password"
+              value={confirmPassword}
+              invalid={Boolean(errors.confirmPassword)}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+            />
+          </Field>
+        ) : null}
+
         <Button type="submit" block loading={loading}>
           {mode === "signup" ? "Create account" : "Sign in"}
         </Button>
@@ -292,12 +327,13 @@ export function AuthForm({ mode }: { mode: Mode }) {
           <span className="h-px flex-1 bg-border" />
         </div>
 
-        <Button type="button" variant="outline" block disabled>
+        <Link
+          href="/auth/google"
+          prefetch={false}
+          className={buttonVariants({ variant: "outline", block: true })}
+        >
           Continue with Google
-        </Button>
-        <p className="caption-text mt-2 text-center text-text-subtle">
-          Google sign-in is not available yet — use your username or email.
-        </p>
+        </Link>
 
         <p className="caption-text mt-4 text-center text-text-muted">
           {mode === "signup" ? (

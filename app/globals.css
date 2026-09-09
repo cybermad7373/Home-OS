@@ -479,12 +479,35 @@
     .auth-docs {
       margin-top: 1.25rem;
     }
+
+    /*
+      The sign-up form's fifth field (password confirmation) pushed its button
+      below the fold on a scaled laptop again. Tighten the auth form's own
+      vertical rhythm on a short window only — every rule here is scoped to
+      `.auth-shell`, so no other screen moves.
+    */
+    .auth-shell .mb-4 {
+      margin-bottom: 0.625rem;
+    }
   }
 
-  @media (max-height: 560px) {
+  /*
+    On a very short window even the compact hero costs more than it gives: the
+    three-line statement is ~90px the sign-up button needs. The wordmark stays;
+    the slogan goes, because a promise nobody scrolls to is not worth the
+    button it hides. Phones in portrait are taller than this and unaffected.
+  */
+  @media (max-height: 640px) {
+    .auth-shell {
+      padding-top: 0.75rem;
+    }
+
+    .auth-hero {
+      margin-bottom: 0.75rem;
+    }
+
     .auth-hero .display-xl {
-      font-size: 24px;
-      line-height: 26px;
+      display: none;
     }
   }
 

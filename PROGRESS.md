@@ -45,6 +45,29 @@ Home creation + expense + invite-link flow, and the phone push hop.
   and claim-username comment describe the parked path, not a live control —
   accepted for launch, revisit when the provider is switched on.
 
+**Shipped the same day — auth entry hardening (operator-requested):**
+
+- `/auth/google`: a real page behind the Google button saying the provider
+  is not connected yet, with "Create an account manually" (`/signup`) and
+  "Back to sign in". Public under the existing `/auth` prefix, so no proxy
+  change; deliberately out of the sitemap/robots five like `/auth/callback`.
+  Delete it and re-enable the handler in `auth-form.tsx` to switch Google on.
+- Signup asks the password twice. Client-side only — the API never sees the
+  confirmation — mismatch blocks before any request with "The two passwords
+  do not match".
+- The fifth field pushed "Create account" below the fold at 1093×614, the
+  same defect class as the launch gate's Save button. Fixed the same way:
+  `.auth-shell .mb-4` tightens under 720px height, and under 640px the hero
+  slogan hides (wordmark stays). No other screen moves.
+- Tests caught two of their own defects on the way: label matching by
+  visible text broke (hints live inside `<label>`, so `getByLabel` exact is
+  empty and inexact is ambiguous) — signup fills now use `#password` /
+  `#confirm_password`; and the new mismatch case used a hyphenated username
+  the schema rejects before the mismatch check runs.
+- Verified: typecheck, lint, 1,058 unit/integration, clean build from
+  deleted `.next`, `public-surface` 19/19 on **both** projects (2 new
+  cases), `foundation` 8/8 on both (signup-with-confirmation end to end).
+
 ## Deploy readiness — 2026-09-09
 
 Requested: get the tree ready to deploy (Vercel). What was verified and found:

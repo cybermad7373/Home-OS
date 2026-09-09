@@ -26,7 +26,11 @@ export async function signUp(page: Page, account: Account): Promise<void> {
   await page.getByLabel("Display name").fill(account.name);
   await page.getByLabel("Username").fill(account.username);
   await page.getByLabel("Email").fill(account.email);
-  await page.getByLabel("Password").fill(PASSWORD);
+  // By id: the visible labels carry hint text ("8+ characters…", "type it
+  // again…"), so label matching is either inexact-and-ambiguous or
+  // exact-and-empty.
+  await page.locator("#password").fill(PASSWORD);
+  await page.locator("#confirm_password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
   await page.waitForURL("**/onboarding/**", { timeout: 30000 });
 

@@ -160,6 +160,30 @@ test("a wrong password is answered on the form, not swallowed", async ({ page })
   await expect(page.getByLabel("Username or email")).toHaveValue("nobody-at-all-here");
 });
 
+test("the Google button explains itself instead of failing", async ({ page }) => {
+  await page.goto("/signin");
+  await page.getByRole("link", { name: "Continue with Google" }).click();
+  await expect(page).toHaveURL(/\/auth\/google/);
+  await expect(
+    page.getByRole("heading", { name: /Google sign-in is not ready yet/i }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Create an account manually" }).click();
+  await expect(page).toHaveURL(/\/signup/);
+});
+
+test("a mismatched confirmation stops the sign-up on the form", async ({ page }) => {
+  await page.goto("/signup");
+  await page.getByLabel("Display name").fill("Mismatch Case");
+  await page.getByLabel("Username").fill("mismatchcase");
+  await page.getByLabel("Email").fill("mismatchcase@example.com");
+  await page.locator("#password").fill("test-password-1");
+  await page.locator("#confirm_password").fill("test-password-2");
+  await page.getByRole("button", { name: "Create account" }).click();
+  // Blocked before any request: still on the form, told which field.
+  await expect(page).toHaveURL(/\/signup/);
+  await expect(page.getByText("The two passwords do not match")).toBeVisible();
+});
+
 test("the terms page is reachable from every public shell", async ({ page }) => {
   await page.goto("/signin");
   await page.getByRole("link", { name: "Terms" }).click();
