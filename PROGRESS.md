@@ -6,6 +6,27 @@ Updated at the end of every working session. The roadmap in
 
 **Last updated:** 2026-09-09
 
+## UAT on the live URL — 2026-09-09 (in progress)
+
+Target: `https://home-azvsvlt3k-ruth-0e52.vercel.app/`. Operator parked
+Google sign-in (provider off, no OAuth client); `601d04c` disables the button
+with its reason stated instead of failing at tap time. README signing-in
+table updated to match.
+
+**Finding U-01 (blocking, operator-side): Vercel Deployment Protection is
+on.** `GET /api/health` and `GET /signin` both answer with Vercel's own
+login page instead of the app — no real user can reach anything, including
+the five public pages and the health endpoint. Fix: Vercel dashboard →
+Project → Settings → Deployment Protection → turn Vercel Authentication off
+(or Public) for Production. Until then no further UAT step can execute;
+the checks below are queued behind it.
+
+Queued once the app is reachable: public pages render signed out
+(`/legal/privacy` must not redirect), `/signin` shows the disabled Google
+button with its caption, `curl /api/health` is 200 with matching `revision`,
+`curl -I /signin` carries the CSP `nonce-` header, then a real signup +
+Home creation + expense + invite-link flow, and the phone push hop.
+
 ## Deploy readiness — 2026-09-09
 
 Requested: get the tree ready to deploy (Vercel). What was verified and found:
@@ -22,12 +43,21 @@ Requested: get the tree ready to deploy (Vercel). What was verified and found:
 - Working tree is **not clean**: `app/layout.tsx` (one-line
   `suppressHydrationWarning`) and `package-lock.json` (14 lines removed) are
   modified and uncommitted. Deploy from a committed revision.
-- Still operator-side before/after the Vercel deploy: rotate the service-role
-  key (§2.1, treated as disclosed), set the Vercel env table (§3.1, including
-  `LLM_KEY_ENCRYPTION_KEY` byte-identical to the function secret and a real
-  `NEXT_PUBLIC_APP_URL`), set Site URL + redirect in Supabase auth (§3.2),
-  then run the §5 smoke test on the real domain — step 8 (real-device push)
-  is still the only never-proven hop.
+- Still operator-side before/after the Vercel deploy: `docs/18-GO-LIVE.md`
+  §2.1 (rotate the service-role key) **cannot be done as written** — found
+  2026-09-09 while deploying. Supabase removed per-key rotation for legacy
+  `anon`/`service_role`: they are static 10-year JWTs now, and the only
+  retirement path is migrating the app to publishable/secret keys and then
+  deactivating the legacy pair (reversible). That migration is a code change
+  (`pg_net` sends the key on `Authorization: Bearer`, where non-JWT secret
+  keys are rejected; Edge Functions' `verify_jwt` only understands legacy
+  JWTs), so it is post-launch work, not a deploy-eve step — Supabase's own
+  deprecation deadline is late 2026. Decision: ship on the current legacy
+  keys; the transcript exposure is accepted residual risk. Set the Vercel env
+  table (§3.1, including `LLM_KEY_ENCRYPTION_KEY` byte-identical to the
+  function secret and a real `NEXT_PUBLIC_APP_URL`), set Site URL + redirect
+  in Supabase auth (§3.2), then run the §5 smoke test on the real domain —
+  step 8 (real-device push) is still the only never-proven hop.
 
 ## Working agreements — settled 2026-08-27
 
