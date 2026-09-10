@@ -74,6 +74,35 @@ describe("apiErrorFromPostgres", () => {
     );
   });
 
+  it("names a taken username rather than the generic duplicate", () => {
+    expect(
+      apiErrorFromPostgres({
+        code: "23505",
+        message:
+          'duplicate key value violates unique constraint "uq_users_username_lower"',
+      }).code,
+    ).toBe("USERNAME_TAKEN");
+  });
+
+  it("treats a username shape violation as a bad value, not a server fault", () => {
+    const error = apiErrorFromPostgres({
+      code: "23514",
+      message:
+        'new row for relation "users" violates check constraint "users_username_shape"',
+    });
+    expect(error.code).toBe("INVALID_USERNAME");
+    expect(error.status).toBe(422);
+  });
+
+  it("treats an unknown check violation as a bad request rather than a fault", () => {
+    const error = apiErrorFromPostgres({
+      code: "23514",
+      message: 'new row violates check constraint "something_else"',
+    });
+    expect(error.code).toBe("VALIDATION_FAILED");
+    expect(error.status).toBe(422);
+  });
+
   it("keeps a genuine fault a fault", () => {
     const error = apiErrorFromPostgres({ code: "XX000", message: "internal error" });
 

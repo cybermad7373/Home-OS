@@ -20,7 +20,7 @@ export async function emailForUsername(username: string): Promise<string | null>
   const { data, error } = await admin
     .from("users")
     .select("email")
-    .ilike("username", username)
+    .ilike("username", escapeLike(username))
     .maybeSingle();
 
   if (error) throw new ApiError("INTERNAL", { cause: error.message });
@@ -33,7 +33,7 @@ export async function isUsernameAvailable(username: string): Promise<boolean> {
   const { data, error } = await admin
     .from("users")
     .select("id")
-    .ilike("username", username)
+    .ilike("username", escapeLike(username))
     .maybeSingle();
 
   if (error) throw new ApiError("INTERNAL", { cause: error.message });
@@ -45,4 +45,15 @@ export async function resolveIdentifier(identifier: string): Promise<string | nu
   const trimmed = identifier.trim();
   if (trimmed.includes("@")) return trimmed.toLowerCase();
   return emailForUsername(trimmed);
+}
+
+/**
+ * `ilike` is a LIKE match, so `%`, `_` and `\` in the value are wildcards and
+ * escapes rather than literal characters — and `_` is legal in every username.
+ * Without escaping, `ruth_1` also matches `ruthx1`, and a name that matches two
+ * rows turns `maybeSingle` into an error. Escape to an exact case-insensitive
+ * match; the unique index on `lower(username)` guarantees at most one row.
+ */
+export function escapeLike(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
 }

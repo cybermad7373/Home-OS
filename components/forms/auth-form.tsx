@@ -357,7 +357,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   );
 }
 
-type Availability = "idle" | "checking" | "free" | "taken" | "invalid";
+type Availability = "idle" | "checking" | "free" | "taken" | "invalid" | "error";
 
 /**
  * Debounced availability check, so the answer arrives while they still care.
@@ -385,12 +385,16 @@ function useUsernameAvailability(username: string): Availability {
         );
         const body = await response.json();
         if (cancelled) return;
+        if (!response.ok || typeof body.available !== "boolean") {
+          setChecked({ name: candidate, state: "error" });
+          return;
+        }
         setChecked({
           name: candidate,
           state: body.available ? "free" : body.reason ? "invalid" : "taken",
         });
       } catch {
-        if (!cancelled) setChecked({ name: candidate, state: "idle" });
+        if (!cancelled) setChecked({ name: candidate, state: "error" });
       }
     }, 400);
 
@@ -417,6 +421,10 @@ function UsernameHint({
     checking: { text: "Checking…", tone: "text-text-muted" },
     free: { text: `${username} is free`, tone: "text-success" },
     taken: { text: `${username} is taken`, tone: "text-danger" },
+    error: {
+      text: "Couldn't check that name — submitting will confirm it",
+      tone: "text-text-muted",
+    },
     invalid: {
       text: "3 to 20 characters: start with a letter, then letters, numbers or _",
       tone: "text-danger",

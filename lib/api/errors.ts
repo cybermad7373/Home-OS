@@ -332,6 +332,7 @@ const UNIQUE_VIOLATIONS: { constraint: string; code: ErrorCode }[] = [
   { constraint: "home_rules_title_unique", code: "RULE_TITLE_TAKEN" },
   { constraint: "foods_house_id_normalised_name_key", code: "FOOD_NAME_TAKEN" },
   { constraint: "users_email_key", code: "EMAIL_TAKEN" },
+  { constraint: "uq_users_username_lower", code: "USERNAME_TAKEN" },
   { constraint: "house_members_house_id_user_id_key", code: "ALREADY_MEMBER" },
   { constraint: "decision_responses_decision_id_member_id_capacity_key", code: "ALREADY_RESPONDED" },
   { constraint: "chore_confirmations_assignment_id_member_id_key", code: "ALREADY_CONFIRMED" },
@@ -354,6 +355,13 @@ export function apiErrorFromPostgres(error: {
     const haystack = `${raw} ${error.details ?? ""} ${error.hint ?? ""}`;
     const match = UNIQUE_VIOLATIONS.find((entry) => haystack.includes(entry.constraint));
     return new ApiError(match?.code ?? "NAME_TAKEN");
+  }
+  // Check constraints raise 23514, not 23505, so they need their own branch: a
+  // username that fails the shape check is a bad value, not a server fault.
+  if (error.code === "23514") {
+    const haystack = `${raw} ${error.details ?? ""} ${error.hint ?? ""}`;
+    if (haystack.includes("users_username_shape")) return new ApiError("INVALID_USERNAME");
+    return new ApiError("VALIDATION_FAILED");
   }
   if (error.code === "42501" || error.code === "PGRST301") {
     return new ApiError("NOT_HOUSE_MEMBER");
