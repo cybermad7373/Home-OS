@@ -4,7 +4,50 @@ A running record of what has been built, what is verified, and what is next.
 Updated at the end of every working session. The roadmap in
 [`docs/07-ROADMAP.md`](docs/07-ROADMAP.md) is the plan; this file is the state.
 
-**Last updated:** 2026-09-09
+**Last updated:** 2026-09-10
+
+## UAT on the live URL — 2026-09-10 (in progress)
+
+Target: `https://home-blh3a8dmz-ruth-0e52.vercel.app/`. Operator reports
+`/signup` answers every signup with "Something went wrong. It's been
+logged." Checked from outside on 2026-09-10:
+
+- **Finding U-04 (blocking, operator-side): U-02 is still open, and it is the
+  whole of this symptom.** `/api/health` still answers 503 with
+  `{"status":"degraded","database":false}`, and
+  `GET /api/auth/username?u=<anything>` answers 500
+  `{"error":{"code":"INTERNAL","message":"Something went wrong. It's been
+  logged.","reference":"8x8z2ce9"}}`. Every database call from the deployed
+  app fails, so `POST /api/auth/signup` fails in its availability check
+  before an account is even attempted. The page itself is fine — `/signup`
+  renders 200 with the right title.
+- The Supabase project underneath is alive (its auth endpoint answers), so
+  the fault is the app's connection config, not the database: one of
+  `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+  `SUPABASE_SERVICE_ROLE_KEY` wrong or missing in the Vercel env. Same fix
+  as U-02: set the env table (`docs/18-GO-LIVE.md` §3.1), then redeploy.
+- **U-03 is also still open.** Health still reports `revision: 88f0781`;
+  `main` is now at `ccd8795`, which includes the username-availability fix
+  (no more false "taken", honest "couldn't check" state), the auth
+  hardening, and the creator credit. Redeploying latest `main` after the
+  env fix closes U-03 and U-04 together.
+
+**Shipped the same day — username-availability fix (`ccd8795`):**
+
+- `lib/data/auth.ts`: `ilike("username", …)` treated `_` (legal in every
+  username) as a single-character wildcard, so `ruth_1` also matched
+  `ruthx1` and a double match turned `maybeSingle` into an error. Both
+  lookups now escape `\%_` to an exact case-insensitive match.
+- `components/forms/auth-form.tsx`: a failed availability check (500,
+  offline) no longer reads "is taken"; a new `error` state says the check
+  could not run and submitting will confirm the name.
+- `lib/api/errors.ts`: `uq_users_username_lower` maps to `USERNAME_TAKEN`
+  (was the generic duplicate), and 23514 check violations map to
+  `INVALID_USERNAME`/`VALIDATION_FAILED` instead of a 500.
+- Verified: typecheck, lint, 39 focused unit cases (3 new), full unit run
+  766 passed / 0 failed, clean production build. Integration suites could
+  not run here — Docker Desktop is down so the local Supabase stack is
+  unreachable (`fetch failed`); environment failure, not a code failure.
 
 ## UAT on the live URL — 2026-09-09 (in progress)
 
