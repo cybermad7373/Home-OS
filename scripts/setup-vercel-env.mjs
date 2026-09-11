@@ -30,30 +30,31 @@ const VARS = [
   {
     name: "NEXT_PUBLIC_SUPABASE_URL",
     required: true,
-    hint: "Supabase dashboard → your project → Settings → Data API → Project URL",
+    hint: "Supabase dashboard → your project → Settings → Data API → Project URL (base URL only, no /rest/v1)",
     check: (v) =>
-      v.startsWith("https://") && v.includes(".supabase.co")
+      /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(v)
         ? null
-        : "should look like https://<ref>.supabase.co",
+        : "must be the bare project URL like https://<ref>.supabase.co — no trailing path such as /rest/v1",
   },
   {
     name: "NEXT_PUBLIC_SUPABASE_ANON_KEY",
     required: true,
     hint: "Same page → anon / public key (starts with eyJ…)",
-    check: isJwt,
+    check: (v) => jwtWithRole(v, "anon"),
   },
   {
     name: "SUPABASE_SERVICE_ROLE_KEY",
     required: true,
-    hint: "Same page → service_role key (click Reveal, starts with eyJ…)",
-    check: isJwt,
+    hint: "Same page → service_role key (click Reveal — a DIFFERENT key from anon)",
+    check: (v) => jwtWithRole(v, "service_role"),
   },
   {
     name: "NEXT_PUBLIC_APP_URL",
     required: true,
     def: "https://home-blh3a8dmz-ruth-0e52.vercel.app",
-    hint: "Your production domain, no trailing slash",
+    hint: "Your production domain, no trailing slash (added slashes are trimmed)",
     check: (v) => (v.startsWith("https://") ? null : "should start with https://"),
+    trimSlashes: true,
   },
   {
     name: "LLM_KEY_ENCRYPTION_KEY",
@@ -100,9 +101,28 @@ const VARS = [
 ];
 
 function isJwt(v) {
-  return /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(v)
-    ? null
-    : "should be a token starting with eyJ… (three parts separated by dots)";
+  return /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(v);
+}
+
+/** Reads the unsigned role claim so anon and service_role keys cannot be swapped. */
+function jwtRole(v) {
+  try {
+    const payload = JSON.parse(Buffer.from(v.split(".")[1], "base64url").toString("utf8"));
+    return typeof payload.role === "string" ? payload.role : null;
+  } catch {
+    return null;
+  }
+}
+
+function jwtWithRole(v, want) {
+  if (!isJwt(v)) return "should be a token starting with eyJ… (three parts separated by dots)";
+  const role = jwtRole(v);
+  if (role !== want) {
+    return role === null
+      ? "could not read this token — copy it again from the dashboard"
+      : `this key belongs to role "${role}", not "${want}" — copy the ${want} key instead`;
+  }
+  return null;
 }
 
 if (process.argv.includes("--list")) {
@@ -138,11 +158,13 @@ function generateLlmKey() {
 }
 
 function vercelWhoami() {
+  // No --no-install: after `npx vercel login` the CLI lives in the npx cache,
+  // and --no-install would refuse to use it.
   try {
-    const out = execFileSync("npx", ["--no-install", "vercel", "whoami"], {
+    const out = execFileSync("npx", ["vercel", "whoami"], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
-      timeout: 30000,
+      timeout: 60000,
     });
     return out.trim();
   } catch {
@@ -160,7 +182,7 @@ function currentSha() {
 
 function pushToVercel(name, value) {
   // Value travels on stdin, never on the command line (no process-list leak).
-  const res = spawnSync("npx", ["--no-install", "vercel", "env", "add", name, "production"], {
+  const res = spawnSync("npx", ["vercel", "env", "add", name, "production"], {
     input: value,
     encoding: "utf8",
     timeout: 60000,
@@ -193,7 +215,12 @@ for (const v of VARS) {
       break;
     }
     const suffix = v.def ? ` [${v.def}]` : "";
-    const raw = (await ask(`${v.name}${suffix}\n  find it: ${v.hint}\n  > `)).trim();
+    let raw = (await ask(`${v.name}${suffix}\n  find it: ${v.hint}\n  > `)).trim();
+    if (v.trimSlashes && raw !== "") {
+      const trimmed = raw.replace(/\/+$/, "");
+      if (trimmed !== raw) console.log("  (trailing slash removed)");
+      raw = trimmed;
+    }
     const value = raw === "" ? (v.def ?? "") : raw;
 
     if (value === "") {
