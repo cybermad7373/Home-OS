@@ -5,7 +5,16 @@
  *     node scripts/setup-vercel-env.mjs           # guided setup (Production)
  *     node scripts/setup-vercel-env.mjs --target=all
  *                                               # push to Production, Preview and Development
+ *     node scripts/setup-vercel-env.mjs --target=all --save-local
+ *                                               # also keep a copy in .env.production.local
+ *     node scripts/setup-vercel-env.mjs --target=all --load-local --yes
+ *                                               # re-push from that copy, no typing
  *     node scripts/setup-vercel-env.mjs --list    # just show what is needed
+ *
+ * --save-local / --load-local use `.env.production.local`, which is covered
+ * by the `.env*` gitignore rule and stays on this machine only. Values are
+ * never printed — prompts show `[saved]` instead of the value. Fully
+ * automatic re-push needs all three flags: --load-local --yes --target=….
  *
  * --target accepts production (default), preview, development or all. Use
  * `all` unless you have a reason not to: a Preview deployment reads ONLY the
@@ -33,6 +42,7 @@
 import { createInterface } from "node:readline";
 import { execFileSync, spawnSync } from "node:child_process";
 import { randomBytes, webcrypto } from "node:crypto";
+import { readFileSync, writeFileSync } from "node:fs";
 
 const VARS = [
   {
@@ -124,6 +134,43 @@ function parseTargets() {
   return value === "all" ? ["production", "preview", "development"] : [value];
 }
 
+const hasFlag = (name) => process.argv.includes(name);
+
+/**
+ * Local vault: `.env.production.local` in the repo root, gitignored via the
+ * `.env*` rule. Read and written on this machine only, never printed —
+ * callers learn SET/unset, never values.
+ */
+const LOCAL_VAULT = ".env.production.local";
+
+function loadVault() {
+  const map = new Map();
+  let raw;
+  try {
+    raw = readFileSync(LOCAL_VAULT, "utf8");
+  } catch {
+    return map;
+  }
+  for (const line of raw.split("\n")) {
+    const m = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+    if (!m || m[2] === "") continue;
+    let value = m[2];
+    const quoted = value.match(/^(['"])(.*)\1$/);
+    if (quoted) value = quoted[2];
+    map.set(m[1], value);
+  }
+  return map;
+}
+
+function saveVault(collected) {
+  const lines = [];
+  for (const v of VARS) {
+    if (collected.has(v.name)) lines.push(`${v.name}=${collected.get(v.name)}`);
+  }
+  writeFileSync(LOCAL_VAULT, lines.join("\n") + "\n");
+  return lines.length;
+}
+
 /** Reads the unsigned role claim so anon and service_role keys cannot be swapped. */
 function jwtRole(v) {
   try {
@@ -212,7 +259,20 @@ function pushToVercel(name, value, target) {
     : { ok: false, detail: (res.stderr || res.stdout || "unknown error").trim().split("\n").pop() };
 }
 
-console.log("\nHouseOS hosting env setup. Values stay in memory only — nothing is written to disk.\n");
+const SAVE_LOCAL = hasFlag("--save-local");
+const LOAD_LOCAL = hasFlag("--load-local");
+const AUTO_YES = hasFlag("--yes");
+const DRY_RUN = hasFlag("--dry-run");
+const vault = LOAD_LOCAL ? loadVault() : new Map();
+if (LOAD_LOCAL) {
+  console.log(
+    vault.size > 0
+      ? `\nLoaded ${vault.size} saved value(s) from ${LOCAL_VAULT} (shown as [saved], never printed).\n`
+      : `\nNo ${LOCAL_VAULT} found — prompting for everything.\n`,
+  );
+} else {
+  console.log("\nHouseOS hosting env setup. Values stay in memory only — nothing is written to disk.\n");
+}
 
 const collected = new Map();
 let pair = null;
@@ -234,14 +294,36 @@ for (const v of VARS) {
       // Already filled when the pair was generated at the public-half prompt.
       break;
     }
-    const suffix = v.def ? ` [${v.def}]` : "";
+    const saved = vault.get(v.name);
+    const fallback = saved ?? v.def ?? "";
+    if (AUTO_YES) {
+      if (fallback === "") {
+        if (v.required) {
+          console.error(`\n${v.name} is required but has no saved value and no default.`);
+          console.error(`Run once interactively (without --yes) to fill ${LOCAL_VAULT} first.\n`);
+          process.exit(1);
+        }
+        console.log(`  SKIP ${v.name} (nothing saved, optional)`);
+        break;
+      }
+      const problem = v.check(fallback);
+      if (problem) {
+        console.error(`\nSaved value for ${v.name} is no longer valid: ${problem}.`);
+        console.error(`Run once interactively to correct it.\n`);
+        process.exit(1);
+      }
+      collected.set(v.name, fallback);
+      console.log(`  ${v.name} (from ${saved ? "saved copy" : "default"})`);
+      break;
+    }
+    const suffix = fallback !== "" ? (saved ? " [saved — Enter to keep]" : ` [${v.def}]`) : "";
     let raw = (await ask(`${v.name}${suffix}\n  find it: ${v.hint}\n  > `)).trim();
     if (v.trimSlashes && raw !== "") {
       const trimmed = raw.replace(/\/+$/, "");
       if (trimmed !== raw) console.log("  (trailing slash removed)");
       raw = trimmed;
     }
-    const value = raw === "" ? (v.def ?? "") : raw;
+    const value = raw === "" ? fallback : raw;
 
     if (value === "") {
       if (v.required) {
@@ -298,6 +380,22 @@ if (missing.length > 0) {
   console.log(`\nStill missing required: ${missing.join(", ")} — the app will not work without these.`);
 }
 
+if (SAVE_LOCAL) {
+  const count = saveVault(collected);
+  console.log(`\nSaved ${count} value(s) to ${LOCAL_VAULT} — gitignored, this machine only.`);
+  console.log(`Re-push any time with: node scripts/setup-vercel-env.mjs --target=all --load-local --yes`);
+}
+
+const targets = parseTargets();
+
+if (DRY_RUN) {
+  console.log(`\nDry run — would push to: ${targets.join(", ")}\n`);
+  for (const v of VARS) {
+    console.log(`  ${collected.has(v.name) ? "WOULD PUSH" : "SKIP (no value)"} ${v.name}`);
+  }
+  process.exit(0);
+}
+
 const who = vercelWhoami();
 if (!who) {
   console.log("\nVercel CLI is not logged in here (run `npx vercel login` to enable auto-push).");
@@ -307,17 +405,22 @@ if (!who) {
     else console.log(`  ${v.name}=(skipped)`);
   }
 } else {
-  console.log(`\nLogged into Vercel as ${who}. Push collected values (${parseTargets().join(", ")})?`);
-  const rl2 = createInterface({ input: process.stdin, output: process.stdout });
-  const answer = (await new Promise((res) => rl2.question("Type YES to push, anything else to print the table instead: ", res))).trim();
-  rl2.close();
+  console.log(`\nLogged into Vercel as ${who}. Push collected values (${targets.join(", ")})?`);
+  let answer = "NO";
+  if (AUTO_YES) {
+    answer = "YES";
+  } else {
+    const rl2 = createInterface({ input: process.stdin, output: process.stdout });
+    answer = (await new Promise((res) => rl2.question("Type YES to push, anything else to print the table instead: ", res))).trim();
+    rl2.close();
+  }
   if (answer !== "YES") {
     console.log("\nNot pushed. Paste-ready table for Settings → Environment Variables (Production):\n");
     for (const v of VARS) {
       console.log(`  ${v.name}=${collected.has(v.name) ? "<the value you just entered>" : "(skipped)"}`);
     }
   } else {
-    for (const target of parseTargets()) {
+    for (const target of targets) {
       console.log(`\nPushing to Vercel ${target}:`);
       for (const v of VARS) {
         if (!collected.has(v.name)) {
