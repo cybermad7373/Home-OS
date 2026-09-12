@@ -69,3 +69,6 @@ backups/
 # on any branch — values live in the password manager / host env only.
 docs/deploy.txt
 **/deploy.txt
+
+.vercel
+.env*
