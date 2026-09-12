@@ -32,6 +32,19 @@ logged." Checked from outside on 2026-09-10:
   hardening, and the creator credit. Redeploying latest `main` after the
   env fix closes U-03 and U-04 together.
 
+**Update, 2026-09-12 — Finding U-05 (operator-side): the env never reached
+any deployment.** A `POST /api/auth/signup` 500 on a Preview deployment
+(`home-663tbo6j1-…`, deployment `dpl_CYMaZ7aaxiwAu1bLefR5nii7vPN9`) shows
+66 ms with **zero outgoing requests** — the handler died before touching
+the network, i.e. a missing env var, not a database refusal. Both the
+Preview and the Production hosts still answer health 503
+`database:false` on the stale `88f0781` build: no vars were ever pushed
+(the CLI push never ran) and no redeploy happened after any dashboard
+edits (env changes need a redeploy to take effect). Script now takes
+`--target=all` so one run covers Production, Preview and Development;
+a Preview deployment reads ONLY Preview variables, which is exactly the
+trap this 500 fell into.
+
 **Shipped the same day — username-availability fix (`ccd8795`):**
 
 - `lib/data/auth.ts`: `ilike("username", …)` treated `_` (legal in every
