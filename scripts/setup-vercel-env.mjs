@@ -2,8 +2,16 @@
 /**
  * Interactive setup for the hosting (Vercel) environment variables.
  *
- *     node scripts/setup-vercel-env.mjs           # guided setup
+ *     node scripts/setup-vercel-env.mjs           # guided setup (Production)
+ *     node scripts/setup-vercel-env.mjs --target=all
+ *                                               # push to Production, Preview and Development
  *     node scripts/setup-vercel-env.mjs --list    # just show what is needed
+ *
+ * --target accepts production (default), preview, development or all. Use
+ * `all` unless you have a reason not to: a Preview deployment reads ONLY the
+ * Preview variables, so testing a preview URL with Production-only variables
+ * fails every database call with a 500 before a single request leaves the
+ * server (visible in the function log as no outgoing requests).
  *
  * What it does:
  *   1. Asks you for each required value, saying exactly where to find it.
@@ -104,6 +112,18 @@ function isJwt(v) {
   return /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(v);
 }
 
+/** Which Vercel environment(s) to push to. `--target=all` covers all three. */
+function parseTargets() {
+  const arg = process.argv.find((a) => a.startsWith("--target="));
+  const value = arg ? arg.slice("--target=".length) : "production";
+  const allowed = ["production", "preview", "development", "all"];
+  if (!allowed.includes(value)) {
+    console.error(`\nUnknown --target=${value}. Use one of: ${allowed.join(", ")}.\n`);
+    process.exit(1);
+  }
+  return value === "all" ? ["production", "preview", "development"] : [value];
+}
+
 /** Reads the unsigned role claim so anon and service_role keys cannot be swapped. */
 function jwtRole(v) {
   try {
@@ -180,9 +200,9 @@ function currentSha() {
   }
 }
 
-function pushToVercel(name, value) {
+function pushToVercel(name, value, target) {
   // Value travels on stdin, never on the command line (no process-list leak).
-  const res = spawnSync("npx", ["vercel", "env", "add", name, "production"], {
+  const res = spawnSync("npx", ["vercel", "env", "add", name, target], {
     input: value,
     encoding: "utf8",
     timeout: 60000,
@@ -287,7 +307,7 @@ if (!who) {
     else console.log(`  ${v.name}=(skipped)`);
   }
 } else {
-  console.log(`\nLogged into Vercel as ${who}. Push collected values to Production?`);
+  console.log(`\nLogged into Vercel as ${who}. Push collected values (${parseTargets().join(", ")})?`);
   const rl2 = createInterface({ input: process.stdin, output: process.stdout });
   const answer = (await new Promise((res) => rl2.question("Type YES to push, anything else to print the table instead: ", res))).trim();
   rl2.close();
@@ -297,13 +317,16 @@ if (!who) {
       console.log(`  ${v.name}=${collected.has(v.name) ? "<the value you just entered>" : "(skipped)"}`);
     }
   } else {
-    for (const v of VARS) {
-      if (!collected.has(v.name)) {
-        console.log(`  SKIP ${v.name} (no value collected)`);
-        continue;
+    for (const target of parseTargets()) {
+      console.log(`\nPushing to Vercel ${target}:`);
+      for (const v of VARS) {
+        if (!collected.has(v.name)) {
+          console.log(`  SKIP ${v.name} (no value collected)`);
+          continue;
+        }
+        const res = pushToVercel(v.name, collected.get(v.name), target);
+        console.log(res.ok ? `  PUSHED ${v.name}` : `  FAILED ${v.name}: ${res.detail}`);
       }
-      const res = pushToVercel(v.name, collected.get(v.name));
-      console.log(res.ok ? `  PUSHED ${v.name}` : `  FAILED ${v.name}: ${res.detail}`);
     }
     console.log("\nNotes: NEXT_PUBLIC_* entries must stay NON-sensitive in the dashboard");
     console.log("(Vercel refuses the Sensitive toggle on public-prefix variables).");
